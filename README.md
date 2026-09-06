@@ -3,16 +3,23 @@
 Aplicación personal de **registro, planificación y progresión de entrenamiento**, con ranking
 muscular visual y preparada para ser operada por un agente de IA local.
 
-> **Estado actual: FASE 0 — Diseño.** No hay código de aplicación todavía.
-> El diseño se cierra cuando se resuelvan las decisiones abiertas.
+> **Estado actual: FASE 0 — Fundamentos.** Decisiones estructurales cerradas (ADR-0001 a ADR-0004).
+> Aún no hay código de aplicación.
 
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
 | [docs/00-analisis-y-arquitectura.md](docs/00-analisis-y-arquitectura.md) | Análisis completo: dominio, reglas, arquitectura, progresión, ranking, IA, riesgos, roadmap |
-| [docs/01-decisiones-pendientes.md](docs/01-decisiones-pendientes.md) | Decisiones que requieren aprobación humana (bloqueantes) |
-| [docs/adr/](docs/adr/) | Architecture Decision Records (se llenan al resolver cada decisión) |
+| [docs/01-decisiones-pendientes.md](docs/01-decisiones-pendientes.md) | Registro de decisiones: cerradas, defaults aplicados y abiertas |
+| [docs/adr/](docs/adr/) | Architecture Decision Records: distribución, stack, ranking, integración con IA |
+
+## Decisiones estructurales
+
+- **Distribución:** servidor local en el PC + PWA accesible desde el móvil por LAN.
+- **Stack:** Python + FastAPI + SQLite · React + TypeScript · tipos TS generados desde OpenAPI.
+- **Ranking:** el rango Iron→Radiant mide **desarrollo**; la actividad reciente es un indicador secundario.
+- **Agente de IA:** proyecto externo y autónomo. Fit-Up ofrece un contrato estable (OpenAPI + MCP) y protege el historial con **inmutabilidad, auditoría y backups**, no con permisos.
 
 ## Principios
 
