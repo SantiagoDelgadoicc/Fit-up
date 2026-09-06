@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Una ejecución por rama: los push seguidos cancelan la anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: python -m pip install --upgrade pip -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Formato
+        run: ruff format --check .
+
+      - name: Tests
+        run: pytest --cov --cov-report=term-missing
+
+      # El dominio concentra el riesgo del proyecto (progresión, ranking,
+      # cumplimiento). Si su cobertura cae, el fallo debe ser visible.
+      - name: Cobertura mínima del dominio
+        run: coverage report --include="src/fitup/domain/*" --fail-under=90
+
+      # `fitup init` es lo primero que ejecuta cualquiera: si se rompe, no hay
+      # proyecto. Se verifica de extremo a extremo, incluida la idempotencia.
+      - name: Arranque de extremo a extremo
+        run: |
+          python -m fitup.cli --db /tmp/ci.db init
+          python -m fitup.cli --db /tmp/ci.db init
+          python -m fitup.cli --db /tmp/ci.db check

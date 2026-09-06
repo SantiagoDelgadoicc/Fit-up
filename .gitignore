@@ -17,8 +17,11 @@ build/
 *.db-shm
 *.sqlite
 *.sqlite3
-data/
-backups/
+# Solo el directorio de datos de la raíz: `data/` a secas excluía tambien el
+# catalogo semilla (backend/src/fitup/infrastructure/seed/data), sin el cual
+# el proyecto no arranca al clonarlo.
+/data/
+/backups/
 
 # Herramientas
 .pytest_cache/

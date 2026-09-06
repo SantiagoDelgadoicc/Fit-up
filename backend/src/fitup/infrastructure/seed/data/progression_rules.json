@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "doble_progresion_8_12",
+    "name": "Doble progresión 8-12",
+    "strategy": "doble_progresion",
+    "params": {"rep_min": 8, "rep_max": 12, "incremento": 1, "incremento_peso": 2.5},
+    "guards": {"cooldown_days": 7, "max_load_increase_pct": 0.10},
+    "notes": "Regla por defecto para trabajo con carga externa: sube repeticiones hasta 12, luego +2.5 kg y vuelve a 8."
+  },
+  {
+    "slug": "doble_progresion_6_10",
+    "name": "Doble progresión 6-10",
+    "strategy": "doble_progresion",
+    "params": {"rep_min": 6, "rep_max": 10, "incremento": 1, "incremento_peso": 2.5},
+    "guards": {"cooldown_days": 7, "max_load_increase_pct": 0.10},
+    "notes": "Rango de fuerza para básicos pesados."
+  },
+  {
+    "slug": "doble_progresion_12_20",
+    "name": "Doble progresión 12-20",
+    "strategy": "doble_progresion",
+    "params": {"rep_min": 12, "rep_max": 20, "incremento": 1, "incremento_peso": 1.25},
+    "guards": {"cooldown_days": 7, "max_load_increase_pct": 0.10},
+    "notes": "Accesorios y aislamiento, donde el salto de carga debe ser pequeño."
+  },
+  {
+    "slug": "reps_hasta_20",
+    "name": "Repeticiones hasta 20",
+    "strategy": "reps_lineal",
+    "params": {"incremento": 1, "rep_max": 20},
+    "guards": {"cooldown_days": 5, "max_reps": 20},
+    "notes": "Calistenia. Al llegar a 20 declara UNDETERMINED a propósito: el paso siguiente es cambiar de variante, no seguir sumando repeticiones."
+  },
+  {
+    "slug": "reps_hasta_15",
+    "name": "Repeticiones hasta 15",
+    "strategy": "reps_lineal",
+    "params": {"incremento": 1, "rep_max": 15},
+    "guards": {"cooldown_days": 5, "max_reps": 15}
+  },
+  {
+    "slug": "peso_lineal_2_5",
+    "name": "Peso lineal +2.5 kg",
+    "strategy": "peso_lineal",
+    "params": {"incremento": 2.5},
+    "guards": {"cooldown_days": 7, "max_load_increase_pct": 0.10}
+  },
+  {
+    "slug": "peso_lineal_5",
+    "name": "Peso lineal +5 kg",
+    "strategy": "peso_lineal",
+    "params": {"incremento": 5.0},
+    "guards": {"cooldown_days": 7, "max_load_increase_pct": 0.10},
+    "notes": "Tren inferior, donde 2.5 kg es un salto despreciable."
+  },
+  {
+    "slug": "tiempo_isometrico",
+    "name": "Isométrico +5 s",
+    "strategy": "tiempo",
+    "params": {"incremento_s": 5, "tiempo_max": 120},
+    "guards": {"cooldown_days": 5, "max_time_s": 120}
+  },
+  {
+    "slug": "series_hasta_5",
+    "name": "Añadir series hasta 5",
+    "strategy": "series",
+    "params": {"set_max": 5},
+    "guards": {"cooldown_days": 14, "max_sets": 5},
+    "notes": "Cooldown largo: añadir una serie sube el volumen de golpe mucho más que una repetición."
+  },
+  {
+    "slug": "variante_calistenia",
+    "name": "Siguiente variante",
+    "strategy": "variante",
+    "params": {},
+    "guards": {"cooldown_days": 14}
+  },
+  {
+    "slug": "manual",
+    "name": "Manual",
+    "strategy": "manual",
+    "params": {},
+    "guards": {},
+    "notes": "El sistema nunca propone progresión para este ejercicio."
+  }
+]

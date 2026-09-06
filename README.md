@@ -3,8 +3,17 @@
 Aplicación personal de **registro, planificación y progresión de entrenamiento**, con ranking
 muscular visual y preparada para ser operada por un agente de IA local.
 
-> **Estado actual: FASE 0 — Fundamentos.** Decisiones estructurales cerradas (ADR-0001 a ADR-0004).
-> Aún no hay código de aplicación.
+> **Estado: F0 completada.** Esquema, dominio puro, catálogo semilla y CI en verde.
+> Siguiente: F1 — MVP de registro.
+
+## Arranque rápido
+
+```bash
+cd backend
+python -m pip install -e ".[dev]"
+python -m fitup.cli --db ../data/fitup.db init
+python -m pytest
+```
 
 ## Documentación
 
@@ -12,6 +21,8 @@ muscular visual y preparada para ser operada por un agente de IA local.
 |---|---|
 | [docs/00-analisis-y-arquitectura.md](docs/00-analisis-y-arquitectura.md) | Análisis completo: dominio, reglas, arquitectura, progresión, ranking, IA, riesgos, roadmap |
 | [docs/01-decisiones-pendientes.md](docs/01-decisiones-pendientes.md) | Registro de decisiones: cerradas, defaults aplicados y abiertas |
+| [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md) | Plan por fases con seguimiento de hitos |
+| [CLAUDE.md](CLAUDE.md) | Guía de trabajo: comandos, invariantes y convenciones |
 | [docs/adr/](docs/adr/) | Architecture Decision Records: distribución, stack, ranking, integración con IA |
 
 ## Decisiones estructurales

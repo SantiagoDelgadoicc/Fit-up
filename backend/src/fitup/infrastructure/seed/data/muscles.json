@@ -1,0 +1,20 @@
+[
+  {"slug": "pectoral",           "name": "Pectoral",            "region": "torso_anterior",  "body_view": "frontal", "svg_key": "chest",       "display_order": 10},
+  {"slug": "deltoide_anterior",  "name": "Deltoide anterior",   "region": "torso_anterior",  "body_view": "frontal", "svg_key": "delt_front",  "display_order": 20},
+  {"slug": "deltoide_lateral",   "name": "Deltoide lateral",    "region": "torso_anterior",  "body_view": "ambas",   "svg_key": "delt_side",   "display_order": 21},
+  {"slug": "deltoide_posterior", "name": "Deltoide posterior",  "region": "torso_posterior", "body_view": "dorsal",  "svg_key": "delt_rear",   "display_order": 22},
+  {"slug": "dorsal_ancho",       "name": "Dorsal ancho",        "region": "torso_posterior", "body_view": "dorsal",  "svg_key": "lats",        "display_order": 30},
+  {"slug": "trapecio",           "name": "Trapecio",            "region": "torso_posterior", "body_view": "ambas",   "svg_key": "traps",       "display_order": 31},
+  {"slug": "romboides",          "name": "Romboides",           "region": "torso_posterior", "body_view": "dorsal",  "svg_key": "rhomboids",   "display_order": 32},
+  {"slug": "biceps",             "name": "Bíceps",              "region": "brazos",          "body_view": "frontal", "svg_key": "biceps",      "display_order": 40},
+  {"slug": "triceps",            "name": "Tríceps",             "region": "brazos",          "body_view": "dorsal",  "svg_key": "triceps",     "display_order": 41},
+  {"slug": "antebrazo",          "name": "Antebrazo",           "region": "brazos",          "body_view": "ambas",   "svg_key": "forearm",     "display_order": 42},
+  {"slug": "cuadriceps",         "name": "Cuádriceps",          "region": "piernas",         "body_view": "frontal", "svg_key": "quads",       "display_order": 50},
+  {"slug": "isquiotibiales",     "name": "Isquiotibiales",      "region": "piernas",         "body_view": "dorsal",  "svg_key": "hamstrings",  "display_order": 51},
+  {"slug": "gluteo",             "name": "Glúteo",              "region": "piernas",         "body_view": "dorsal",  "svg_key": "glutes",      "display_order": 52},
+  {"slug": "aductores",          "name": "Aductores",           "region": "piernas",         "body_view": "frontal", "svg_key": "adductors",   "display_order": 53},
+  {"slug": "gemelos",            "name": "Gemelos",             "region": "piernas",         "body_view": "ambas",   "svg_key": "calves",      "display_order": 54},
+  {"slug": "abdominales",        "name": "Abdominales",         "region": "core",            "body_view": "frontal", "svg_key": "abs",         "display_order": 60},
+  {"slug": "oblicuos",           "name": "Oblicuos",            "region": "core",            "body_view": "frontal", "svg_key": "obliques",    "display_order": 61},
+  {"slug": "lumbares",           "name": "Lumbares",            "region": "core",            "body_view": "dorsal",  "svg_key": "lower_back",  "display_order": 62}
+]
