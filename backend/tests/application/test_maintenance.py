@@ -62,7 +62,10 @@ def test_la_copia_de_seguridad_es_una_base_de_datos_valida(tmp_path):
 
     assert target.exists()
     restored = connect(target)
-    assert migrator.current_version(restored) == 1
+    # La copia conserva la version del esquema, sea cual sea: se compara con
+    # la del original en vez de con un numero fijo, que caduca en cada
+    # migracion y no es lo que este test comprueba.
+    assert migrator.current_version(restored) == migrator.current_version(connect(db_path))
     restored.close()
 
 

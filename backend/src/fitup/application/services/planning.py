@@ -8,7 +8,7 @@ from datetime import date as Date
 from ...domain.enums import Actor
 from ...domain.models import PlannedExercise, PlannedSet, ScheduleException
 from ..errors import Invalid, NotFound
-from ..repositories import catalog, planning
+from ..repositories import catalog, history, planning
 from ..views import RoutineDetail, RoutineSummary, WeekPlan
 
 
@@ -21,6 +21,7 @@ def build_sets(
     time_s: int | None = None,
     rir: int | None = None,
     warmup: int = 0,
+    to_failure: bool = False,
 ) -> tuple[PlannedSet, ...]:
     """Genera las filas de series a partir de una prescripción compacta.
 
@@ -30,8 +31,13 @@ def build_sets(
     """
     if count < 1:
         raise Invalid("Una serie planificada como mínimo")
-    if reps is None and time_s is None:
-        raise Invalid("Cada serie necesita repeticiones o tiempo objetivo")
+    if reps is None and time_s is None and not to_failure:
+        raise Invalid("Cada serie necesita repeticiones, tiempo objetivo, o ir al fallo")
+    if to_failure and reps is not None:
+        raise Invalid(
+            "Una serie al fallo no lleva repeticiones objetivo: o se llega al "
+            "fallo, o se llega al número"
+        )
     if reps_max is not None and reps is not None and reps_max < reps:
         raise Invalid("El máximo de repeticiones no puede ser menor que el objetivo")
 
@@ -40,10 +46,12 @@ def build_sets(
         sets.append(
             PlannedSet(
                 set_no=i + 1,
+                # El calentamiento nunca va al fallo, aunque la serie efectiva
+                # sí: calentar hasta no poder más deja sin nada el trabajo.
                 target_reps=reps,
                 target_time_s=time_s,
-                # El calentamiento se propone a la mitad de la carga; es un
-                # punto de partida editable, no una prescripción.
+                # Se propone a la mitad de la carga; es un punto de partida
+                # editable, no una prescripción.
                 target_weight_kg=round(weight_kg / 2, 2) if weight_kg else None,
                 is_warmup=True,
             )
@@ -57,6 +65,7 @@ def build_sets(
                 target_weight_kg=weight_kg,
                 target_time_s=time_s,
                 target_rir=rir,
+                to_failure=to_failure,
             )
         )
     return tuple(sets)
@@ -100,6 +109,12 @@ def create_routine(
     routine_id = planning.create_routine(
         conn, name=name.strip(), exercises=exercises, note=note, actor=actor
     )
+    history.audit(
+        conn,
+        actor=actor,
+        action="create_routine",
+        payload={"routine_id": routine_id, "name": name.strip()},
+    )
     conn.commit()
     return planning.get_routine(conn, routine_id)
 
@@ -127,6 +142,9 @@ def update_routine(
         conn.execute("UPDATE routine SET name = ? WHERE id = ?", (name.strip(), routine_id))
 
     planning.create_version(conn, routine_id, exercises=exercises, note=note, actor=actor)
+    history.audit(
+        conn, actor=actor, action="update_routine", payload={"routine_id": routine_id, "name": name}
+    )
     conn.commit()
     return planning.get_routine(conn, routine_id)
 
@@ -143,8 +161,11 @@ def list_routines(
     return planning.list_routines(conn, include_archived=include_archived)
 
 
-def archive_routine(conn: sqlite3.Connection, routine_id: int) -> None:
+def archive_routine(
+    conn: sqlite3.Connection, routine_id: int, *, actor: Actor = Actor.USUARIO
+) -> None:
     planning.archive_routine(conn, routine_id)
+    history.audit(conn, actor=actor, action="archive_routine", payload={"routine_id": routine_id})
     conn.commit()
 
 
@@ -155,17 +176,29 @@ def archive_routine(conn: sqlite3.Connection, routine_id: int) -> None:
 
 def set_week(
     conn: sqlite3.Connection,
-    assignments: dict[int, int | None],
+    assignments: dict[int, list[int]],
     *,
     effective_from: Date,
+    actor: Actor = Actor.USUARIO,
 ) -> WeekPlan:
-    for weekday, routine_id in assignments.items():
+    for weekday, routine_ids in assignments.items():
         if not 0 <= weekday <= 6:
             raise Invalid(f"Día de la semana inválido: {weekday}")
-        if routine_id is not None:
+        if len(set(routine_ids)) != len(routine_ids):
+            raise Invalid(
+                f"El día {weekday} repite alguna rutina. Para hacerla dos veces "
+                "el mismo día, duplícala con otro nombre."
+            )
+        for routine_id in routine_ids:
             planning.get_routine(conn, routine_id)  # existencia
 
     planning.set_week(conn, assignments, effective_from=effective_from)
+    history.audit(
+        conn,
+        actor=actor,
+        action="set_week",
+        payload={"days": assignments, "effective_from": effective_from},
+    )
     conn.commit()
     return planning.get_week(conn, effective_from)
 
@@ -174,11 +207,20 @@ def get_week(conn: sqlite3.Connection, at: Date) -> WeekPlan:
     return planning.get_week(conn, at)
 
 
-def set_exception(conn: sqlite3.Connection, exception: ScheduleException) -> None:
+def set_exception(
+    conn: sqlite3.Connection, exception: ScheduleException, *, actor: Actor = Actor.USUARIO
+) -> None:
     planning.set_exception(conn, exception)
+    history.audit(
+        conn,
+        actor=actor,
+        action="set_exception",
+        payload={"date": exception.date, "reason": str(exception.reason)},
+    )
     conn.commit()
 
 
-def clear_exception(conn: sqlite3.Connection, day: Date) -> None:
+def clear_exception(conn: sqlite3.Connection, day: Date, *, actor: Actor = Actor.USUARIO) -> None:
     planning.clear_exception(conn, day)
+    history.audit(conn, actor=actor, action="clear_exception", payload={"date": day})
     conn.commit()

@@ -80,11 +80,18 @@ export function describePlanned(exercise: PlannedExercise): string {
     (s) =>
       s.target_reps === first.target_reps &&
       s.target_time_s === first.target_time_s &&
-      s.target_weight_kg === first.target_weight_kg,
+      s.target_weight_kg === first.target_weight_kg &&
+      s.to_failure === first.to_failure,
   );
 
   const one = (s: (typeof work)[number]) => {
-    const base = s.target_time_s != null ? `${s.target_time_s}s` : `${s.target_reps ?? "?"}`;
+    // Una serie al fallo no tiene objetivo: decirlo con un "?" la haría
+    // parecer un dato que falta, cuando es el plan.
+    const base = s.to_failure
+      ? "fallo"
+      : s.target_time_s != null
+        ? `${s.target_time_s}s`
+        : `${s.target_reps ?? "?"}`;
     return s.target_weight_kg ? `${base} · ${s.target_weight_kg}kg` : base;
   };
 

@@ -25,6 +25,8 @@ type Draft = {
   weightKg: number | null;
   restSeconds: number | null;
   warmup: number;
+  /** Al fallo: sin objetivo de repeticiones, se llega hasta donde se llegue. */
+  toFailure: boolean;
   /** `null` = hereda la regla que el catálogo declara para el ejercicio. */
   ruleSlug: string | null;
 };
@@ -62,6 +64,7 @@ export default function RoutineEditor() {
           // Se conserva: guardar no debe destruir en silencio el calentamiento
           // que ya tenia la rutina.
           warmup: e.sets.length - work.length,
+          toFailure: first?.to_failure ?? false,
           ruleSlug: e.rule_slug ?? null,
         };
       }),
@@ -87,6 +90,7 @@ export default function RoutineEditor() {
         weightKg: exercise.load_type === "externa" ? 20 : null,
         restSeconds: exercise.default_rest_seconds,
         warmup: 0,
+        toFailure: false,
         ruleSlug: null,
       },
     ]);
@@ -114,10 +118,13 @@ export default function RoutineEditor() {
         rule_slug: item.ruleSlug,
         spec: {
           count: item.count,
-          reps: item.reps,
+          // Al fallo no lleva objetivo: mandarlo sería contradecirse, y el
+          // backend lo rechaza precisamente por eso.
+          reps: item.toFailure ? null : item.reps,
           time_s: item.timeS,
           weight_kg: item.weightKg,
           warmup: item.warmup,
+          to_failure: item.toFailure,
         },
       })),
     };
@@ -262,9 +269,24 @@ function ExerciseRow({
               className="num"
               type="number"
               min={1}
-              value={item.reps ?? ""}
+              value={item.toFailure ? "" : (item.reps ?? "")}
+              disabled={item.toFailure}
+              placeholder={item.toFailure ? "fallo" : undefined}
               onChange={(e) => onChange({ reps: Number(e.target.value) || null })}
             />
+          </label>
+        )}
+
+        {/* Al fallo solo tiene sentido con repeticiones: una plancha ya se
+            mide por tiempo, y "al fallo" sería el mismo dato dicho dos veces. */}
+        {!isTime && (
+          <label className="scope" style={{ alignSelf: "center" }}>
+            <input
+              type="checkbox"
+              checked={item.toFailure}
+              onChange={(e) => onChange({ toFailure: e.target.checked })}
+            />
+            <span>Al fallo</span>
           </label>
         )}
 

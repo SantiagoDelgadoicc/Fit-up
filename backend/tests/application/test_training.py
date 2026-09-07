@@ -11,6 +11,7 @@ from datetime import date, timedelta
 import pytest
 
 from fitup.application.errors import Conflict, Invalid, NotFound
+from fitup.application.repositories import history
 from fitup.application.services import planning as planning_svc
 from fitup.application.services import training as svc
 from fitup.domain.enums import DayState, SessionOrigin, SessionStatus
@@ -67,9 +68,13 @@ def test_no_se_puede_registrar_como_planificado_un_dia_sin_rutina(db, weekly):
         svc.log_as_planned(db, TUESDAY, today=SUNDAY)
 
 
-def test_no_se_puede_registrar_dos_veces_el_mismo_dia(db, weekly):
+def test_no_se_puede_registrar_dos_veces_la_misma_rutina(db, weekly):
+    """Dos entrenamientos el mismo día sí; el mismo dos veces, no.
+
+    Lo primero es normal —mañana y tarde—; lo segundo es un doble clic.
+    """
     svc.log_as_planned(db, FRIDAY, today=SUNDAY)
-    with pytest.raises(Conflict, match="ya tiene un entrenamiento"):
+    with pytest.raises(Conflict, match="ya tiene registradas"):
         svc.log_as_planned(db, FRIDAY, today=SUNDAY)
 
 
@@ -164,7 +169,7 @@ def test_declarar_que_no_se_entreno_es_informacion_no_ausencia(db, weekly):
 def test_borrar_una_sesion(db, weekly):
     session = svc.log_as_planned(db, FRIDAY, today=SUNDAY)
     svc.delete_session(db, session.id)
-    assert svc.get_day(db, FRIDAY, today=SUNDAY).session is None
+    assert svc.get_day(db, FRIDAY, today=SUNDAY).sessions == []
 
 
 def test_borrar_una_sesion_inexistente_falla(db):
@@ -180,15 +185,15 @@ def test_borrar_una_sesion_inexistente_falla(db):
 def test_el_dia_de_hoy_trae_el_plan_aunque_no_haya_registro(db, weekly):
     day = svc.get_day(db, WEDNESDAY, today=WEDNESDAY)
     assert day.state is DayState.PENDING
-    assert day.planned is not None
-    assert len(day.planned.exercises) == 3
+    assert len(day.scheduled) == 1
+    assert len(day.scheduled[0].detail.exercises) == 3
     assert day.can_log
 
 
 def test_un_dia_sin_rutina_es_descanso(db, weekly):
     day = svc.get_day(db, TUESDAY, today=SUNDAY)
     assert day.state is DayState.REST
-    assert day.planned is None
+    assert day.scheduled == []
 
 
 def test_un_dia_registrado_ya_no_ofrece_registrar(db, weekly):
@@ -303,8 +308,8 @@ def test_el_calendario_dice_que_rutina_tocaba_cada_dia(db, weekly):
 def test_el_calendario_enlaza_la_sesion_registrada(db, weekly):
     sesion = svc.log_as_planned(db, FRIDAY, today=SUNDAY)
     dias = {d.date: d for d in svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)}
-    assert dias[FRIDAY].session_id == sesion.id
-    assert dias[MONDAY].session_id is None
+    assert dias[FRIDAY].session_ids == [sesion.id]
+    assert dias[MONDAY].session_ids == []
 
 
 def test_un_entrenamiento_extra_muestra_lo_que_se_hizo_no_lo_programado(db, weekly):
@@ -321,3 +326,87 @@ def test_el_veredicto_del_dominio_viaja_intacto_en_cada_dia(db, weekly):
     for dia in dias:
         assert dia.state is dia.verdict.state
         assert dia.reason == dia.verdict.reason
+
+
+# --------------------------------------------------------------------------
+# Días con dos rutinas: calistenia por la mañana, pesas por la tarde.
+# --------------------------------------------------------------------------
+
+
+def _dos_rutinas(db) -> tuple[int, int]:
+    """Lunes con rutina de mañana y de tarde."""
+    from fitup.application.services import planning as planning_svc
+
+    manana = planning_svc.create_routine(
+        db, name="Calistenia mañana", exercises=[plan("dominadas")]
+    ).id
+    tarde = planning_svc.create_routine(db, name="Pecho tarde", exercises=[plan("flexiones")]).id
+    planning_svc.set_week(db, {MONDAY.weekday(): [manana, tarde]}, effective_from=date(2026, 3, 1))
+    return manana, tarde
+
+
+def test_un_dia_puede_tener_dos_rutinas_programadas(db):
+    manana, tarde = _dos_rutinas(db)
+    dia = svc.get_day(db, MONDAY, today=SUNDAY)
+    assert [s.routine_id for s in dia.scheduled] == [manana, tarde]
+    assert dia.scheduled[0].name == "Calistenia mañana"
+
+
+def test_con_dos_rutinas_sin_registrar_hay_que_decir_cual(db):
+    """Dar por hecho que es la primera anotaría la mañana al hacer la tarde."""
+    _dos_rutinas(db)
+    with pytest.raises(Invalid, match="más de una rutina sin registrar"):
+        svc.log_as_planned(db, MONDAY, today=SUNDAY)
+
+
+def test_registrar_la_de_la_tarde_deja_la_manana_pendiente(db):
+    _, tarde = _dos_rutinas(db)
+    svc.log_as_planned(db, MONDAY, routine_id=tarde, today=SUNDAY)
+
+    dia = svc.get_day(db, MONDAY, today=SUNDAY)
+    assert dia.scheduled[0].session is None  # la mañana sigue sin hacer
+    assert dia.scheduled[1].session is not None
+    assert dia.can_log
+
+
+def test_registrada_una_la_otra_ya_no_necesita_que_se_indique(db):
+    """Si solo queda una pendiente, no hay ambigüedad que resolver."""
+    manana, tarde = _dos_rutinas(db)
+    svc.log_as_planned(db, MONDAY, routine_id=tarde, today=SUNDAY)
+    sesion = svc.log_as_planned(db, MONDAY, today=SUNDAY)
+
+    assert sesion.routine_id == manana
+    assert len(svc.get_day(db, MONDAY, today=SUNDAY).sessions) == 2
+
+
+def test_registrar_las_dos_completa_el_dia(db):
+    manana, tarde = _dos_rutinas(db)
+    svc.log_as_planned(db, MONDAY, routine_id=manana, today=SUNDAY)
+    svc.log_as_planned(db, MONDAY, routine_id=tarde, today=SUNDAY)
+
+    dia = svc.get_day(db, MONDAY, today=SUNDAY)
+    assert dia.state is DayState.DONE
+    assert not dia.can_log
+
+
+def test_una_rutina_de_otro_dia_no_se_puede_registrar(db):
+    _dos_rutinas(db)
+    otra = planning_svc.create_routine(db, name="Suelta", exercises=[plan("flexiones")]).id
+    with pytest.raises(Invalid, match="no estaba programada"):
+        svc.log_as_planned(db, MONDAY, routine_id=otra, today=SUNDAY)
+
+
+def test_los_pendientes_distinguen_que_rutina_falta(db):
+    manana, tarde = _dos_rutinas(db)
+    svc.log_as_planned(db, MONDAY, routine_id=manana, today=MONDAY)
+
+    pendientes = [p for p in svc.pending_days(db, today=MONDAY) if p.date == MONDAY]
+    assert [p.routine_id for p in pendientes] == [tarde]
+
+
+def test_el_registro_libre_admite_dos_entrenamientos_el_mismo_dia(db):
+    """Entrenar dos veces es normal; bloquearlo obligaba a juntarlo todo."""
+    svc.log_session(db, day=MONDAY, exercises=[performed()], today=SUNDAY)
+    svc.log_session(db, day=MONDAY, exercises=[performed()], today=SUNDAY)
+
+    assert len(history.sessions_on(db, MONDAY)) == 2

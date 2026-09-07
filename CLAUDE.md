@@ -8,9 +8,14 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0–F5 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
-registro, calendario, sobrecarga progresiva, ranking muscular sobre mapa corporal y
-temporizador de descanso: la app ya se usa a diario. Siguiente F6 (agente de IA). Ver
+**Fase actual: en pruebas y pulido.** F0–F6 completadas. Hay dominio, esquema, catálogo,
+API HTTP y PWA con registro, calendario, sobrecarga progresiva, ranking muscular sobre
+mapa corporal y temporizador: la app se usa a diario. El agente externo tiene su superficie
+completa: servidor MCP, actor, permisos, auditoría y copias previas.
+
+Que esté en pruebas cambia cómo se trabaja: **lo que aparece usándola tiene prioridad
+sobre lo que aparece en el plan**. Un fallo de interfaz encontrado entrenando vale más que
+una casilla pendiente. Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -36,8 +41,10 @@ python -m ruff check . && python -m ruff format .
 python -m fitup.cli init            # crear/actualizar BD y sembrar catálogo
 python -m fitup.cli check           # integridad + coherencia del catálogo
 python -m fitup.cli serve           # API + PWA en 127.0.0.1:8000
+python -m fitup.cli serve --abrir   # además abre el navegador al estar listo
 python -m fitup.cli serve --lan     # accesible desde el móvil, con token
 python -m fitup.cli export          # volcado JSON
+python -m fitup.cli mcp             # servidor MCP por stdio, para el agente
 ```
 
 Frontend (desde `frontend/`):
@@ -75,8 +82,15 @@ backend/src/fitup/
   infrastructure/
     db/             conexión, migrador, migrations/*.sql
     seed/           catálogo JSON + cargador idempotente
+  application/
+    services/agent.py  política del agente: permisos, auditoría y copia de lote
   api/            adaptador HTTP: schemas, routers, mappers, deps
+    agent.py      lee el actor de la cabecera y envuelve la política en Depends
+  mcp_server.py   adaptador MCP: 16 tools sobre los mismos casos de uso
   cli.py
+
+scripts/          Fit-Up.bat (lanzador, destino de los accesos directos) ·
+                  crear-accesos-directos.ps1 (los genera con su icono)
 
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
@@ -93,6 +107,8 @@ frontend/src/
    (`today=`). Si necesitas el reloj dentro de `domain/`, el diseño está mal.
 2. **Plan ≠ historial.** `routine_*` es lo planificado, `workout_session*` lo realizado.
    Nunca se mezclan ni se derivan uno del otro.
+   **Un día admite varias rutinas y varias sesiones** (mañana y tarde). Nada que asuma
+   "una por día" es correcto: ni en el dominio, ni en la API, ni en las pantallas.
 3. **Las rutinas se versionan, no se mutan.** Editar crea `version_no + 1`. Una sesión
    histórica apunta a la versión concreta que se ejecutó. Nunca hagas `UPDATE` sobre
    `routine_exercise` o `planned_set` de una versión ya usada.
@@ -105,6 +121,10 @@ frontend/src/
    rellenes un hueco con una suposición por defecto.**
 6. **Un solo núcleo, varios adaptadores.** API y agente MCP consumirán los mismos casos de
    uso. No dupliques lógica ni abras un camino que salte las reglas de negocio.
+   **Toda escritura acepta `actor` y se audita.** Si añades un endpoint que escribe sin
+   `history.audit(...)` y sin propagar el actor del llamante, la traza queda con un hueco
+   y deja de servir para lo único que existe: saber qué tocó el agente
+   ([contrato](docs/03-contrato-del-agente.md)).
 7. **Fecha local ISO** (`YYYY-MM-DD`) para el "día de entrenamiento". Nunca UTC. Los
    instantes de auditoría (`logged_at`, `ts`) sí llevan offset.
 
@@ -113,6 +133,13 @@ frontend/src/
 `infrastructure/db/migrations/NNNN_nombre.sql`, aplicadas en orden y con checksum
 verificado. **Nunca edites una migración ya aplicada**: crea la siguiente. El migrador
 falla ruidosamente si detectas lo contrario, y ese fallo es correcto.
+
+### Series
+
+Una serie se prescribe de tres formas y solo tres: **repeticiones**, **tiempo** o **al
+fallo** (`to_failure`). Al fallo no lleva `target_reps` — o se llega al fallo, o se llega
+al número — y el `CHECK` del esquema lo impide. Rellenar un objetivo estimado para que
+"cuadre" es inventar el plan.
 
 ### Catálogo
 
@@ -126,8 +153,9 @@ ciclos. `catalog.validate()` lo comprueba y los tests de `test_schema.py` lo bli
 - Los tests documentan el comportamiento esperado: nombres descriptivos en español y
   docstring cuando el caso encierra una decisión de diseño.
 - Sin dependencias nuevas salvo que sustituyan código que habría que mantener. Las que hay
-  pasaron ese filtro: FastAPI/pydantic/uvicorn en el backend; react, react-router y
-  react-query en el frontend. El **dominio no depende de ninguna**, y eso no cambia.
+  pasaron ese filtro: FastAPI/pydantic/uvicorn y el SDK `mcp` en el backend; react,
+  react-router y react-query en el frontend. El **dominio no depende de ninguna**, y eso
+  no cambia.
 - Ruff con `line-length = 100`. `N812`, `N818` y `B008` están ignoradas a propósito, con el
   motivo documentado en `pyproject.toml`.
 - El frontend usa CSS plano con variables: cinco pantallas no justifican un framework.

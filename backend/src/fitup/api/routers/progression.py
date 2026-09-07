@@ -13,7 +13,8 @@ from datetime import date as Date
 from fastapi import APIRouter, Depends, Query, status
 
 from ...application.services import progression as svc
-from .. import mappers, schemas
+from .. import agent, mappers, schemas
+from ..agent import Caller
 from ..deps import get_db
 from ..deps import today as today_dep
 
@@ -25,8 +26,13 @@ def evaluate_routine(
     routine_id: int,
     db: sqlite3.Connection = Depends(get_db),
     today: Date = Depends(today_dep),
+    _: Caller = Depends(agent.propose),
 ):
-    """Veredicto para cada ejercicio, con su motivo aunque no se pueda progresar."""
+    """Veredicto para cada ejercicio, con su motivo aunque no se pueda progresar.
+
+    Es *la* tool de propuesta: calcula y explica, sin escribir nada. Por eso
+    mira el permiso `propose` y no uno de escritura.
+    """
     return mappers.routine_progression_out(svc.evaluate_routine(db, routine_id, today=today))
 
 
@@ -40,20 +46,34 @@ def apply_progression(
     payload: schemas.ProgressionApplyIn,
     db: sqlite3.Connection = Depends(get_db),
     today: Date = Depends(today_dep),
+    caller: Caller = Depends(agent.write_routines),
 ):
     """Aplica las progresiones elegidas: una versión nueva y un evento por ejercicio.
 
     Se recalcula antes de escribir. Si algo dejó de ser seguro entre la
     pantalla y el botón, responde 409 con el motivo en vez de aplicarlo.
+
+    El cliente elige **qué** ejercicios progresan, nunca cuánto: el salto lo
+    recalcula el motor aquí, con sus guardas, en cada aplicación. Vale igual
+    para el agente que para la interfaz.
     """
     result = svc.apply(
-        db, routine_id, exercise_slugs=payload.exercises, today=today, note=payload.note
+        db,
+        routine_id,
+        exercise_slugs=payload.exercises,
+        today=today,
+        note=payload.note,
+        actor=caller.actor,
     )
     return mappers.progression_applied_out(result)
 
 
 @router.get("/progresion/listas", response_model=list[schemas.RoutineReadinessOut])
-def readiness(db: sqlite3.Connection = Depends(get_db), today: Date = Depends(today_dep)):
+def readiness(
+    db: sqlite3.Connection = Depends(get_db),
+    today: Date = Depends(today_dep),
+    _: Caller = Depends(agent.propose),
+):
     """Rutinas con algo que ofrecer. Lo que avisa en «Hoy»."""
     return svc.readiness(db, today=today)
 
@@ -75,6 +95,10 @@ def list_events(
     response_model=schemas.ProgressionAppliedOut,
     status_code=status.HTTP_201_CREATED,
 )
-def undo_progression(event_id: int, db: sqlite3.Connection = Depends(get_db)):
+def undo_progression(
+    event_id: int,
+    db: sqlite3.Connection = Depends(get_db),
+    caller: Caller = Depends(agent.write_routines),
+):
     """Deshacer es avanzar: crea la versión que restaura el plan anterior."""
-    return mappers.progression_applied_out(svc.undo(db, event_id))
+    return mappers.progression_applied_out(svc.undo(db, event_id, actor=caller.actor))

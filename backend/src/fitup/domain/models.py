@@ -82,6 +82,9 @@ class PlannedSet:
     target_time_s: int | None = None
     target_rir: int | None = None
     is_warmup: bool = False
+    #: Sin objetivo numérico: se repite hasta el fallo. Poner una estimación
+    #: en `target_reps` sería inventarse el plan (invariante 5).
+    to_failure: bool = False
 
 
 @dataclass(frozen=True, slots=True)

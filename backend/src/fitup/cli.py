@@ -79,8 +79,37 @@ def cmd_export(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def _abrir_cuando_responda(url: str, intentos: int = 60) -> None:  # pragma: no cover
+    """Abre el navegador en cuanto el servidor conteste.
+
+    Se sondea en vez de esperar un tiempo fijo: el primer arranque aplica
+    migraciones y siembra el catálogo, y una espera a ojo se queda corta justo
+    la primera vez, que es cuando peor sienta.
+    """
+    import http.client
+    import time
+    import urllib.parse
+    import webbrowser
+
+    partes = urllib.parse.urlsplit(url)
+    for _ in range(intentos):
+        try:
+            conexion = http.client.HTTPConnection(partes.netloc, timeout=0.5)
+            conexion.request("GET", "/api/salud")
+            respuesta = conexion.getresponse()
+            conexion.close()
+            if respuesta.status < 500:
+                webbrowser.open(url)
+                return
+        except OSError:
+            pass
+        time.sleep(0.5)
+
+
 def cmd_serve(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el servidor
     """Levanta la API y la PWA."""
+    import threading
+
     from .api.app import serve
     from .api.deps import ensure_token
 
@@ -98,7 +127,28 @@ def cmd_serve(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el
     else:
         print("  solo accesible desde este equipo; usa --lan para el móvil")
 
+    if args.abrir:
+        # En un hilo aparte porque `serve()` no vuelve hasta que se para el
+        # servidor: esperar aquí dejaría el navegador sin abrir nunca.
+        url = f"http://127.0.0.1:{args.puerto}"
+        threading.Thread(target=_abrir_cuando_responda, args=(url,), daemon=True).start()
+
     serve(db_path=db_path, host=host, port=args.puerto, token=token, require_token=bool(token))
+    return 0
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el servidor
+    """Levanta el servidor MCP por stdio, que es como lo lanza un cliente local.
+
+    No imprime nada: en stdio, la salida estandar **es** el canal del protocolo
+    y un mensaje de bienvenida lo corromperia.
+    """
+    import os
+
+    from .mcp_server import main as mcp_main
+
+    os.environ.setdefault("FITUP_DB", str(Path(args.db)))
+    mcp_main()
     return 0
 
 
@@ -120,6 +170,13 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="exponer en la red local para usar desde el móvil (genera token)",
     )
+    serve_cmd.add_argument(
+        "--abrir",
+        action="store_true",
+        help="abrir el navegador cuando el servidor esté listo",
+    )
+
+    sub.add_parser("mcp", help="servidor MCP por stdio, para el agente de IA")
 
     args = parser.parse_args(argv)
     handler = {
@@ -127,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         "check": cmd_check,
         "export": cmd_export,
         "serve": cmd_serve,
+        "mcp": cmd_mcp,
     }[args.command]
     return handler(args)
 

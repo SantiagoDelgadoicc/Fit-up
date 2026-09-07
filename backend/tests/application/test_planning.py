@@ -30,7 +30,7 @@ def test_las_series_de_calentamiento_van_primero_y_marcadas():
 
 
 def test_una_serie_necesita_repeticiones_o_tiempo():
-    with pytest.raises(Invalid, match="repeticiones o tiempo"):
+    with pytest.raises(Invalid, match="repeticiones, tiempo objetivo, o ir al fallo"):
         svc.build_sets(count=3)
 
 
@@ -167,40 +167,40 @@ def test_una_fecha_anterior_a_la_rutina_usa_la_primera_version(db, push_routine)
 
 
 def test_organizar_la_semana(db, push_routine):
-    week = svc.set_week(db, {0: push_routine, 2: push_routine}, effective_from=date(2026, 3, 1))
-    assert week.days[0] == push_routine
-    assert week.days[1] is None
-    assert week.names[2] == "Empuje"
+    week = svc.set_week(db, {0: [push_routine], 2: [push_routine]}, effective_from=date(2026, 3, 1))
+    assert week.days[0] == [push_routine]
+    assert week.days[1] == []
+    assert week.names[2] == ["Empuje"]
 
 
 def test_un_dia_de_la_semana_invalido_se_rechaza(db, push_routine):
     with pytest.raises(Invalid, match="Día de la semana"):
-        svc.set_week(db, {9: push_routine}, effective_from=date(2026, 3, 1))
+        svc.set_week(db, {9: [push_routine]}, effective_from=date(2026, 3, 1))
 
 
 def test_una_rutina_inexistente_no_puede_programarse(db):
     with pytest.raises(NotFound):
-        svc.set_week(db, {0: 999}, effective_from=date(2026, 3, 1))
+        svc.set_week(db, {0: [999]}, effective_from=date(2026, 3, 1))
 
 
 def test_cambiar_la_semana_no_reescribe_el_pasado(db, push_routine):
     """Un día de hace un mes debe seguir sabiendo qué tocaba entonces."""
-    svc.set_week(db, {0: push_routine}, effective_from=date(2026, 3, 1))
-    svc.set_week(db, {0: None}, effective_from=date(2026, 3, 10))
+    svc.set_week(db, {0: [push_routine]}, effective_from=date(2026, 3, 1))
+    svc.set_week(db, {0: []}, effective_from=date(2026, 3, 10))
 
-    assert planning_repo.scheduled_routine(db, date(2026, 3, 2)) is not None  # lunes previo
-    assert planning_repo.scheduled_routine(db, date(2026, 3, 16)) is None  # lunes posterior
+    assert planning_repo.scheduled_routines(db, date(2026, 3, 2))  # lunes previo
+    assert planning_repo.scheduled_routines(db, date(2026, 3, 16)) == []  # lunes posterior
 
 
 def test_reprogramar_el_mismo_dia_sustituye_el_tramo(db, push_routine):
     otra = svc.create_routine(db, name="Tirón", exercises=[plan("dominadas")]).id
-    svc.set_week(db, {0: push_routine}, effective_from=date(2026, 3, 1))
-    svc.set_week(db, {0: otra}, effective_from=date(2026, 3, 1))
+    svc.set_week(db, {0: [push_routine]}, effective_from=date(2026, 3, 1))
+    svc.set_week(db, {0: [otra]}, effective_from=date(2026, 3, 1))
 
-    scheduled = planning_repo.scheduled_routine(db, date(2026, 3, 2))
-    assert scheduled is not None and scheduled[0] == otra
+    scheduled = planning_repo.scheduled_routines(db, date(2026, 3, 2))
+    assert [rid for rid, _ in scheduled] == [otra]
 
 
 def test_archivar_una_rutina_la_saca_del_calendario(db, weekly):
     svc.archive_routine(db, weekly)
-    assert planning_repo.scheduled_routine(db, date(2030, 1, 7)) is None
+    assert planning_repo.scheduled_routines(db, date(2030, 1, 7)) == []

@@ -31,7 +31,7 @@ def make_routine(client, name="Empuje") -> int:
 
 def schedule(client, routine_id: int, days=(0, 2, 4), effective_from="2026-03-01"):
     payload = {
-        "days": {str(d): (routine_id if d in days else None) for d in range(7)},
+        "days": {str(d): ([routine_id] if d in days else []) for d in range(7)},
         "effective_from": effective_from,
     }
     response = client.put("/api/semana", json=payload)

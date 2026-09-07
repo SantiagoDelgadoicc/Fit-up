@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import UTC, datetime
 from datetime import date as Date
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,13 @@ from ..views import RoutineDetail
 
 EXPORT_FORMAT_VERSION = "1"
 DEFAULT_BACKUP_KEEP = 14
+#: Menos copias que las diarias: la del lote sirve para deshacer lo que el
+#: agente acaba de hacer, y eso se decide en horas, no en semanas.
+DEFAULT_AGENT_BACKUP_KEEP = 5
+
+#: Cada familia de copias se poda por separado.
+DAILY_GLOB = "fitup-2???-??-??.db"
+AGENT_GLOB = "fitup-agente-*.db"
 
 
 def export_data(conn: sqlite3.Connection) -> dict[str, Any]:
@@ -224,10 +231,47 @@ def backup(
     return target
 
 
-def _prune(backup_dir: Path, keep: int) -> None:
-    copies = sorted(backup_dir.glob("fitup-*.db"))
+def _prune(backup_dir: Path, keep: int, pattern: str = DAILY_GLOB) -> None:
+    """Poda una familia de copias, no todas.
+
+    El patrón importa: con un `fitup-*.db` a secas, la copia diaria barría las
+    del agente y al revés, y la copia previa a un lote habría desaparecido
+    justo cuando hiciera falta para deshacerlo.
+    """
+    copies = sorted(backup_dir.glob(pattern))
     for old in copies[:-keep] if keep > 0 else []:
         old.unlink(missing_ok=True)
+
+
+def backup_before_agent_batch(
+    conn: sqlite3.Connection,
+    db_path: Path,
+    *,
+    now: datetime | None = None,
+    keep: int = DEFAULT_AGENT_BACKUP_KEEP,
+) -> Path:
+    """Copia previa a un lote de escrituras del agente (ADR-0004 §2).
+
+    Lleva marca de hora y familia propia: la diaria responde a "quiero el
+    estado de ayer" y esta a "deshaz lo que acaba de hacer el agente", que son
+    preguntas distintas y no deben competir por el mismo fichero.
+    """
+    stamp = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%S")
+    backup_dir = db_path.parent / "backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    target = backup_dir / f"fitup-agente-{stamp}.db"
+    dest = sqlite3.connect(target)
+    try:
+        conn.backup(dest)
+    finally:
+        dest.close()
+
+    _prune(backup_dir, keep, AGENT_GLOB)
+    history.audit(
+        conn, actor=Actor.SISTEMA, action="backup_lote_agente", payload={"path": str(target)}
+    )
+    return target
 
 
 def backup_if_stale(
