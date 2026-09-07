@@ -408,6 +408,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ranking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Muscle Ranking
+         * @description Los 18 músculos con su rango, su halo de actividad y sus avisos.
+         */
+        get: operations["muscle_ranking_api_ranking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ranking/{muscle_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Muscle Detail
+         * @description Ficha explicable: factores, ejercicios que aportan, histórico y qué falta.
+         */
+        get: operations["muscle_detail_api_ranking__muscle_slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ranking/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take Snapshot
+         * @description Fuerza un punto del histórico. Recalcularlo sobrescribe: es caché.
+         */
+        post: operations["take_snapshot_api_ranking_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/metricas/ejercicios/{exercise_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exercise Progress
+         * @description Evolución de un ejercicio: volumen y 1RM equivalente sesión a sesión.
+         */
+        get: operations["exercise_progress_api_metricas_ejercicios__exercise_slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/salud": {
         parameters: {
             query?: never;
@@ -544,6 +624,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BalanceCheckOut */
+        BalanceCheckOut: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Verdict */
+            verdict: string;
+            /** Message */
+            message: string;
+            /** Left Name */
+            left_name: string;
+            /** Right Name */
+            right_name: string;
+            /** Left Score */
+            left_score?: number | null;
+            /** Right Score */
+            right_score?: number | null;
+            /** Ratio */
+            ratio?: number | null;
+            /**
+             * Missing
+             * @default []
+             */
+            missing: string[];
+        };
         /** BodyweightIn */
         BodyweightIn: {
             /**
@@ -634,6 +740,23 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** ExerciseContributionOut */
+        ExerciseContributionOut: {
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Exercise Name */
+            exercise_name: string;
+            /** Role */
+            role: string;
+            /** Role Factor */
+            role_factor: number;
+            /** Volume Kg */
+            volume_kg: number;
+            /** Best E1Rm Kg */
+            best_e1rm_kg?: number | null;
+            /** Last Date */
+            last_date?: string | null;
+        };
         /** ExerciseOut */
         ExerciseOut: {
             /** Slug */
@@ -661,6 +784,34 @@ export interface components {
              * @default []
              */
             muscles: components["schemas"]["MuscleLinkOut"][];
+        };
+        /** ExercisePointOut */
+        ExercisePointOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Volume Kg */
+            volume_kg: number;
+            /** Sets */
+            sets: number;
+            /** E1Rm Kg */
+            e1rm_kg?: number | null;
+        };
+        /** ExerciseProgressOut */
+        ExerciseProgressOut: {
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Best E1Rm Kg */
+            best_e1rm_kg?: number | null;
+            /** Best On */
+            best_on?: string | null;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["ExercisePointOut"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -706,6 +857,32 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** MuscleDetailOut */
+        MuscleDetailOut: {
+            muscle: components["schemas"]["MuscleRankingOut"];
+            /**
+             * Factors
+             * @default {}
+             */
+            factors: {
+                [key: string]: number;
+            };
+            next_tier?: components["schemas"]["Tier"] | null;
+            /** Points To Next Tier */
+            points_to_next_tier?: number | null;
+            recent?: components["schemas"]["MuscleUsageOut"] | null;
+            quarter?: components["schemas"]["MuscleUsageOut"] | null;
+            /**
+             * Exercises
+             * @default []
+             */
+            exercises: components["schemas"]["ExerciseContributionOut"][];
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["ScorePointOut"][];
+        };
         /** MuscleLinkOut */
         MuscleLinkOut: {
             /** Muscle Slug */
@@ -725,6 +902,52 @@ export interface components {
             body_view: string;
             /** Svg Key */
             svg_key: string;
+        };
+        /**
+         * MuscleRankingOut
+         * @description Un músculo del mapa corporal.
+         *
+         *     ``development`` es ``null`` cuando no hay rango: el cliente no debe pintar
+         *     un cero, porque "sin medir" y "cero" no son lo mismo (ADR-0003).
+         */
+        MuscleRankingOut: {
+            /** Muscle Slug */
+            muscle_slug: string;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
+            /** Body View */
+            body_view: string;
+            /** Svg Key */
+            svg_key: string;
+            /** Display Order */
+            display_order: number;
+            tier: components["schemas"]["Tier"];
+            /** Has Data */
+            has_data: boolean;
+            /** Activity */
+            activity: number;
+            /** Development */
+            development?: number | null;
+            /** Days Since Stimulus */
+            days_since_stimulus?: number | null;
+            /** Points To Next Tier */
+            points_to_next_tier?: number | null;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+        };
+        /** MuscleUsageOut */
+        MuscleUsageOut: {
+            /** Volume Kg */
+            volume_kg: number;
+            /** Sessions */
+            sessions: number;
+            /** Sessions Per Week */
+            sessions_per_week: number;
         };
         /** PendingDayOut */
         PendingDayOut: {
@@ -983,6 +1206,37 @@ export interface components {
          * @enum {string}
          */
         ProgressionOutcome: "ready" | "not_yet" | "undetermined" | "deload_suggested";
+        /** RankingOut */
+        RankingOut: {
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Formula Version */
+            formula_version: string;
+            /** Provisional */
+            provisional: boolean;
+            /** Measured */
+            measured: number;
+            /** Bodyweight Kg */
+            bodyweight_kg?: number | null;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["MuscleRankingOut"][];
+            /**
+             * Balance
+             * @default []
+             */
+            balance: components["schemas"]["BalanceCheckOut"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+        };
         /** RoutineIn */
         RoutineIn: {
             /** Name */
@@ -1083,6 +1337,19 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** ScorePointOut */
+        ScorePointOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Development */
+            development: number;
+            /** Activity */
+            activity: number;
+            tier: components["schemas"]["Tier"];
+        };
         /**
          * SessionOrigin
          * @enum {string}
@@ -1164,6 +1431,15 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /**
+         * Tier
+         * @description Rangos del ranking muscular, de menor a mayor.
+         *
+         *     SIN_DATOS no es el escalón más bajo: es la ausencia de escalón. Un músculo
+         *     sin ejercicios asociados no está "débil", está "no medido" (ADR-0003).
+         * @enum {string}
+         */
+        Tier: "sin_datos" | "iron" | "bronze" | "silver" | "gold" | "platinum" | "diamond" | "ascendant" | "immortal" | "radiant";
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -2167,6 +2443,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProgressionAppliedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    muscle_ranking_api_ranking_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    muscle_detail_api_ranking__muscle_slug__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                muscle_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MuscleDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_snapshot_api_ranking_snapshot_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exercise_progress_api_metricas_ejercicios__exercise_slug__get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                exercise_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseProgressOut"];
                 };
             };
             /** @description Validation Error */

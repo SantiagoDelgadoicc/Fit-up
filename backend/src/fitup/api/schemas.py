@@ -13,7 +13,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus
+from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus, Tier
 
 
 class Model(BaseModel):
@@ -377,3 +377,105 @@ class ProgressionEventOut(Model):
 class ProgressionAppliedOut(Model):
     routine: RoutineOut
     events: list[ProgressionEventOut]
+
+
+# --------------------------------------------------------------------------
+# Ranking muscular
+# --------------------------------------------------------------------------
+
+
+class MuscleRankingOut(Model):
+    """Un músculo del mapa corporal.
+
+    ``development`` es ``null`` cuando no hay rango: el cliente no debe pintar
+    un cero, porque "sin medir" y "cero" no son lo mismo (ADR-0003).
+    """
+
+    muscle_slug: str
+    name: str
+    region: str
+    body_view: str
+    svg_key: str
+    display_order: int
+    tier: Tier
+    has_data: bool
+    activity: float
+    development: float | None = None
+    days_since_stimulus: int | None = None
+    points_to_next_tier: float | None = None
+    notes: list[str] = []
+
+
+class BalanceCheckOut(Model):
+    key: str
+    name: str
+    verdict: str
+    message: str
+    left_name: str
+    right_name: str
+    left_score: float | None = None
+    right_score: float | None = None
+    ratio: float | None = None
+    missing: list[str] = []
+
+
+class RankingOut(Model):
+    today: Date
+    formula_version: str
+    #: La calibración de los umbrales es provisional mientras no haya meses de
+    #: historial real. La interfaz debe decirlo.
+    provisional: bool
+    measured: int
+    bodyweight_kg: float | None = None
+    entries: list[MuscleRankingOut] = []
+    balance: list[BalanceCheckOut] = []
+    notes: list[str] = []
+
+
+class MuscleUsageOut(Model):
+    volume_kg: float
+    sessions: int
+    sessions_per_week: float
+
+
+class ExerciseContributionOut(Model):
+    exercise_slug: str
+    exercise_name: str
+    role: str
+    role_factor: float
+    volume_kg: float
+    best_e1rm_kg: float | None = None
+    last_date: Date | None = None
+
+
+class ScorePointOut(Model):
+    date: Date
+    development: float
+    activity: float
+    tier: Tier
+
+
+class MuscleDetailOut(Model):
+    muscle: MuscleRankingOut
+    #: Desglose de la fórmula. Sin esto el rango sería un número mágico.
+    factors: dict[str, float] = {}
+    next_tier: Tier | None = None
+    points_to_next_tier: float | None = None
+    recent: MuscleUsageOut | None = None
+    quarter: MuscleUsageOut | None = None
+    exercises: list[ExerciseContributionOut] = []
+    history: list[ScorePointOut] = []
+
+
+class ExercisePointOut(Model):
+    date: Date
+    volume_kg: float
+    sets: int
+    e1rm_kg: float | None = None
+
+
+class ExerciseProgressOut(Model):
+    exercise_slug: str
+    best_e1rm_kg: float | None = None
+    best_on: Date | None = None
+    points: list[ExercisePointOut] = []

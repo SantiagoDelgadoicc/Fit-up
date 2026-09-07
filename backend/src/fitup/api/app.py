@@ -18,10 +18,12 @@ from fastapi.staticfiles import StaticFiles
 
 from ..application.errors import Conflict, Invalid, NotFound, Undeterminable
 from ..application.services import maintenance
+from ..application.services import ranking as ranking_svc
 from ..infrastructure.seed import catalog
 from .deps import Settings, load_settings, open_database, require_auth
 from .routers import catalog as catalog_router
 from .routers import progression as progression_router
+from .routers import ranking as ranking_router
 from .routers import routines as routines_router
 from .routers import system as system_router
 from .routers import training as training_router
@@ -57,6 +59,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # Copia diaria al arrancar: sin planificador ni proceso residente,
             # que para un uso de una o dos veces por semana sobraria.
             maintenance.backup_if_stale(conn, config.db_path)
+            # Punto semanal del histórico del ranking, por el mismo motivo. Es
+            # caché: si se salta una semana, se pierde un punto de la gráfica,
+            # nunca un dato del historial.
+            ranking_svc.snapshot_if_stale(conn)
         finally:
             conn.close()
         yield
@@ -88,6 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         routines_router.router,
         training_router.router,
         progression_router.router,
+        ranking_router.router,
         system_router.router,
     )
     for router in routers:

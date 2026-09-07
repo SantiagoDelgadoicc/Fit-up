@@ -3,6 +3,7 @@
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import { ToastProvider } from "./components/ui";
+import Body from "./pages/Body";
 import CalendarPage from "./pages/Calendar";
 import History from "./pages/History";
 import Progression from "./pages/Progression";
@@ -13,12 +14,13 @@ import Today from "./pages/Today";
 import Week from "./pages/Week";
 
 /**
- * Cuerpo y Timer llegarán en sus fases; no se muestran deshabilitados porque
- * una pestaña que no hace nada es ruido, no una promesa.
+ * Timer llegará en su fase; no se muestra deshabilitado porque una pestaña que
+ * no hace nada es ruido, no una promesa.
  */
 const TABS = [
   { to: "/", icon: "🏋️", label: "Hoy", end: true },
   { to: "/calendario", icon: "📅", label: "Calendario", end: false },
+  { to: "/cuerpo", icon: "💪", label: "Cuerpo", end: false },
   { to: "/rutinas", icon: "📋", label: "Rutinas", end: false },
   { to: "/semana", icon: "🗓️", label: "Semana", end: false },
   { to: "/historial", icon: "📖", label: "Historial", end: false },
@@ -26,7 +28,7 @@ const TABS = [
 ];
 
 /** Páginas que aprovechan el ancho de una pantalla de PC. */
-const WIDE = ["/calendario"];
+const WIDE = ["/calendario", "/cuerpo"];
 
 export default function App() {
   const { pathname } = useLocation();
@@ -56,6 +58,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Today />} />
             <Route path="/calendario" element={<CalendarPage />} />
+            <Route path="/cuerpo" element={<Body />} />
             <Route path="/rutinas" element={<Routines />} />
             <Route path="/rutinas/:id" element={<RoutineEditor />} />
             <Route path="/rutinas/:id/progresion" element={<Progression />} />

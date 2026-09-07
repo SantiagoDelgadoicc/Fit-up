@@ -33,6 +33,12 @@ export type ProgressionOutcome = S["ProgressionOutcome"];
 export type ProgressionEvent = S["ProgressionEventOut"];
 export type ProgressionApplied = S["ProgressionAppliedOut"];
 export type RoutineReadiness = S["RoutineReadinessOut"];
+export type Ranking = S["RankingOut"];
+export type MuscleRanking = S["MuscleRankingOut"];
+export type MuscleDetail = S["MuscleDetailOut"];
+export type BalanceCheck = S["BalanceCheckOut"];
+export type ExerciseProgress = S["ExerciseProgressOut"];
+export type Tier = S["Tier"];
 
 const TOKEN_KEY = "fitup.token";
 

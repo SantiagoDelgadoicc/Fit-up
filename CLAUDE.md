@@ -8,9 +8,9 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0, F1, F2 y F3 completadas.** Hay dominio, esquema, catálogo, API HTTP y
-PWA con registro, calendario y sobrecarga progresiva aplicable y reversible: la app ya se
-usa a diario. Siguiente F4 (métricas y ranking muscular). Ver
+**Fase actual: F0–F4 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
+registro, calendario, sobrecarga progresiva y ranking muscular sobre mapa corporal: la app
+ya se usa a diario. Siguiente F5 (temporizador). Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -80,9 +80,9 @@ backend/src/fitup/
 
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
-  components/     primitivas compartidas
-  pages/          Hoy · Calendario · Rutinas · RoutineEditor · Progression · Semana ·
-                  Historial · Ajustes
+  components/     primitivas compartidas · BodyMap (mapa corporal SVG)
+  pages/          Hoy · Calendario · Cuerpo · Rutinas · RoutineEditor · Progression ·
+                  Semana · Historial · Ajustes
 ```
 
 `schema.d.ts` se genera: **no lo edites a mano**.
@@ -98,6 +98,8 @@ frontend/src/
    `routine_exercise` o `planned_set` de una versión ya usada.
 4. **Lo derivable se calcula.** Volumen, adherencia, e1RM y ranking no se almacenan. Única
    excepción: `muscle_score_snapshot`, caché reconstruible marcada con `formula_version`.
+   El rango que se muestra es una **estimación de calibración provisional** (D9 abierta):
+   preséntalo siempre como tal, nunca como una medición.
 5. **Si no se puede determinar, se dice.** El motor devuelve `UNDETERMINED` con motivo;
    `load.py` lanza `LoadUndeterminable`; `adherence()` devuelve `None`, no `0`. **Nunca
    rellenes un hueco con una suposición por defecto.**

@@ -16,9 +16,12 @@ import {
   type Day,
   type Exercise,
   type Muscle,
+  type ExerciseProgress,
+  type MuscleDetail,
   type PendingDay,
   type ProgressionApplied,
   type ProgressionEvent,
+  type Ranking,
   type Routine,
   type RoutineInput,
   type RoutineProgression,
@@ -46,11 +49,25 @@ const keys = {
   progression: (id: number) => ["progresion", id] as const,
   progressionEvents: (id: number) => ["progresiones", id] as const,
   readiness: ["progresion-listas"] as const,
+  ranking: ["ranking"] as const,
+  muscle: (slug: string) => ["musculo", slug] as const,
+  exerciseProgress: (slug: string) => ["ejercicio-progreso", slug] as const,
 };
 
 /** Todo lo que deja de ser cierto cuando se registra o borra un entrenamiento. */
 function invalidateTraining(qc: ReturnType<typeof useQueryClient>) {
-  for (const key of [keys.today, keys.pending, keys.sessions, ["dia"], ["calendario"]]) {
+  for (const key of [
+    keys.today,
+    keys.pending,
+    keys.sessions,
+    ["dia"],
+    ["calendario"],
+    // Un entrenamiento nuevo cambia el estímulo de varios músculos: el mapa
+    // corporal deja de ser cierto en cuanto se registra algo.
+    keys.ranking,
+    ["musculo"],
+    ["ejercicio-progreso"],
+  ]) {
     void qc.invalidateQueries({ queryKey: key as readonly unknown[] });
   }
 }
@@ -244,7 +261,13 @@ export function useSetBodyweight() {
   return useMutation({
     mutationFn: (input: { date: string; weight_kg: number }) =>
       api<Bodyweight>("/peso", { method: "PUT", body: input }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.bodyweight }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.bodyweight });
+      // El peso corporal normaliza toda la fuerza: sin él no hay rango, y al
+      // cambiarlo cambian los 18.
+      void qc.invalidateQueries({ queryKey: keys.ranking });
+      void qc.invalidateQueries({ queryKey: ["musculo"] });
+    },
   });
 }
 
@@ -324,3 +347,24 @@ export function useUndoProgression(routineId: number) {
     onSuccess: () => invalidateProgression(qc, routineId),
   });
 }
+
+// --------------------------------------------------------------------------
+// Ranking muscular
+// --------------------------------------------------------------------------
+
+export const useRanking = () =>
+  useQuery({ queryKey: keys.ranking, queryFn: () => api<Ranking>("/ranking") });
+
+export const useMuscle = (slug: string | null) =>
+  useQuery({
+    queryKey: keys.muscle(slug ?? ""),
+    queryFn: () => api<MuscleDetail>(`/ranking/${slug}`),
+    enabled: slug !== null,
+  });
+
+export const useExerciseProgress = (slug: string | null) =>
+  useQuery({
+    queryKey: keys.exerciseProgress(slug ?? ""),
+    queryFn: () => api<ExerciseProgress>(`/metricas/ejercicios/${slug}`),
+    enabled: slug !== null,
+  });

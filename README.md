@@ -3,9 +3,10 @@
 Aplicación personal de **registro, planificación y progresión de entrenamiento**, con ranking
 muscular visual y preparada para ser operada por un agente de IA local.
 
-> **Estado: F0, F1, F2 y F3 completadas.** La app sirve para registrar entrenamientos a
-> diario, revisar el cumplimiento del mes y aplicar sobrecarga progresiva —con su motivo
-> a la vista y siempre reversible—. Siguiente: F4 — ranking muscular.
+> **Estado: F0–F4 completadas.** La app sirve para registrar entrenamientos a diario,
+> revisar el cumplimiento del mes, aplicar sobrecarga progresiva —con su motivo a la vista
+> y siempre reversible— y ver el ranking muscular sobre un mapa corporal.
+> Siguiente: F5 — temporizador de descansos.
 
 ## Arranque rápido
 

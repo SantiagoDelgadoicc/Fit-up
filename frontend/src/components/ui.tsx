@@ -8,6 +8,7 @@ import type {
   PlannedExercise,
   PerformedExercise,
   ProgressionOutcome,
+  Tier,
 } from "../api/client";
 
 /* ------------------------------------------------------------- Estados */
@@ -203,4 +204,34 @@ export function formatDateTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/* ---------------------------------------------------------------- Rangos */
+
+/**
+ * Los rangos se muestran con su nombre inglés a propósito: son un vocabulario
+ * de videojuego reconocible, y traducirlos ("Platino", "Diamante") los
+ * convertiría en algo distinto y peor.
+ */
+const TIER_NAMES: Record<Tier, string> = {
+  sin_datos: "Sin datos",
+  iron: "Iron",
+  bronze: "Bronze",
+  silver: "Silver",
+  gold: "Gold",
+  platinum: "Platinum",
+  diamond: "Diamond",
+  ascendant: "Ascendant",
+  immortal: "Immortal",
+  radiant: "Radiant",
+};
+
+export const tierLabel = (tier: Tier): string => TIER_NAMES[tier];
+
+export function TierBadge({ tier, size }: { tier: Tier; size?: "lg" }) {
+  return (
+    <span className={size === "lg" ? "badge badge-lg" : "badge"} data-tier={tier}>
+      {tierLabel(tier)}
+    </span>
+  );
 }

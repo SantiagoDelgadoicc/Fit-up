@@ -12,8 +12,10 @@ from datetime import date as Date
 from datetime import datetime
 
 from ..domain.compliance.day_state import DayVerdict
-from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus
+from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus, Tier
 from ..domain.models import PerformedExercise, PlannedExercise, PlannedSet
+from ..domain.ranking.balance import BalanceCheck
+from ..domain.ranking.v1 import MuscleScore
 
 
 @dataclass(frozen=True, slots=True)
@@ -223,3 +225,137 @@ class ProgressionApplied:
 
     routine: RoutineDetail
     events: tuple[ProgressionEventView, ...] = ()
+
+
+# --------------------------------------------------------------------------
+# Ranking muscular
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ExerciseStimulus:
+    """Lo que un ejercicio aportó en una sesión, ya en kg equivalentes."""
+
+    date: Date
+    exercise_slug: str
+    volume_kg: float
+    e1rm_kg: float | None
+    sets: int
+
+
+@dataclass(frozen=True, slots=True)
+class StimulusData:
+    """Historial ya traducido a estímulo, con lo que quedó fuera y por qué."""
+
+    by_exercise: tuple[ExerciseStimulus, ...] = ()
+    #: Series efectivas que no pudieron convertirse a kg equivalentes.
+    skipped_sets: int = 0
+    #: Motivos distintos, para poder decirle al usuario qué le falta registrar.
+    skipped_reasons: tuple[str, ...] = ()
+    bodyweight_missing: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class MuscleUsage:
+    """Cuánto y cuándo se ha trabajado un músculo en una ventana."""
+
+    volume_kg: float
+    sessions: int
+    sessions_per_week: float
+    #: Ejercicios que lo estimularon, del que más volumen aporta al que menos.
+    top_exercises: tuple[tuple[str, float], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ExerciseProgress:
+    """Evolución de un ejercicio: lo que hace falta para dibujar una línea."""
+
+    exercise_slug: str
+    points: tuple[ExerciseStimulus, ...] = ()
+    best_e1rm_kg: float | None = None
+    best_on: Date | None = None
+
+    @property
+    def has_data(self) -> bool:
+        return bool(self.points)
+
+
+@dataclass(frozen=True, slots=True)
+class MuscleRankingEntry:
+    """Un músculo del mapa corporal con su puntuación.
+
+    Envuelve el ``MuscleScore`` del dominio en lugar de copiar sus campos: la
+    fórmula puede añadir factores sin que haya que tocar esta capa.
+    """
+
+    muscle_slug: str
+    name: str
+    region: str
+    body_view: str
+    svg_key: str
+    display_order: int
+    score: MuscleScore
+
+    @property
+    def tier(self) -> Tier:
+        return self.score.tier
+
+    @property
+    def development(self) -> float | None:
+        return self.score.development if self.score.has_data else None
+
+
+@dataclass(frozen=True, slots=True)
+class RankingView:
+    """El mapa corporal completo, con lo que hace falta para no mentir."""
+
+    today: Date
+    formula_version: str
+    bodyweight_kg: float | None
+    entries: tuple[MuscleRankingEntry, ...] = ()
+    balance: tuple[BalanceCheck, ...] = ()
+    #: Qué impide medir mejor: sin peso corporal, series sin datos, etc.
+    notes: tuple[str, ...] = ()
+    #: La calibración es provisional mientras D9 siga abierta, y la interfaz
+    #: tiene que decirlo en vez de presentar el rango como un veredicto.
+    provisional: bool = True
+
+    @property
+    def measured(self) -> int:
+        return sum(1 for e in self.entries if e.score.has_data)
+
+
+@dataclass(frozen=True, slots=True)
+class ExerciseContribution:
+    """Qué aporta un ejercicio concreto al músculo que se está mirando."""
+
+    exercise_slug: str
+    exercise_name: str
+    role: str
+    role_factor: float
+    volume_kg: float
+    best_e1rm_kg: float | None = None
+    last_date: Date | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ScorePoint:
+    """Un punto del histórico del rango, tomado de un snapshot."""
+
+    date: Date
+    development: float
+    activity: float
+    tier: Tier
+
+
+@dataclass(frozen=True, slots=True)
+class MuscleDetail:
+    """Ficha de un músculo. Explicabilidad obligatoria (ADR-0003)."""
+
+    entry: MuscleRankingEntry
+    next_tier: Tier | None = None
+    points_to_next_tier: float | None = None
+    recent: MuscleUsage | None = None
+    quarter: MuscleUsage | None = None
+    exercises: tuple[ExerciseContribution, ...] = ()
+    history: tuple[ScorePoint, ...] = ()

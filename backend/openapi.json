@@ -1796,6 +1796,235 @@
         }
       }
     },
+    "/api/ranking": {
+      "get": {
+        "tags": [
+          "ranking"
+        ],
+        "summary": "Muscle Ranking",
+        "description": "Los 18 músculos con su rango, su halo de actividad y sus avisos.",
+        "operationId": "muscle_ranking_api_ranking_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ranking/{muscle_slug}": {
+      "get": {
+        "tags": [
+          "ranking"
+        ],
+        "summary": "Muscle Detail",
+        "description": "Ficha explicable: factores, ejercicios que aportan, histórico y qué falta.",
+        "operationId": "muscle_detail_api_ranking__muscle_slug__get",
+        "parameters": [
+          {
+            "name": "muscle_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Muscle Slug"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MuscleDetailOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ranking/snapshot": {
+      "post": {
+        "tags": [
+          "ranking"
+        ],
+        "summary": "Take Snapshot",
+        "description": "Fuerza un punto del histórico. Recalcularlo sobrescribe: es caché.",
+        "operationId": "take_snapshot_api_ranking_snapshot_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metricas/ejercicios/{exercise_slug}": {
+      "get": {
+        "tags": [
+          "ranking",
+          "métricas"
+        ],
+        "summary": "Exercise Progress",
+        "description": "Evolución de un ejercicio: volumen y 1RM equivalente sesión a sesión.",
+        "operationId": "exercise_progress_api_metricas_ejercicios__exercise_slug__get",
+        "parameters": [
+          {
+            "name": "exercise_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Exercise Slug"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1825,
+              "minimum": 7,
+              "default": 180,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseProgressOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/salud": {
       "get": {
         "tags": [
@@ -2222,6 +2451,85 @@
   },
   "components": {
     "schemas": {
+      "BalanceCheckOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "left_name": {
+            "type": "string",
+            "title": "Left Name"
+          },
+          "right_name": {
+            "type": "string",
+            "title": "Right Name"
+          },
+          "left_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left Score"
+          },
+          "right_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right Score"
+          },
+          "ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "verdict",
+          "message",
+          "left_name",
+          "right_name"
+        ],
+        "title": "BalanceCheckOut"
+      },
       "BodyweightIn": {
         "properties": {
           "date": {
@@ -2465,6 +2773,62 @@
         ],
         "title": "ExceptionIn"
       },
+      "ExerciseContributionOut": {
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "exercise_name": {
+            "type": "string",
+            "title": "Exercise Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "role_factor": {
+            "type": "number",
+            "title": "Role Factor"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "best_e1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best E1Rm Kg"
+          },
+          "last_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_slug",
+          "exercise_name",
+          "role",
+          "role_factor",
+          "volume_kg"
+        ],
+        "title": "ExerciseContributionOut"
+      },
       "ExerciseOut": {
         "properties": {
           "slug": {
@@ -2548,6 +2912,85 @@
           "default_rest_seconds"
         ],
         "title": "ExerciseOut"
+      },
+      "ExercisePointOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "sets": {
+            "type": "integer",
+            "title": "Sets"
+          },
+          "e1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "E1Rm Kg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "volume_kg",
+          "sets"
+        ],
+        "title": "ExercisePointOut"
+      },
+      "ExerciseProgressOut": {
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "best_e1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best E1Rm Kg"
+          },
+          "best_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best On"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ExercisePointOut"
+            },
+            "type": "array",
+            "title": "Points",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_slug"
+        ],
+        "title": "ExerciseProgressOut"
       },
       "HTTPValidationError": {
         "properties": {
@@ -2690,6 +3133,83 @@
         ],
         "title": "LogSessionIn"
       },
+      "MuscleDetailOut": {
+        "properties": {
+          "muscle": {
+            "$ref": "#/components/schemas/MuscleRankingOut"
+          },
+          "factors": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Factors",
+            "default": {}
+          },
+          "next_tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Tier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points_to_next_tier": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points To Next Tier"
+          },
+          "recent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleUsageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quarter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleUsageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exercises": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseContributionOut"
+            },
+            "type": "array",
+            "title": "Exercises",
+            "default": []
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ScorePointOut"
+            },
+            "type": "array",
+            "title": "History",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "muscle"
+        ],
+        "title": "MuscleDetailOut"
+      },
       "MuscleLinkOut": {
         "properties": {
           "muscle_slug": {
@@ -2740,6 +3260,123 @@
           "svg_key"
         ],
         "title": "MuscleOut"
+      },
+      "MuscleRankingOut": {
+        "properties": {
+          "muscle_slug": {
+            "type": "string",
+            "title": "Muscle Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "body_view": {
+            "type": "string",
+            "title": "Body View"
+          },
+          "svg_key": {
+            "type": "string",
+            "title": "Svg Key"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "has_data": {
+            "type": "boolean",
+            "title": "Has Data"
+          },
+          "activity": {
+            "type": "number",
+            "title": "Activity"
+          },
+          "development": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Development"
+          },
+          "days_since_stimulus": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Since Stimulus"
+          },
+          "points_to_next_tier": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points To Next Tier"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "muscle_slug",
+          "name",
+          "region",
+          "body_view",
+          "svg_key",
+          "display_order",
+          "tier",
+          "has_data",
+          "activity"
+        ],
+        "title": "MuscleRankingOut",
+        "description": "Un músculo del mapa corporal.\n\n``development`` es ``null`` cuando no hay rango: el cliente no debe pintar\nun cero, porque \"sin medir\" y \"cero\" no son lo mismo (ADR-0003)."
+      },
+      "MuscleUsageOut": {
+        "properties": {
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "sessions_per_week": {
+            "type": "number",
+            "title": "Sessions Per Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "volume_kg",
+          "sessions",
+          "sessions_per_week"
+        ],
+        "title": "MuscleUsageOut"
       },
       "PendingDayOut": {
         "properties": {
@@ -3547,6 +4184,70 @@
         "title": "ProgressionOutcome",
         "description": "Resultado de evaluar una progresión.\n\nUNDETERMINED es un ciudadano de primera clase: cuando el sistema no puede\ndeterminar con seguridad cómo progresar, lo dice en vez de inventarlo."
       },
+      "RankingOut": {
+        "properties": {
+          "today": {
+            "type": "string",
+            "format": "date",
+            "title": "Today"
+          },
+          "formula_version": {
+            "type": "string",
+            "title": "Formula Version"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional"
+          },
+          "measured": {
+            "type": "integer",
+            "title": "Measured"
+          },
+          "bodyweight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bodyweight Kg"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/MuscleRankingOut"
+            },
+            "type": "array",
+            "title": "Entries",
+            "default": []
+          },
+          "balance": {
+            "items": {
+              "$ref": "#/components/schemas/BalanceCheckOut"
+            },
+            "type": "array",
+            "title": "Balance",
+            "default": []
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "today",
+          "formula_version",
+          "provisional",
+          "measured"
+        ],
+        "title": "RankingOut"
+      },
       "RoutineIn": {
         "properties": {
           "name": {
@@ -3816,6 +4517,34 @@
         ],
         "title": "RuleOut"
       },
+      "ScorePointOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "development": {
+            "type": "number",
+            "title": "Development"
+          },
+          "activity": {
+            "type": "number",
+            "title": "Activity"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "development",
+          "activity",
+          "tier"
+        ],
+        "title": "ScorePointOut"
+      },
       "SessionOrigin": {
         "type": "string",
         "enum": [
@@ -4071,6 +4800,23 @@
           "date"
         ],
         "title": "SkipDayIn"
+      },
+      "Tier": {
+        "type": "string",
+        "enum": [
+          "sin_datos",
+          "iron",
+          "bronze",
+          "silver",
+          "gold",
+          "platinum",
+          "diamond",
+          "ascendant",
+          "immortal",
+          "radiant"
+        ],
+        "title": "Tier",
+        "description": "Rangos del ranking muscular, de menor a mayor.\n\nSIN_DATOS no es el escalón más bajo: es la ausencia de escalón. Un músculo\nsin ejercicios asociados no está \"débil\", está \"no medido\" (ADR-0003)."
       },
       "ValidationError": {
         "properties": {
