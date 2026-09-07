@@ -924,9 +924,17 @@ label {
   stroke-width: 3;
 }
 
+/* El foco va en el borde y no en `outline`: las zonas recortadas con
+   clip-path (deltoides, romboides) tienen un bounding box mucho mayor que su
+   parte visible, asi que el outline dibujaba un rectangulo suelto sobre el
+   cuerpo. El stroke si respeta el recorte. */
+.zone:focus {
+  outline: none;
+}
+
 .zone:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  stroke: var(--accent);
+  stroke-width: 3;
 }
 
 .tier-legend {
