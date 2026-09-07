@@ -189,6 +189,14 @@ export function useSaveWeek() {
   });
 }
 
+export function useClearException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (date: string) => api<void>(`/excepciones/${date}`, { method: "DELETE" }),
+    onSuccess: () => invalidateTraining(qc),
+  });
+}
+
 export function useSetException() {
   const qc = useQueryClient();
   return useMutation({

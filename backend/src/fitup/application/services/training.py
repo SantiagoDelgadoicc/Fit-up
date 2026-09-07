@@ -17,7 +17,7 @@ from ...domain.enums import Actor, SessionOrigin, SessionStatus
 from ...domain.models import PerformedExercise, PerformedSet, WorkoutSession
 from ..errors import Conflict, Invalid
 from ..repositories import history, planning
-from ..views import DayView, PendingDay, SessionDetail
+from ..views import CalendarDay, DayView, PendingDay, SessionDetail
 
 MAX_RETROACTIVE_DAYS = 365
 
@@ -113,8 +113,12 @@ def pending_days(conn: sqlite3.Connection, *, today: Date | None = None) -> list
 
 def calendar(
     conn: sqlite3.Connection, start: Date, end: Date, *, today: Date | None = None
-) -> list[DayVerdict]:
-    """Estados de un rango de días. Base de la vista mensual de F2."""
+) -> list[CalendarDay]:
+    """Estados de un rango de días, con qué tocaba y qué se hizo.
+
+    Carga sesiones y excepciones del rango de una vez: pintar un mes con una
+    consulta por día serían decenas de viajes a la base de datos.
+    """
     today = today or Date.today()
     if end > today:
         end = today
@@ -125,7 +129,7 @@ def calendar(
     exceptions = planning.exceptions_between(conn, start, end)
     window = grace_days(conn)
 
-    verdicts: list[DayVerdict] = []
+    days: list[CalendarDay] = []
     day = start
     while day <= end:
         scheduled = planning.scheduled_routine(conn, day)
@@ -135,18 +139,27 @@ def calendar(
             domain_session = WorkoutSession(
                 date=session.date, status=session.status, origin=session.origin
             )
-        verdicts.append(
-            resolve_day_state(
-                day,
-                today=today,
-                was_scheduled=scheduled is not None,
-                session=domain_session,
-                exception=exceptions.get(day),
-                grace_days=window,
+        verdict = resolve_day_state(
+            day,
+            today=today,
+            was_scheduled=scheduled is not None,
+            session=domain_session,
+            exception=exceptions.get(day),
+            grace_days=window,
+        )
+        days.append(
+            CalendarDay(
+                verdict=verdict,
+                routine_id=scheduled[0] if scheduled else None,
+                # El nombre de la sesion manda sobre el programado: si ese dia
+                # se entreno otra cosa, el calendario debe decir lo que pasó.
+                routine_name=(session.routine_name if session else None)
+                or (scheduled[1] if scheduled else None),
+                session_id=session.id if session else None,
             )
         )
         day += timedelta(days=1)
-    return verdicts
+    return days
 
 
 # --------------------------------------------------------------------------

@@ -15,16 +15,26 @@ from pathlib import Path
 BUSY_TIMEOUT_MS = 5000
 
 
-def connect(path: str | Path, *, readonly: bool = False) -> sqlite3.Connection:
-    """Abre la base de datos con los PRAGMA que el proyecto da por sentados."""
+def connect(
+    path: str | Path, *, readonly: bool = False, same_thread: bool = True
+) -> sqlite3.Connection:
+    """Abre la base de datos con los PRAGMA que el proyecto da por sentados.
+
+    ``same_thread=False`` desactiva la comprobación de hilo de SQLite. Hace
+    falta bajo FastAPI, que resuelve la dependencia y ejecuta el endpoint en
+    hilos distintos de su threadpool: la conexión se crea en uno y se usa en
+    otro. Es seguro porque cada petición abre y cierra la suya y esos pasos
+    ocurren en secuencia, nunca a la vez; lo que SQLite prohíbe de verdad es el
+    uso **concurrente**, no el cambio de hilo.
+    """
     path = Path(path)
     if not readonly:
         path.parent.mkdir(parents=True, exist_ok=True)
 
     if readonly and path.exists():
-        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=same_thread)
     else:
-        conn = sqlite3.connect(path)
+        conn = sqlite3.connect(path, check_same_thread=same_thread)
 
     conn.row_factory = sqlite3.Row
     # Sin esto SQLite ignora silenciosamente las FOREIGN KEY declaradas.

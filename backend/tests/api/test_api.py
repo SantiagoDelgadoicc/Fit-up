@@ -283,6 +283,35 @@ def test_el_calendario_del_mes_trae_los_estados_y_la_adherencia(client):
     assert body["adherence"] is not None
 
 
+def test_el_calendario_trae_rutina_y_sesion_por_dia(client):
+    """La vista mensual pinta nombre y permite abrir la sesión: los necesita."""
+    routine_id = make_routine(client)
+    schedule(client, routine_id)
+    sesion = client.post("/api/sesiones/como-planificado", json={"date": MONDAY.isoformat()}).json()
+
+    dias = {d["date"]: d for d in client.get("/api/calendario/2026/3").json()["days"]}
+    assert dias[MONDAY.isoformat()]["routine_name"] == "Empuje"
+    assert dias[MONDAY.isoformat()]["session_id"] == sesion["id"]
+    assert dias[WEDNESDAY.isoformat()]["routine_name"] == "Empuje"
+    assert dias[WEDNESDAY.isoformat()]["session_id"] is None
+    assert dias[TUESDAY.isoformat()]["routine_name"] is None
+
+
+def test_el_calendario_por_rango_tambien_funciona(client):
+    routine_id = make_routine(client)
+    schedule(client, routine_id)
+    body = client.get(f"/api/calendario?start={MONDAY}&end={FRIDAY}").json()
+    assert body["days"][0]["date"] == MONDAY.isoformat()
+    assert body["end"] == FRIDAY.isoformat()
+
+
+def test_diciembre_calcula_bien_su_ultimo_dia(client):
+    """El salto de año es el borde clásico donde falla el cálculo del mes."""
+    body = client.get("/api/calendario/2025/12").json()
+    assert body["start"] == "2025-12-01"
+    assert body["days"][-1]["date"] == "2025-12-31"
+
+
 def test_la_adherencia_es_nula_cuando_nada_computa(client):
     """Un 0 % sobre datos inexistentes sería una afirmación falsa."""
     assert client.get("/api/calendario/2026/3").json()["adherence"] is None

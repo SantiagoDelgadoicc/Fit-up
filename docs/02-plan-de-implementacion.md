@@ -3,14 +3,14 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0 y F1 completadas · siguiente F2
+**Estado global:** F0, F1 y F2 completadas · siguiente F3
 
 | Fase | Objetivo | Estado |
 |---|---|---|
 | [F0](#f0--fundamentos) | Base técnica: esquema, dominio, catálogo, CI | ✅ Completada |
 | [F1](#f1--mvp-de-registro) | Registrar entrenamientos a diario | ✅ Completada |
-| [F2](#f2--calendario-y-cumplimiento) | Ver adherencia en un calendario mensual | ⬜ Siguiente |
-| [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ⬜ |
+| [F2](#f2--calendario-y-cumplimiento) | Ver adherencia en un calendario mensual | ✅ Completada |
+| [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ⬜ Siguiente |
 | [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ⬜ |
 | [F5](#f5--temporizador) | Descansos durante el entrenamiento | ⬜ |
 | [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ⬜ |
@@ -93,19 +93,38 @@ domingo siguiente, en menos de 30 segundos. ✅ Verificado en la app real.
 
 **Objetivo:** ver de un vistazo qué se cumplió y qué no, sin que la app mienta sobre lo
 que aún no has registrado.
-
-El backend ya está: F1 necesitaba estos mismos cálculos. Falta la vista.
+**Completada:** 2026-09-07
 
 - [x] `calendario(mes)` resolviendo los 7 estados del día
+- [x] Cada día lleva qué rutina tocaba y, si la hay, la sesión registrada
 - [x] Métrica de adherencia excluyendo `PENDING`
-- [x] Excepciones (descanso, lesión, viaje, movido) en API
+- [x] Vista mensual navegable, con **color + icono** (nunca solo color)
+- [x] Detalle del día: planificado vs realizado, con acciones
+- [x] Registro retroactivo desde el calendario, en un toque
+- [x] Excepciones (descanso, lesión, viaje, movido) desde la UI
 - [x] Ventana de gracia configurable en ajustes
-- [ ] Vista mensual navegable, con **color + icono** (nunca solo color)
-- [ ] Detalle del día: planificado vs realizado, acciones disponibles
-- [ ] Registro retroactivo desde el calendario, prellenado con lo planificado
-- [ ] Marcar excepciones desde la UI
+- [x] Flechas ← → para cambiar de mes
 
----
+**Rediseño para escritorio** ([ADR-0005](adr/0005-el-pc-es-la-superficie-principal.md)):
+el PC es la superficie principal, no el móvil. Dos columnas en el calendario, ancho por
+página, densidad mayor en pantalla ancha y navegación lateral con marca.
+
+**Aprendido en F2** — dos fallos, y los dos dicen algo sobre cómo probar:
+
+1. **La API rompía en el servidor real y los 42 tests con `TestClient` pasaban.** FastAPI
+   resuelve la dependencia y ejecuta el endpoint en hilos distintos de su threadpool, y
+   SQLite rechaza una conexión usada desde otro hilo. Corregido con
+   `check_same_thread=False` —seguro porque cada petición abre y cierra la suya, en
+   secuencia— y cubierto con un test contra un **uvicorn real**.
+   La primera versión de ese test tampoco fallaba: hacía las peticiones en serie y el
+   threadpool reutilizaba el hilo. Solo lanzándolas **en paralelo**, como hace la
+   interfaz al abrir una pantalla, aparece el error. *Un test que no falla ante el fallo
+   que dice cubrir no sirve*, así que se verificó reintroduciendo el bug a propósito.
+2. **Un control que no hacía nada.** El selector de excepción aparecía en días marcados
+   como "no la hice", pero en el dominio una sesión registrada manda sobre la excepción,
+   así que elegir "lesión" no cambiaba el día. Resuelto sin tocar la regla del dominio:
+   la UI retira ese registro y luego excusa el día, que es lo que pide quien elige
+   "lesión".
 
 ## F3 · Progresión
 
