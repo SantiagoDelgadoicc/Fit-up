@@ -2,6 +2,7 @@
 
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 
+import { TimerPill } from "./components/timer";
 import { ToastProvider } from "./components/ui";
 import Body from "./pages/Body";
 import CalendarPage from "./pages/Calendar";
@@ -10,17 +11,15 @@ import Progression from "./pages/Progression";
 import RoutineEditor from "./pages/RoutineEditor";
 import Routines from "./pages/Routines";
 import Settings from "./pages/Settings";
+import Timer from "./pages/Timer";
 import Today from "./pages/Today";
 import Week from "./pages/Week";
 
-/**
- * Timer llegará en su fase; no se muestra deshabilitado porque una pestaña que
- * no hace nada es ruido, no una promesa.
- */
 const TABS = [
   { to: "/", icon: "🏋️", label: "Hoy", end: true },
   { to: "/calendario", icon: "📅", label: "Calendario", end: false },
   { to: "/cuerpo", icon: "💪", label: "Cuerpo", end: false },
+  { to: "/descanso", icon: "⏱️", label: "Descanso", end: false },
   { to: "/rutinas", icon: "📋", label: "Rutinas", end: false },
   { to: "/semana", icon: "🗓️", label: "Semana", end: false },
   { to: "/historial", icon: "📖", label: "Historial", end: false },
@@ -52,6 +51,8 @@ export default function App() {
               {tab.label}
             </NavLink>
           ))}
+          <div className="spacer" />
+          <TimerPill />
         </nav>
 
         <main className={wide ? "main wide" : "main"}>
@@ -64,7 +65,8 @@ export default function App() {
             <Route path="/rutinas/:id/progresion" element={<Progression />} />
             <Route path="/semana" element={<Week />} />
             <Route path="/historial" element={<History />} />
-            <Route path="/ajustes" element={<Settings />} />
+            <Route path="/descanso" element={<Timer />} />
+          <Route path="/ajustes" element={<Settings />} />
             <Route path="*" element={<Today />} />
           </Routes>
         </main>

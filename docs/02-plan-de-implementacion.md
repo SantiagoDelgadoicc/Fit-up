@@ -3,7 +3,7 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0–F4 completadas · siguiente F5
+**Estado global:** F0–F5 completadas · siguiente F6
 
 | Fase | Objetivo | Estado |
 |---|---|---|
@@ -12,8 +12,8 @@ estado. Cada fase termina en un incremento **usable**, no en una capa técnica a
 | [F2](#f2--calendario-y-cumplimiento) | Ver adherencia en un calendario mensual | ✅ Completada |
 | [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ✅ Completada |
 | [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ✅ Completada |
-| [F5](#f5--temporizador) | Descansos durante el entrenamiento | ⬜ Siguiente |
-| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ⬜ |
+| [F5](#f5--temporizador) | Descansos durante el entrenamiento | ✅ Completada |
+| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ⬜ Siguiente |
 | [F7](#f7--pulido) | Backups, offline, accesibilidad | ⬜ |
 
 ---
@@ -202,10 +202,8 @@ poder responder «¿por qué este rango?» sin salir de la pantalla. ✅ Verific
 
 Sin migraciones: `muscle_score_snapshot` y la fórmula `ranking/v1` estaban desde F0.
 
-**Pendiente conocido:** el dibujo del cuerpo es geométrico y se ve tosco. `BodyMap` está
-escrito para que cambiarlo sea cambiar formas —las zonas se identifican por `svg_key` y
-todo el estado (tier, halo, sin datos, selección) vive en CSS—, así que sustituirlo por
-una silueta anatómica no toca la lógica. Anotado como M11 en F7.
+**Resuelto después:** el dibujo geométrico se sustituyó por una silueta anatómica
+(M11, ver más abajo). El contrato aguantó: solo cambiaron las formas.
 
 ### Decisiones aplicadas
 
@@ -243,16 +241,36 @@ una silueta anatómica no toca la lógica. Anotado como M11 en F7.
 ## F5 · Temporizador
 
 **Objetivo:** que sea cómodo entrenar con la app abierta.
+**Completada:** 2026-09-07
 
-- [ ] Temporizador persistente entre pestañas
-- [ ] Iniciar, pausar, reiniciar, finalizar
-- [ ] Presets rápidos (60/90/120/180 s)
-- [ ] Descanso por defecto tomado del ejercicio
-- [ ] Sonido y notificación
+- [x] Temporizador persistente entre pestañas
+- [x] Iniciar, pausar, reiniciar, finalizar
+- [x] Presets rápidos, **tres** (2:00 · 1:30 · 4:00) y editables desde la pantalla
+- [x] Descanso por defecto tomado del ejercicio: un botón por ejercicio en «Hoy»
+- [x] Sonido y notificación
 
 **Fuera de alcance a propósito:** temporizadores encadenados por rutina, distinción entre
 descanso entre series y entre ejercicios, cronómetro de sesión total. Complican el modelo
 sin valor demostrado.
+
+### Decisiones aplicadas
+
+- **Se guarda el instante de fin, no los segundos restantes.** Un contador que se
+  decrementa se desincroniza en cuanto el navegador ralentiza la pestaña en segundo
+  plano, que es exactamente lo que pasa con el móvil en el bolsillo. Con un instante
+  absoluto el restante se recalcula del reloj y da igual cuántos ticks se pierdan.
+- **Tres presets y no cuatro.** El plan preveía 60/90/120/180. En el gimnasio se elige de
+  un vistazo y el cuarto botón solo añadía una decisión. Viven en el ajuste
+  `timer_presets_s`, que ya existía, y se editan desde la propia pantalla.
+- **Sin fichero de audio.** El aviso son tres tonos sintetizados con WebAudio: un `.mp3`
+  en el repositorio es un binario que versionar y servir para 200 ms de sonido.
+- **Store compartido en el módulo, no solo `localStorage`.** El evento `storage` avisa a
+  las *otras* pestañas, nunca a la que escribió. Sin store, la píldora de la navegación
+  no se enteraba de que el descanso había empezado en su misma pestaña.
+
+**Aprendido en F5:** los tres fallos aparecieron al usar la app, no en los tests — la
+píldora que no reaccionaba, el estilo de pestaña que la apilaba en vertical, y la octava
+entrada de la barra inferior que cortaba el texto de «Ajustes» en 375 px.
 
 ---
 
@@ -280,12 +298,11 @@ rutina. Se decide con historial real y el agente funcionando.
 
 ## F7 · Pulido
 
-- [ ] **Sustituir el mapa corporal por una silueta anatómica** *(M11)*. El de F4 es
-      geométrico y funciona, pero se ve tosco. Se reemplazará por un modelo mejor
-      (HTML/CSS/SVG de terceros o dibujado a medida) **conservando el contrato**:
-      una zona por `svg_key` del catálogo, vista frontal y dorsal, y los cuatro estados
-      que ya sabe pintar `BodyMap` — color por tier, halo de actividad en el borde,
-      trama para "sin datos" y marca de selección. Solo cambian las formas, no la lógica.
+- [x] **Sustituir el mapa corporal por una silueta anatómica** *(M11)*. Hecho con los
+      trazados de [MuscleMap](https://github.com/melihcolpan/MuscleMap) (tag 1.6.4, MIT),
+      extraídos de sus fuentes Swift a `frontend/src/components/bodyPaths.ts`. El
+      contrato se mantuvo entero: una zona por `svg_key`, dos vistas, y los cuatro
+      estados pintados desde CSS. El catálogo, el esquema y el ranking no se tocaron.
 - [ ] PWA offline en modo lectura *(mitiga el "PC apagado" de ADR-0001)*
 - [ ] Accesibilidad: contraste, targets ≥ 44 px, uso con una mano
 - [ ] Rendimiento con años de historial
@@ -312,4 +329,4 @@ lo justifica.
 | M8 | Cadena de variantes para calistenia | F0 ✅ (motor) / F3 ✅ (UI) |
 | M9 | Estado `partial` de sesión | F0 ✅ (esquema) / F1 (UI) |
 | M10 | Ciclos rotativos A/B/C | Sin programar; el esquema lo contempla |
-| M11 | Silueta anatómica para el mapa corporal | F7 |
+| M11 | Silueta anatómica para el mapa corporal | F7 ✅ |

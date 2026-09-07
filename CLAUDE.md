@@ -8,9 +8,9 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0–F4 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
-registro, calendario, sobrecarga progresiva y ranking muscular sobre mapa corporal: la app
-ya se usa a diario. Siguiente F5 (temporizador). Ver
+**Fase actual: F0–F5 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
+registro, calendario, sobrecarga progresiva, ranking muscular sobre mapa corporal y
+temporizador de descanso: la app ya se usa a diario. Siguiente F6 (agente de IA). Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -80,9 +80,9 @@ backend/src/fitup/
 
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
-  components/     primitivas compartidas · BodyMap (mapa corporal SVG)
-  pages/          Hoy · Calendario · Cuerpo · Rutinas · RoutineEditor · Progression ·
-                  Semana · Historial · Ajustes
+  components/     primitivas compartidas · BodyMap (mapa corporal) · bodyPaths (su geometría)
+  pages/          Hoy · Calendario · Cuerpo · Descanso · Rutinas · RoutineEditor ·
+                  Progression · Semana · Historial · Ajustes
 ```
 
 `schema.d.ts` se genera: **no lo edites a mano**.
@@ -131,10 +131,14 @@ ciclos. `catalog.validate()` lo comprueba y los tests de `test_schema.py` lo bli
 - Ruff con `line-length = 100`. `N812`, `N818` y `B008` están ignoradas a propósito, con el
   motivo documentado en `pyproject.toml`.
 - El frontend usa CSS plano con variables: cinco pantallas no justifican un framework.
-- El mapa corporal (`components/BodyMap.tsx`) es **datos, no lógica**: cada zona es una
-  forma asociada a un `svg_key` del catálogo, y el estado (tier, halo de actividad, sin
-  datos, selección) se pinta desde CSS. Si lo sustituyes por otra silueta, cambia las
-  formas y respeta ese contrato — está previsto que ocurra (M11).
+- El mapa corporal es **datos, no lógica**: la geometría vive en
+  `components/bodyPaths.ts` y `BodyMap.tsx` solo la pinta. Cada zona es un conjunto de
+  trazados asociado a un `svg_key` del catálogo, y el estado (tier, halo de actividad,
+  sin datos, selección) se pinta desde CSS. La silueta viene de MuscleMap (MIT, ver
+  [licenses/](licenses/)); sustituirla es cambiar `bodyPaths.ts` y nada más.
+  **La partición del cuerpo la manda el catálogo, no el asset**: si una silueta nueva no
+  separa un músculo que `muscles.json` sí distingue, recórtala con `clip` — no fusiones
+  músculos ni añadas otros para encajar con el dibujo.
 
 ## Decisiones cerradas
 
