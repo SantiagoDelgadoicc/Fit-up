@@ -3,10 +3,11 @@
 Aplicación personal de **registro, planificación y progresión de entrenamiento**, con ranking
 muscular visual y preparada para ser operada por un agente de IA local.
 
-> **Estado: F0–F4 completadas.** La app sirve para registrar entrenamientos a diario,
-> revisar el cumplimiento del mes, aplicar sobrecarga progresiva —con su motivo a la vista
-> y siempre reversible— y ver el ranking muscular sobre un mapa corporal.
-> Siguiente: F5 — temporizador de descansos.
+> **Estado: F0–F5 completadas · F6 en curso.** La app sirve para registrar entrenamientos
+> a diario, revisar el cumplimiento del mes, aplicar sobrecarga progresiva —con su motivo
+> a la vista y siempre reversible—, ver el ranking muscular sobre un mapa corporal y
+> cronometrar los descansos. La superficie para el agente de IA externo ya está
+> (actor, permisos, auditoría y copias previas); falta el servidor MCP.
 
 ## Arranque rápido
 
@@ -31,6 +32,8 @@ Muestra un token; pégalo en **Ajustes → Acceso desde el móvil**.
 | [docs/00-analisis-y-arquitectura.md](docs/00-analisis-y-arquitectura.md) | Análisis completo: dominio, reglas, arquitectura, progresión, ranking, IA, riesgos, roadmap |
 | [docs/01-decisiones-pendientes.md](docs/01-decisiones-pendientes.md) | Registro de decisiones: cerradas, defaults aplicados y abiertas |
 | [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md) | Plan por fases con seguimiento de hitos |
+| [docs/03-contrato-del-agente.md](docs/03-contrato-del-agente.md) | Cómo debe interactuar un agente de IA externo: actor, permisos, auditoría y límites |
+| [licenses/](licenses/) | Material de terceros y sus licencias |
 | [CLAUDE.md](CLAUDE.md) | Guía de trabajo: comandos, invariantes y convenciones |
 
 ## Estructura

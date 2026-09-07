@@ -8,7 +8,7 @@ from datetime import date as Date
 from ...domain.enums import Actor
 from ...domain.models import PlannedExercise, PlannedSet, ScheduleException
 from ..errors import Invalid, NotFound
-from ..repositories import catalog, planning
+from ..repositories import catalog, history, planning
 from ..views import RoutineDetail, RoutineSummary, WeekPlan
 
 
@@ -100,6 +100,12 @@ def create_routine(
     routine_id = planning.create_routine(
         conn, name=name.strip(), exercises=exercises, note=note, actor=actor
     )
+    history.audit(
+        conn,
+        actor=actor,
+        action="create_routine",
+        payload={"routine_id": routine_id, "name": name.strip()},
+    )
     conn.commit()
     return planning.get_routine(conn, routine_id)
 
@@ -127,6 +133,9 @@ def update_routine(
         conn.execute("UPDATE routine SET name = ? WHERE id = ?", (name.strip(), routine_id))
 
     planning.create_version(conn, routine_id, exercises=exercises, note=note, actor=actor)
+    history.audit(
+        conn, actor=actor, action="update_routine", payload={"routine_id": routine_id, "name": name}
+    )
     conn.commit()
     return planning.get_routine(conn, routine_id)
 
@@ -143,8 +152,11 @@ def list_routines(
     return planning.list_routines(conn, include_archived=include_archived)
 
 
-def archive_routine(conn: sqlite3.Connection, routine_id: int) -> None:
+def archive_routine(
+    conn: sqlite3.Connection, routine_id: int, *, actor: Actor = Actor.USUARIO
+) -> None:
     planning.archive_routine(conn, routine_id)
+    history.audit(conn, actor=actor, action="archive_routine", payload={"routine_id": routine_id})
     conn.commit()
 
 
@@ -158,6 +170,7 @@ def set_week(
     assignments: dict[int, int | None],
     *,
     effective_from: Date,
+    actor: Actor = Actor.USUARIO,
 ) -> WeekPlan:
     for weekday, routine_id in assignments.items():
         if not 0 <= weekday <= 6:
@@ -166,6 +179,12 @@ def set_week(
             planning.get_routine(conn, routine_id)  # existencia
 
     planning.set_week(conn, assignments, effective_from=effective_from)
+    history.audit(
+        conn,
+        actor=actor,
+        action="set_week",
+        payload={"days": assignments, "effective_from": effective_from},
+    )
     conn.commit()
     return planning.get_week(conn, effective_from)
 
@@ -174,11 +193,20 @@ def get_week(conn: sqlite3.Connection, at: Date) -> WeekPlan:
     return planning.get_week(conn, at)
 
 
-def set_exception(conn: sqlite3.Connection, exception: ScheduleException) -> None:
+def set_exception(
+    conn: sqlite3.Connection, exception: ScheduleException, *, actor: Actor = Actor.USUARIO
+) -> None:
     planning.set_exception(conn, exception)
+    history.audit(
+        conn,
+        actor=actor,
+        action="set_exception",
+        payload={"date": exception.date, "reason": str(exception.reason)},
+    )
     conn.commit()
 
 
-def clear_exception(conn: sqlite3.Connection, day: Date) -> None:
+def clear_exception(conn: sqlite3.Connection, day: Date, *, actor: Actor = Actor.USUARIO) -> None:
     planning.clear_exception(conn, day)
+    history.audit(conn, actor=actor, action="clear_exception", payload={"date": day})
     conn.commit()

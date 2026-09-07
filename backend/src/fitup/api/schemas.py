@@ -479,3 +479,15 @@ class ExerciseProgressOut(Model):
     best_e1rm_kg: float | None = None
     best_on: Date | None = None
     points: list[ExercisePointOut] = []
+
+
+class AuditEntryOut(Model):
+    """Una línea del registro de auditoría."""
+
+    id: int
+    ts: str
+    actor: str
+    action: str
+    payload: dict | None = None
+    result: str
+    error: str | None = None

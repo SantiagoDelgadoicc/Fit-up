@@ -131,6 +131,10 @@ volumen_serie  = carga_efectiva × (segundos / 3) × factor_iso       [modalidad
 
 ### 4.1 Forma general — núcleo puro + adaptadores
 
+> **Nota de estado.** El árbol que sigue es el diseño propuesto. El real, más plano,
+> está en [CLAUDE.md](../CLAUDE.md): `backend/src/fitup/{domain,application,infrastructure,api}`.
+> `apps/agent/` no existe todavía — el servidor MCP sigue pendiente.
+
 ```
 apps/
   web/                 UI (SPA/PWA)
@@ -253,6 +257,19 @@ Sin esto el ranking es un número mágico, pierde credibilidad — y el agente d
 ---
 
 ## 7. IA e integración
+
+> **Nota de estado (F6).** Esta sección es el análisis inicial. Tres puntos los
+> reemplazó después [ADR-0004](adr/0004-integracion-con-agente-externo-autonomo.md), y lo
+> construido sigue al ADR, no a lo de aquí. El contrato vigente está en
+> [03-contrato-del-agente.md](03-contrato-del-agente.md):
+>
+> 1. **La superficie principal es HTTP + OpenAPI**, no MCP. MCP sigue previsto como
+>    segunda superficie, pero está pendiente y no es imprescindible.
+> 2. **La bandeja de propuestas no es obligatoria.** Frente a un agente autónomo puede ser
+>    ceremonia inútil; quedó diferida como D5, todavía abierta.
+> 3. **Los scopes no contienen al agente.** Protegen contra sus equivocaciones, no contra
+>    un agente hostil: un proceso con control del PC se los salta. Lo que protege el
+>    historial es inmutabilidad, auditoría, deshacer y copias.
 
 ### 7.1 Superficie de integración
 **MCP (Model Context Protocol) por stdio** como superficie principal, envolviendo los casos de uso; **OpenAPI/REST** como secundaria (ya existe por la UI y sirve a cualquier cliente no-MCP).

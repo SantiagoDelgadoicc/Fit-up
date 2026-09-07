@@ -13,11 +13,13 @@ from datetime import date as Date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from ...application.repositories import catalog
+from ...application.repositories import catalog, history
 from ...application.services import metrics
 from ...application.services import ranking as svc
+from ...domain.enums import Actor
 from ...domain.ranking.v1 import DEVELOPMENT_WINDOW_DAYS
 from .. import mappers, schemas
+from ..agent import actor_header
 from ..deps import get_db
 from ..deps import today as today_dep
 
@@ -41,9 +43,23 @@ def muscle_detail(
 
 
 @router.post("/ranking/snapshot", status_code=status.HTTP_201_CREATED)
-def take_snapshot(db: sqlite3.Connection = Depends(get_db), today: Date = Depends(today_dep)):
-    """Fuerza un punto del histórico. Recalcularlo sobrescribe: es caché."""
-    return {"date": today, "muscles": svc.take_snapshot(db, today=today)}
+def take_snapshot(
+    db: sqlite3.Connection = Depends(get_db),
+    today: Date = Depends(today_dep),
+    actor: Actor = Depends(actor_header),
+):
+    """Fuerza un punto del histórico. Recalcularlo sobrescribe: es caché.
+
+    Sin scope: el snapshot es caché reconstruible desde el registro crudo, así
+    que rehacerlo no destruye nada. Se audita igual, para que la traza del
+    agente no tenga huecos.
+    """
+    muscles = svc.take_snapshot(db, today=today)
+    history.audit(
+        db, actor=actor, action="take_snapshot", payload={"date": today, "muscles": muscles}
+    )
+    db.commit()
+    return {"date": today, "muscles": muscles}
 
 
 @router.get(

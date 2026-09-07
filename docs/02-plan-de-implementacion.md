@@ -3,7 +3,7 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0–F5 completadas · siguiente F6
+**Estado global:** F0–F5 completadas · F6 en curso (falta el servidor MCP)
 
 | Fase | Objetivo | Estado |
 |---|---|---|
@@ -13,7 +13,7 @@ estado. Cada fase termina en un incremento **usable**, no en una capa técnica a
 | [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ✅ Completada |
 | [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ✅ Completada |
 | [F5](#f5--temporizador) | Descansos durante el entrenamiento | ✅ Completada |
-| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ⬜ Siguiente |
+| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | 🟡 En curso |
 | [F7](#f7--pulido) | Backups, offline, accesibilidad | ⬜ |
 
 ---
@@ -277,22 +277,63 @@ entrada de la barra inferior que cortaba el texto de «Ajustes» en 375 px.
 ## F6 · Agente de IA
 
 **Objetivo:** un contrato estable y auditable para el agente externo, sin acoplar Fit-Up a
-ninguna IA concreta.
+ninguna IA concreta. El agente **es otro proyecto**: aquí solo se construye la puerta.
 
-- [ ] Servidor MCP sobre los mismos casos de uso (wrappers finos)
-- [ ] Tools de lectura: rutinas, historial, calendario, estadísticas, ranking, tendencias
-- [ ] Tools de propuesta (no escriben)
-- [ ] Scopes en configuración local, escrituras sensibles desactivadas por defecto
-- [ ] `AuditLog` de toda operación del agente
-- [ ] Claves de idempotencia en escrituras
-- [ ] Backup automático antes de un lote de escrituras del agente
-- [ ] Documentar el contrato "usa la API, no el fichero"
-- [ ] Documentar la frontera datos/instrucciones en las descripciones de las tools
+Contrato completo en [03-contrato-del-agente.md](03-contrato-del-agente.md).
+
+- [ ] **Servidor MCP** sobre los mismos casos de uso (wrappers finos) — *pendiente,
+      requiere decidir una dependencia nueva*
+- [x] Tools de lectura: la API HTTP + OpenAPI ya las cubre y es funcionalmente completa
+- [x] Tools de propuesta (no escriben): permiso `propose` sobre los endpoints de
+      evaluación de progresión
+- [x] Scopes en configuración local, escrituras sensibles desactivadas por defecto
+- [x] `AuditLog` de toda operación del agente, **y legible** vía `GET /api/auditoria`
+- [x] Claves de idempotencia en escrituras de sesión
+- [x] Backup automático antes de un lote de escrituras del agente
+- [x] Documentar el contrato "usa la API, no el fichero"
+- [x] Documentar la frontera datos/instrucciones
+
+### Lo que había que arreglar antes de nada
+
+La auditoría existía desde F0 pero **no servía para lo que iba a hacer falta**:
+
+1. **La API no permitía declarar el actor.** Cualquier escritura del agente quedaba
+   registrada como `usuario`. La traza —que según ADR-0004 es *la* protección— no
+   distinguía nada. Resuelto con la cabecera `X-Fitup-Actor`.
+2. **`audit_log` se escribía pero no se leía.** Ningún endpoint la exponía: un cajón
+   cerrado. Resuelto con `GET /api/auditoria`.
+3. **Solo auditaban sesiones y progresiones.** Rutinas, semana, excepciones, ajustes y
+   peso escribían sin dejar rastro. Ahora auditan todas.
+
+### Decisiones aplicadas
+
+- **Los permisos son por familia, no por endpoint.** `write_sessions`, `write_routines` y
+  `write_settings` agrupan operaciones que se conceden juntas o no se conceden. Una lista
+  de treinta permisos no la revisa nadie.
+- **`read` se aplica al router entero**, no endpoint a endpoint: es el interruptor general
+  del agente y apagarlo tiene que dejarlo fuera de todo, no solo de lo que alguien se
+  acordó de marcar.
+- **Un rechazo se audita.** `result='rechazado'` estaba en el CHECK del esquema desde F0
+  sin usarse. Un intento bloqueado dice más que uno permitido.
+- **Un actor desconocido devuelve 400**, no se degrada a `usuario`: una cabecera mal
+  escrita dejaría al agente operando de incógnito.
+- **La copia previa al lote se corta por inactividad** (30 min). El agente no anuncia
+  dónde empieza ni acaba un lote; lo que se puede medir es cuánto lleva sin tocar nada.
+  Una copia por escritura llenaría el disco durante una ráfaga.
+- **Las copias del agente y las diarias se podan por separado.** Con un `fitup-*.db` a
+  secas, la diaria barría las del agente y al revés — la copia previa a un lote habría
+  desaparecido justo cuando hiciera falta.
+
+### Pendiente
+
+- **Servidor MCP.** ADR-0004 lo contempla como segunda superficie. Implica una dependencia
+  nueva (el SDK de MCP), que CLAUDE.md obliga a consultar. La API HTTP + OpenAPI ya es
+  funcionalmente completa para un agente, así que esto es comodidad, no capacidad.
 
 ### Decisión diferida a esta fase
 **D5 — ¿Bandeja de propuestas (`AgentProposal`)?** Con un agente autónomo puede ser
 ceremonia innecesaria, o el punto de control que se quiera conservar para los cambios de
-rutina. Se decide con historial real y el agente funcionando.
+rutina. Sigue abierta a propósito: se decide con historial real y el agente funcionando.
 
 ---
 

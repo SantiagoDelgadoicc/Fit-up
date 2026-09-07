@@ -8,9 +8,10 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0–F5 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
-registro, calendario, sobrecarga progresiva, ranking muscular sobre mapa corporal y
-temporizador de descanso: la app ya se usa a diario. Siguiente F6 (agente de IA). Ver
+**Fase actual: F0–F5 completadas · F6 en curso.** Hay dominio, esquema, catálogo, API
+HTTP y PWA con registro, calendario, sobrecarga progresiva, ranking muscular sobre mapa
+corporal y temporizador: la app ya se usa a diario. De F6 está la superficie para el
+agente externo (actor, permisos, auditoría, copias previas); falta el servidor MCP. Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -76,6 +77,7 @@ backend/src/fitup/
     db/             conexión, migrador, migrations/*.sql
     seed/           catálogo JSON + cargador idempotente
   api/            adaptador HTTP: schemas, routers, mappers, deps
+    agent.py      quién escribe (`actor`), qué se le permite (scopes) y copia previa
   cli.py
 
 frontend/src/
@@ -105,6 +107,10 @@ frontend/src/
    rellenes un hueco con una suposición por defecto.**
 6. **Un solo núcleo, varios adaptadores.** API y agente MCP consumirán los mismos casos de
    uso. No dupliques lógica ni abras un camino que salte las reglas de negocio.
+   **Toda escritura acepta `actor` y se audita.** Si añades un endpoint que escribe sin
+   `history.audit(...)` y sin propagar el actor del llamante, la traza queda con un hueco
+   y deja de servir para lo único que existe: saber qué tocó el agente
+   ([contrato](docs/03-contrato-del-agente.md)).
 7. **Fecha local ISO** (`YYYY-MM-DD`) para el "día de entrenamiento". Nunca UTC. Los
    instantes de auditoría (`logged_at`, `ts`) sí llevan offset.
 

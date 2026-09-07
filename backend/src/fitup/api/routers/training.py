@@ -10,7 +10,8 @@ from fastapi import APIRouter, Depends, Header, Query, Response, status
 
 from ...application.services import training as svc
 from ...domain.compliance.day_state import adherence
-from .. import mappers, schemas
+from .. import agent, mappers, schemas
+from ..agent import Caller
 from ..deps import get_db
 from ..deps import today as today_dep
 
@@ -88,12 +89,14 @@ def log_as_planned(
     db: sqlite3.Connection = Depends(get_db),
     today: Date = Depends(today_dep),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    caller: Caller = Depends(agent.write_sessions),
 ):
     """«Hice esta rutina»: copia el plan vigente **ese día** y lo da por hecho."""
     detail = svc.log_as_planned(
         db,
         payload.date,
         today=today,
+        actor=caller.actor,
         status=payload.status,
         perceived_effort=payload.perceived_effort,
         duration_min=payload.duration_min,
@@ -109,6 +112,7 @@ def log_session(
     db: sqlite3.Connection = Depends(get_db),
     today: Date = Depends(today_dep),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    caller: Caller = Depends(agent.write_sessions),
 ):
     """Registro libre: entrenamiento extra o con desviaciones respecto al plan."""
     detail = svc.log_session(
@@ -116,6 +120,7 @@ def log_session(
         day=payload.date,
         exercises=mappers.to_performed_exercises(payload.exercises),
         today=today,
+        actor=caller.actor,
         status=payload.status,
         routine_id=payload.routine_id,
         perceived_effort=payload.perceived_effort,
@@ -135,9 +140,12 @@ def skip_day(
     payload: schemas.SkipDayIn,
     db: sqlite3.Connection = Depends(get_db),
     today: Date = Depends(today_dep),
+    caller: Caller = Depends(agent.write_sessions),
 ):
     """Declarar que un día no se entrenó: información, no ausencia de ella."""
-    return mappers.session_out(svc.skip_day(db, payload.date, today=today, notes=payload.notes))
+    return mappers.session_out(
+        svc.skip_day(db, payload.date, today=today, notes=payload.notes, actor=caller.actor)
+    )
 
 
 @router.get("/sesiones", response_model=list[schemas.SessionOut])
@@ -155,6 +163,10 @@ def get_session(session_id: int, db: sqlite3.Connection = Depends(get_db)):
 
 
 @router.delete("/sesiones/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_session(session_id: int, db: sqlite3.Connection = Depends(get_db)):
-    svc.delete_session(db, session_id)
+def delete_session(
+    session_id: int,
+    db: sqlite3.Connection = Depends(get_db),
+    caller: Caller = Depends(agent.write_sessions),
+):
+    svc.delete_session(db, session_id, actor=caller.actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

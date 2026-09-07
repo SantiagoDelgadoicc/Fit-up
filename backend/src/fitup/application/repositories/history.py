@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import dataclass
 from datetime import date as Date
 from datetime import datetime
 
@@ -337,3 +338,63 @@ def audit(
             error,
         ),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class AuditEntry:
+    """Una línea del registro, tal cual quedó escrita."""
+
+    id: int
+    ts: str
+    actor: str
+    action: str
+    payload: dict | None
+    result: str
+    error: str | None
+
+
+def list_audit(
+    conn: sqlite3.Connection,
+    *,
+    actor: Actor | None = None,
+    result: str | None = None,
+    since: str | None = None,
+    limit: int = 100,
+) -> list[AuditEntry]:
+    """Últimas operaciones registradas, de la más reciente hacia atrás.
+
+    Existe para poder responder «¿qué tocó el agente ayer?». Sin lectura, la
+    tabla de auditoría es un cajón cerrado: se escribe y no sirve de nada
+    (ADR-0004 §2).
+    """
+    clauses: list[str] = []
+    params: list[object] = []
+    if actor is not None:
+        clauses.append("actor = ?")
+        params.append(str(actor))
+    if result is not None:
+        clauses.append("result = ?")
+        params.append(result)
+    if since is not None:
+        clauses.append("ts >= ?")
+        params.append(since)
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(limit)
+    rows = conn.execute(
+        f"SELECT id, ts, actor, action, payload_json, result, error FROM audit_log "
+        f"{where} ORDER BY id DESC LIMIT ?",
+        params,
+    ).fetchall()
+    return [
+        AuditEntry(
+            id=r["id"],
+            ts=r["ts"],
+            actor=r["actor"],
+            action=r["action"],
+            payload=json.loads(r["payload_json"]) if r["payload_json"] else None,
+            result=r["result"],
+            error=r["error"],
+        )
+        for r in rows
+    ]

@@ -1342,3 +1342,22 @@ details summary {
     animation: none;
   }
 }
+
+/* Un permiso del agente: casilla y explicación en la misma línea. */
+.scope {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.scope input {
+  width: auto;
+  min-height: 0;
+  margin-top: 3px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}

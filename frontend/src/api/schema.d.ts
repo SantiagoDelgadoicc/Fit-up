@@ -334,6 +334,9 @@ export interface paths {
         /**
          * Evaluate Routine
          * @description Veredicto para cada ejercicio, con su motivo aunque no se pueda progresar.
+         *
+         *     Es *la* tool de propuesta: calcula y explica, sin escribir nada. Por eso
+         *     mira el permiso `propose` y no uno de escritura.
          */
         get: operations["evaluate_routine_api_rutinas__routine_id__progresion_get"];
         put?: never;
@@ -343,6 +346,10 @@ export interface paths {
          *
          *     Se recalcula antes de escribir. Si algo dejó de ser seguro entre la
          *     pantalla y el botón, responde 409 con el motivo en vez de aplicarlo.
+         *
+         *     El cliente elige **qué** ejercicios progresan, nunca cuánto: el salto lo
+         *     recalcula el motor aquí, con sus guardas, en cada aplicación. Vale igual
+         *     para el agente que para la interfaz.
          */
         post: operations["apply_progression_api_rutinas__routine_id__progresion_post"];
         delete?: never;
@@ -460,6 +467,10 @@ export interface paths {
         /**
          * Take Snapshot
          * @description Fuerza un punto del histórico. Recalcularlo sobrescribe: es caché.
+         *
+         *     Sin scope: el snapshot es caché reconstruible desde el registro crudo, así
+         *     que rehacerlo no destruye nada. Se audita igual, para que la traza del
+         *     agente no tenga huecos.
          */
         post: operations["take_snapshot_api_ranking_snapshot_post"];
         delete?: never;
@@ -532,6 +543,52 @@ export interface paths {
         get?: never;
         /** Set Setting */
         put: operations["set_setting_api_ajustes__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agente/permisos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agent Scopes
+         * @description Permisos vigentes del agente.
+         *
+         *     Los publica para que el propio agente pueda consultarlos y saber qué no
+         *     va a poder hacer, en vez de descubrirlo con un 403 a mitad de un plan.
+         */
+        get: operations["agent_scopes_api_agente_permisos_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auditoria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit Log
+         * @description Qué se ha hecho, quién y con qué resultado.
+         *
+         *     Es la contrapartida de que los scopes no sean una frontera real: si no se
+         *     puede impedir, al menos tiene que poder revisarse (ADR-0004 §2).
+         */
+        get: operations["audit_log_api_auditoria_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -612,7 +669,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Backup */
+        /**
+         * Backup
+         * @description Copia bajo demanda. Sin scope: guardar una copia nunca empeora nada.
+         */
         post: operations["backup_api_backup_post"];
         delete?: never;
         options?: never;
@@ -624,6 +684,33 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Actor
+         * @enum {string}
+         */
+        Actor: "usuario" | "agente" | "sistema";
+        /**
+         * AuditEntryOut
+         * @description Una línea del registro de auditoría.
+         */
+        AuditEntryOut: {
+            /** Id */
+            id: number;
+            /** Ts */
+            ts: string;
+            /** Actor */
+            actor: string;
+            /** Action */
+            action: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /** Result */
+            result: string;
+            /** Error */
+            error?: string | null;
+        };
         /** BalanceCheckOut */
         BalanceCheckOut: {
             /** Key */
@@ -1492,6 +1579,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1525,6 +1613,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1556,6 +1645,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 slug: string;
@@ -1589,6 +1679,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1622,6 +1713,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1653,6 +1745,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1690,6 +1783,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 routine_id: number;
@@ -1723,6 +1817,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 routine_id: number;
@@ -1760,6 +1855,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 routine_id: number;
@@ -1793,6 +1889,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1824,6 +1921,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1859,6 +1957,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 day: string;
@@ -1894,6 +1993,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 day: string;
@@ -1925,6 +2025,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1956,6 +2057,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 day: string;
@@ -1989,6 +2091,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2023,6 +2126,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2054,6 +2158,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 year: number;
@@ -2089,6 +2194,7 @@ export interface operations {
             header?: {
                 "Idempotency-Key"?: string | null;
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2127,6 +2233,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2159,6 +2266,7 @@ export interface operations {
             header?: {
                 "Idempotency-Key"?: string | null;
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2194,6 +2302,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2229,6 +2338,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 session_id: number;
@@ -2262,6 +2372,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 session_id: number;
@@ -2293,6 +2404,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 routine_id: number;
@@ -2326,6 +2438,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 routine_id: number;
@@ -2363,6 +2476,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2397,6 +2511,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2428,6 +2543,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 event_id: number;
@@ -2461,6 +2577,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2492,6 +2609,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 muscle_slug: string;
@@ -2525,6 +2643,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2558,6 +2677,7 @@ export interface operations {
             };
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 exercise_slug: string;
@@ -2591,6 +2711,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2622,6 +2743,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2653,6 +2775,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path: {
                 key: string;
@@ -2685,11 +2808,81 @@ export interface operations {
             };
         };
     };
+    agent_scopes_api_agente_permisos_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_log_api_auditoria_get: {
+        parameters: {
+            query?: {
+                actor?: components["schemas"]["Actor"] | null;
+                result?: string | null;
+                since?: string | null;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     bodyweight_history_api_peso_get: {
         parameters: {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2721,6 +2914,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2756,6 +2950,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2787,6 +2982,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -2818,6 +3014,7 @@ export interface operations {
             query?: never;
             header?: {
                 authorization?: string | null;
+                "X-Fitup-Actor"?: string | null;
             };
             path?: never;
             cookie?: never;
