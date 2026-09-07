@@ -107,6 +107,8 @@ frontend/src/
    (`today=`). Si necesitas el reloj dentro de `domain/`, el diseño está mal.
 2. **Plan ≠ historial.** `routine_*` es lo planificado, `workout_session*` lo realizado.
    Nunca se mezclan ni se derivan uno del otro.
+   **Un día admite varias rutinas y varias sesiones** (mañana y tarde). Nada que asuma
+   "una por día" es correcto: ni en el dominio, ni en la API, ni en las pantallas.
 3. **Las rutinas se versionan, no se mutan.** Editar crea `version_no + 1`. Una sesión
    histórica apunta a la versión concreta que se ejecutó. Nunca hagas `UPDATE` sobre
    `routine_exercise` o `planned_set` de una versión ya usada.
@@ -131,6 +133,13 @@ frontend/src/
 `infrastructure/db/migrations/NNNN_nombre.sql`, aplicadas en orden y con checksum
 verificado. **Nunca edites una migración ya aplicada**: crea la siguiente. El migrador
 falla ruidosamente si detectas lo contrario, y ese fallo es correcto.
+
+### Series
+
+Una serie se prescribe de tres formas y solo tres: **repeticiones**, **tiempo** o **al
+fallo** (`to_failure`). Al fallo no lleva `target_reps` — o se llega al fallo, o se llega
+al número — y el `CHECK` del esquema lo impide. Rellenar un objetivo estimado para que
+"cuadre" es inventar el plan.
 
 ### Catálogo
 

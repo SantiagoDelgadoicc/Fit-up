@@ -100,7 +100,7 @@ def set_week(
     """Fija la semana desde una fecha. No reescribe el pasado (regla R3)."""
     return svc.set_week(
         db,
-        payload.days,
+        payload.normalized(),
         effective_from=payload.effective_from or today,
         actor=caller.actor,
     )

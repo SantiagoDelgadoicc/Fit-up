@@ -786,8 +786,16 @@ export interface components {
             reason: string;
             /** Can Log */
             can_log: boolean;
-            planned?: components["schemas"]["RoutineOut"] | null;
-            session?: components["schemas"]["SessionOut"] | null;
+            /**
+             * Scheduled
+             * @default []
+             */
+            scheduled: components["schemas"]["ScheduledRoutineOut"][];
+            /**
+             * Extra Sessions
+             * @default []
+             */
+            extra_sessions: components["schemas"]["SessionOut"][];
             /** Exception Reason */
             exception_reason?: string | null;
         };
@@ -815,8 +823,11 @@ export interface components {
             routine_name?: string | null;
             /** Routine Id */
             routine_id?: number | null;
-            /** Session Id */
-            session_id?: number | null;
+            /**
+             * Session Ids
+             * @default []
+             */
+            session_ids: number[];
         };
         /** ExceptionIn */
         ExceptionIn: {
@@ -910,6 +921,8 @@ export interface components {
          * @description «Hice esta rutina»: el registro de un toque.
          */
         LogAsPlannedIn: {
+            /** Routine Id */
+            routine_id?: number | null;
             /**
              * Date
              * Format: date
@@ -1164,6 +1177,11 @@ export interface components {
              * @default false
              */
             is_warmup: boolean;
+            /**
+             * To Failure
+             * @default false
+             */
+            to_failure: boolean;
         };
         /** PlannedSetOut */
         PlannedSetOut: {
@@ -1184,6 +1202,11 @@ export interface components {
              * @default false
              */
             is_warmup: boolean;
+            /**
+             * To Failure
+             * @default false
+             */
+            to_failure: boolean;
         };
         /** ProgressionAppliedOut */
         ProgressionAppliedOut: {
@@ -1424,6 +1447,20 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * ScheduledRoutineOut
+         * @description Una rutina programada ese día, con la sesión que la cumplió si la hay.
+         */
+        ScheduledRoutineOut: {
+            /** Routine Id */
+            routine_id: number;
+            /** Name */
+            name: string;
+            detail: components["schemas"]["RoutineOut"];
+            session?: components["schemas"]["SessionOut"] | null;
+            /** Can Log */
+            can_log: boolean;
+        };
         /** ScorePointOut */
         ScorePointOut: {
             /**
@@ -1502,6 +1539,11 @@ export interface components {
              * @default 0
              */
             warmup: number;
+            /**
+             * To Failure
+             * @default false
+             */
+            to_failure: boolean;
         };
         /** SettingIn */
         SettingIn: {
@@ -1544,7 +1586,7 @@ export interface components {
         WeekIn: {
             /** Days */
             days: {
-                [key: string]: number | null;
+                [key: string]: number[] | number | null;
             };
             /** Effective From */
             effective_from?: string | null;
@@ -1558,11 +1600,11 @@ export interface components {
             effective_on: string;
             /** Days */
             days: {
-                [key: string]: number | null;
+                [key: string]: number[];
             };
             /** Names */
             names: {
-                [key: string]: string;
+                [key: string]: string[];
             };
         };
     };

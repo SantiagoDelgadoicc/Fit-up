@@ -3,7 +3,9 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global: en pruebas y pulido.** F0–F6 completadas.
+**Estado global: en pruebas y pulido.** F0–F6 completadas, más dos ajustes del modelo
+salidos del uso real (varias sesiones por día y series al fallo, ver
+[abajo](#ajustes-del-modelo-salidos-del-uso-real)).
 
 La app se usa a diario y la funcionalidad está completa, pero lleva poco tiempo en uso
 real: lo que queda es encontrar asperezas usándola. Dos cosas siguen explícitamente sin
@@ -379,6 +381,62 @@ rutina. Sigue abierta a propósito: se decide con historial real y el agente fun
 ### Decisión diferida
 **D6 — ¿Registro offline desde el móvil con cola y sincronización?** Solo si el uso real
 lo justifica.
+
+---
+
+## Ajustes del modelo salidos del uso real
+
+Dos supuestos del diseño original no aguantaron el primer contacto con una rutina de
+verdad. Ninguno estaba en el plan; ambos salieron de intentar cargar la rutina real.
+
+### Un día, varios entrenamientos
+
+**El supuesto:** un día tiene como mucho un entrenamiento. Estaba en la capa de
+aplicación (`Conflict` explícito, `session_on()` devolviendo una sola) y en el plan
+semanal (`dict weekday → una rutina`).
+
+**Por qué falla:** partir el volumen entre mañana y tarde es corriente en calistenia.
+Juntarlo todo en una sesión perdía el dato de cuál se saltó, y obligaba a esperar a la
+noche para anotar lo de la mañana.
+
+**Lo que se cambió.** El esquema no hizo falta tocarlo: `workout_session` nunca tuvo
+`UNIQUE` en `date`, y `schedule_slot` tiene `id` propio sin `UNIQUE` por día. El diseño
+original ya lo contemplaba; la restricción era de la capa de arriba.
+
+- `resolve_day_state` recibe `scheduled_count` y una lista de sesiones.
+- `DayView` pasa a `scheduled` (una entrada por rutina, con su sesión si la hay) y
+  `extra_sessions`.
+- El plan semanal admite varias rutinas por día, en orden.
+- «Hoy» y el calendario pintan una tarjeta por rutina.
+
+**La decisión de diseño que hubo que tomar:** si tocaban dos rutinas y solo se hizo una,
+el día queda **pendiente mientras haya margen** y parcial después. Es el mismo principio
+que sostiene todo el módulo —no registrado no es no realizado— aplicado dentro del día:
+por la tarde todavía puede entrenarse, así que llamarlo parcial adelanta el veredicto.
+
+### Series al fallo
+
+**El supuesto:** toda serie tiene un objetivo numérico. El esquema lo imponía con
+`CHECK (target_reps IS NOT NULL OR target_time_s IS NOT NULL)`.
+
+**Por qué falla:** «pantorrillas 3 × fallo» no tiene objetivo. Rellenarlo con una
+estimación sería inventar el plan, justo lo que prohíbe el invariante 5.
+
+**Lo que se cambió:** migración `0002`, columna `to_failure` en `planned_set`. Hubo que
+recrear la tabla porque SQLite no permite modificar un `CHECK` en sitio. Ahora hay tres
+formas válidas de prescribir una serie —repeticiones, tiempo o al fallo— y una cuarta
+prohibida: al fallo **con** repeticiones objetivo, que es una contradicción.
+
+El catálogo suma nueve ejercicios que la rutina real necesitaba y no existían: flexiones
+abiertas, toque de talón, estrellitas, Arnold press, curl con arm blaster, dominadas
+abiertas y mixtas, sentadilla goblet y saltos de cuerda.
+
+### Pendiente conocido
+
+Registrar «de un toque» una rutina con series al fallo anota la serie **sin
+repeticiones**: el sistema no puede saber cuántas se hicieron. Aparece como `?` en el
+historial hasta que se edite. Es honesto —no se inventa el dato— pero incómodo, y la
+edición de series registradas todavía no existe.
 
 ---
 

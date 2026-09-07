@@ -39,6 +39,7 @@ def to_planned_exercises(items: list[schemas.PlannedExerciseIn]) -> list[Planned
                     target_time_s=s.target_time_s,
                     target_rir=s.target_rir,
                     is_warmup=s.is_warmup,
+                    to_failure=s.to_failure,
                 )
                 for s in item.sets
             )
@@ -51,6 +52,7 @@ def to_planned_exercises(items: list[schemas.PlannedExerciseIn]) -> list[Planned
                 time_s=item.spec.time_s,
                 rir=item.spec.rir,
                 warmup=item.spec.warmup,
+                to_failure=item.spec.to_failure,
             )
         else:
             raise Invalid(f"'{item.exercise_slug}' no define series: usa 'sets' o 'spec'")
@@ -146,8 +148,17 @@ def day_out(view: DayView) -> schemas.DayOut:
         state=view.state,
         reason=view.reason,
         can_log=view.can_log,
-        planned=routine_out(view.planned) if view.planned else None,
-        session=session_out(view.session) if view.session else None,
+        scheduled=[
+            schemas.ScheduledRoutineOut(
+                routine_id=s.routine_id,
+                name=s.name,
+                detail=routine_out(s.detail),
+                session=session_out(s.session) if s.session else None,
+                can_log=s.can_log,
+            )
+            for s in view.scheduled
+        ],
+        extra_sessions=[session_out(s) for s in view.extra_sessions],
         exception_reason=view.exception_reason,
     )
 

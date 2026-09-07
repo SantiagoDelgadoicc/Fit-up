@@ -191,7 +191,7 @@ def calistenia(db) -> int:
         name="Calistenia",
         exercises=[plan("flexiones", count=3, reps=15, rule_slug="variante_calistenia")],
     )
-    planning_svc.set_week(db, {0: detail.id, 2: detail.id}, effective_from=date(2026, 3, 1))
+    planning_svc.set_week(db, {0: [detail.id], 2: [detail.id]}, effective_from=date(2026, 3, 1))
     return detail.id
 
 
@@ -215,7 +215,7 @@ def test_la_variante_se_rechaza_si_ya_estaba_en_la_rutina(db):
             plan("flexiones_declinadas", count=3, reps=10),
         ],
     )
-    planning_svc.set_week(db, {0: detail.id, 2: detail.id}, effective_from=date(2026, 3, 1))
+    planning_svc.set_week(db, {0: [detail.id], 2: [detail.id]}, effective_from=date(2026, 3, 1))
     train(db, MONDAY, WEDNESDAY)
 
     with pytest.raises(Invalid, match="dos veces"):

@@ -471,8 +471,25 @@ label {
 .week-row {
   display: grid;
   grid-template-columns: 92px 1fr;
-  align-items: center;
+  align-items: start;
   gap: 10px;
+}
+
+.week-row label {
+  min-height: var(--tap);
+  align-items: center;
+}
+
+/* Un día puede llevar varias rutinas: se apilan en su columna. */
+.week-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.week-slots .btn {
+  align-self: flex-start;
 }
 
 /* ------------------------------------------------------------- Estados */

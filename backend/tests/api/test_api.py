@@ -103,9 +103,9 @@ def test_organizar_y_consultar_la_semana(client):
     routine_id = make_routine(client)
     schedule(client, routine_id)
     week = client.get("/api/semana").json()
-    assert week["days"]["0"] == routine_id
-    assert week["days"]["1"] is None
-    assert week["names"]["4"] == "Empuje"
+    assert week["days"]["0"] == [routine_id]
+    assert week["days"]["1"] == []
+    assert week["names"]["4"] == ["Empuje"]
 
 
 def test_programar_una_rutina_inexistente_da_404(client):
@@ -133,7 +133,8 @@ def test_un_dia_programado_trae_el_plan_y_permite_registrar(client):
 
     assert body["state"] == "pending"
     assert body["can_log"] is True
-    assert len(body["planned"]["exercises"]) == 2
+    assert len(body["scheduled"]) == 1
+    assert len(body["scheduled"][0]["detail"]["exercises"]) == 2
 
 
 def test_consultar_un_dia_futuro_da_422(client):
@@ -291,9 +292,9 @@ def test_el_calendario_trae_rutina_y_sesion_por_dia(client):
 
     dias = {d["date"]: d for d in client.get("/api/calendario/2026/3").json()["days"]}
     assert dias[MONDAY.isoformat()]["routine_name"] == "Empuje"
-    assert dias[MONDAY.isoformat()]["session_id"] == sesion["id"]
+    assert dias[MONDAY.isoformat()]["session_ids"] == [sesion["id"]]
     assert dias[WEDNESDAY.isoformat()]["routine_name"] == "Empuje"
-    assert dias[WEDNESDAY.isoformat()]["session_id"] is None
+    assert dias[WEDNESDAY.isoformat()]["session_ids"] == []
     assert dias[TUESDAY.isoformat()]["routine_name"] is None
 
 

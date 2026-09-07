@@ -48,9 +48,13 @@ export default function Today() {
   // Los pendientes ya incluyen hoy cuando toca; no debe salir dos veces.
   const otherPending = (pending.data ?? []).filter((p) => p.date !== iso);
 
-  const registrar = (date: string, status: "completed" | "partial" = "completed") =>
+  const registrar = (
+    date: string,
+    status: "completed" | "partial" = "completed",
+    routineId?: number,
+  ) =>
     log.mutate(
-      { date, status },
+      { date, status, routine_id: routineId },
       {
         onSuccess: () => toast(status === "partial" ? "Registrado como parcial" : "¡Registrado!"),
         onError: (e) => toast(e instanceof Error ? e.message : "No se pudo registrar", "error"),
@@ -72,7 +76,7 @@ export default function Today() {
       <TodayCard
         day={day}
         busy={log.isPending || skip.isPending}
-        onLog={(status) => registrar(iso, status)}
+        onLog={(status, routineId) => registrar(iso, status, routineId)}
         onSkip={() =>
           skip.mutate(iso, {
             onSuccess: () => toast("Marcado como no realizado"),
@@ -94,7 +98,7 @@ export default function Today() {
               key={p.date}
               pending={p}
               busy={log.isPending}
-              onLog={() => registrar(p.date)}
+              onLog={() => registrar(p.date, "completed", p.routine_id)}
             />
           ))}
         </section>
@@ -149,33 +153,12 @@ function TodayCard({
 }: {
   day: Day;
   busy: boolean;
-  onLog: (status: "completed" | "partial") => void;
+  onLog: (status: "completed" | "partial", routineId: number) => void;
   onSkip: () => void;
 }) {
   const nameOf = useExerciseNames();
-  const timer = useTimer();
-  const navigate = useNavigate();
 
-  if (day.session) {
-    return (
-      <section className="stack">
-        <div className="card">
-          <div className="row">
-            <h2>{day.session.routine_name ?? "Entrenamiento libre"}</h2>
-            <div className="spacer" />
-            <span className="faint">Registrado</span>
-          </div>
-          <p className="muted" style={{ marginBottom: 0 }}>
-            {day.session.exercises.length} ejercicio
-            {day.session.exercises.length === 1 ? "" : "s"} anotados.{" "}
-            <Link to="/historial">Ver historial</Link>
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  if (!day.planned) {
+  if (day.scheduled.length === 0 && day.extra_sessions.length === 0) {
     return (
       <div className="card">
         <Empty icon="😴">
@@ -190,14 +173,83 @@ function TodayCard({
 
   return (
     <section className="stack">
-      <div className="card card-flush">
-        <div style={{ padding: "16px 16px 4px" }}>
-          <h2>{day.planned.name}</h2>
-          <p className="faint" style={{ margin: "2px 0 10px" }}>
-            {day.reason}
+      {/* Una tarjeta por rutina del día: con mañana y tarde, cada una se
+          registra por su cuenta y se ve cuál falta. */}
+      {day.scheduled.map((slot) => (
+        <RoutineCard
+          key={slot.routine_id}
+          slot={slot}
+          reason={day.reason}
+          busy={busy}
+          nameOf={nameOf}
+          onLog={(status) => onLog(status, slot.routine_id)}
+          onSkip={onSkip}
+        />
+      ))}
+
+      {day.extra_sessions.map((sesion) => (
+        <div className="card" key={sesion.id}>
+          <div className="row">
+            <h2>{sesion.routine_name ?? "Entrenamiento libre"}</h2>
+            <div className="spacer" />
+            <span className="faint">Registrado</span>
+          </div>
+          <p className="muted" style={{ marginBottom: 0 }}>
+            {sesion.exercises.length} ejercicio{sesion.exercises.length === 1 ? "" : "s"}{" "}
+            anotados. <Link to="/historial">Ver historial</Link>
           </p>
         </div>
-        {day.planned.exercises.map((exercise) => (
+      ))}
+    </section>
+  );
+}
+
+/** Una rutina del día: lo que toca, o lo que quedó registrado. */
+function RoutineCard({
+  slot,
+  reason,
+  busy,
+  nameOf,
+  onLog,
+  onSkip,
+}: {
+  slot: Day["scheduled"][number];
+  reason: string;
+  busy: boolean;
+  nameOf: (slug: string) => string;
+  onLog: (status: "completed" | "partial") => void;
+  onSkip: () => void;
+}) {
+  const timer = useTimer();
+  const navigate = useNavigate();
+
+  if (slot.session) {
+    return (
+      <div className="card">
+        <div className="row">
+          <h2>{slot.name}</h2>
+          <div className="spacer" />
+          <span className="faint">Registrado</span>
+        </div>
+        <p className="muted" style={{ marginBottom: 0 }}>
+          {slot.session.exercises.length} ejercicio
+          {slot.session.exercises.length === 1 ? "" : "s"} anotados.{" "}
+          <Link to="/historial">Ver historial</Link>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="stack">
+      <div className="card card-flush">
+        <div style={{ padding: "16px 16px 4px" }}>
+          <h2>{slot.name}</h2>
+          <p className="faint" style={{ margin: "2px 0 10px" }}>
+            {reason}
+          </p>
+        </div>
+        {slot.detail.exercises.map((exercise) => (
           <div className="exercise" key={exercise.exercise_slug}>
             <div className="exercise-head">
               <span className="exercise-name">{nameOf(exercise.exercise_slug)}</span>
@@ -237,7 +289,7 @@ function TodayCard({
           No la hice
         </button>
       </div>
-    </section>
+    </div>
   );
 }
 

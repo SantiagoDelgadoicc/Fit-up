@@ -3545,25 +3545,21 @@
             "type": "boolean",
             "title": "Can Log"
           },
-          "planned": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RoutineOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "scheduled": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledRoutineOut"
+            },
+            "type": "array",
+            "title": "Scheduled",
+            "default": []
           },
-          "session": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SessionOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "extra_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionOut"
+            },
+            "type": "array",
+            "title": "Extra Sessions",
+            "default": []
           },
           "exception_reason": {
             "anyOf": [
@@ -3636,16 +3632,13 @@
             ],
             "title": "Routine Id"
           },
-          "session_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Session Id"
+          "session_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Session Ids",
+            "default": []
           }
         },
         "type": "object",
@@ -3925,6 +3918,17 @@
       },
       "LogAsPlannedIn": {
         "properties": {
+          "routine_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routine Id"
+          },
           "date": {
             "type": "string",
             "format": "date",
@@ -4742,6 +4746,11 @@
             "type": "boolean",
             "title": "Is Warmup",
             "default": false
+          },
+          "to_failure": {
+            "type": "boolean",
+            "title": "To Failure",
+            "default": false
           }
         },
         "type": "object",
@@ -4821,6 +4830,11 @@
           "is_warmup": {
             "type": "boolean",
             "title": "Is Warmup",
+            "default": false
+          },
+          "to_failure": {
+            "type": "boolean",
+            "title": "To Failure",
             "default": false
           }
         },
@@ -5435,6 +5449,44 @@
         ],
         "title": "RuleOut"
       },
+      "ScheduledRoutineOut": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/RoutineOut"
+          },
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can_log": {
+            "type": "boolean",
+            "title": "Can Log"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "name",
+          "detail",
+          "can_log"
+        ],
+        "title": "ScheduledRoutineOut",
+        "description": "Una rutina programada ese día, con la sesión que la cumplió si la hay."
+      },
       "ScorePointOut": {
         "properties": {
           "date": {
@@ -5673,6 +5725,11 @@
             "minimum": 0.0,
             "title": "Warmup",
             "default": 0
+          },
+          "to_failure": {
+            "type": "boolean",
+            "title": "To Failure",
+            "default": false
           }
         },
         "type": "object",
@@ -5782,6 +5839,12 @@
             "additionalProperties": {
               "anyOf": [
                 {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array"
+                },
+                {
                   "type": "integer"
                 },
                 {
@@ -5820,21 +5883,20 @@
           },
           "days": {
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
             },
             "type": "object",
             "title": "Days"
           },
           "names": {
             "additionalProperties": {
-              "type": "string"
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             "type": "object",
             "title": "Names"

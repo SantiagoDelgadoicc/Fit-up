@@ -127,12 +127,17 @@ def get_session(conn: sqlite3.Connection, session_id: int) -> SessionDetail:
     return _to_detail(conn, row)
 
 
-def session_on(conn: sqlite3.Connection, day: Date) -> SessionDetail | None:
-    row = conn.execute(
-        f"{_SESSION_SELECT} WHERE s.date = ? ORDER BY s.id DESC LIMIT 1",
+def sessions_on(conn: sqlite3.Connection, day: Date) -> list[SessionDetail]:
+    """Sesiones registradas ese día, en el orden en que se anotaron.
+
+    Un día admite varias: quien entrena por la mañana y por la tarde registra
+    dos, y cada una conserva su identidad.
+    """
+    rows = conn.execute(
+        f"{_SESSION_SELECT} WHERE s.date = ? ORDER BY s.id",
         (day.isoformat(),),
-    ).fetchone()
-    return _to_detail(conn, row) if row else None
+    ).fetchall()
+    return [_to_detail(conn, row) for row in rows]
 
 
 def sessions_between(conn: sqlite3.Connection, start: Date, end: Date) -> list[SessionDetail]:

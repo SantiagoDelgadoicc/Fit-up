@@ -52,7 +52,7 @@ def calendar(
                 reason=d.reason,
                 routine_name=d.routine_name,
                 routine_id=d.routine_id,
-                session_id=d.session_id,
+                session_ids=d.session_ids,
             )
             for d in days
         ],
@@ -95,6 +95,7 @@ def log_as_planned(
     detail = svc.log_as_planned(
         db,
         payload.date,
+        routine_id=payload.routine_id,
         today=today,
         actor=caller.actor,
         status=payload.status,

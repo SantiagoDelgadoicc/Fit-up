@@ -72,6 +72,7 @@ class PlannedSetIn(Model):
     target_time_s: int | None = Field(default=None, gt=0)
     target_rir: int | None = Field(default=None, ge=0, le=10)
     is_warmup: bool = False
+    to_failure: bool = False
 
 
 class PlannedSetOut(PlannedSetIn):
@@ -88,6 +89,8 @@ class SetSpec(Model):
     time_s: int | None = Field(default=None, gt=0)
     rir: int | None = Field(default=None, ge=0, le=10)
     warmup: int = Field(default=0, ge=0, le=5)
+    #: «Al fallo»: sin objetivo de repeticiones, se llega hasta donde se llegue.
+    to_failure: bool = False
 
 
 class PlannedExerciseIn(Model):
@@ -152,15 +155,32 @@ class RoutineOut(Model):
 
 
 class WeekIn(Model):
-    #: weekday (0 = lunes) → id de rutina, o null para descanso.
-    days: dict[int, int | None]
+    #: weekday (0 = lunes) → ids de rutina, en orden (mañana, tarde…).
+    #: Lista vacía o `null` significan día de descanso.
+    days: dict[int, list[int] | int | None]
     effective_from: Date | None = None
+
+    def normalized(self) -> dict[int, list[int]]:
+        """Admite también un id suelto o `null` por día.
+
+        Es azúcar para el caso corriente —un día, una rutina— y para no romper
+        a quien ya llamaba a este endpoint con la forma antigua.
+        """
+        salida: dict[int, list[int]] = {}
+        for weekday, valor in self.days.items():
+            if valor is None:
+                salida[weekday] = []
+            elif isinstance(valor, int):
+                salida[weekday] = [valor]
+            else:
+                salida[weekday] = list(valor)
+        return salida
 
 
 class WeekOut(Model):
     effective_on: Date
-    days: dict[int, int | None]
-    names: dict[int, str]
+    days: dict[int, list[int]]
+    names: dict[int, list[str]]
 
 
 class ExceptionIn(Model):
@@ -203,6 +223,11 @@ class PerformedExerciseOut(Model):
 
 class LogAsPlannedIn(Model):
     """«Hice esta rutina»: el registro de un toque."""
+
+    #: Cuál de las rutinas del día. Solo hace falta si ese día hay más de una
+    #: sin registrar: darlo por hecho anotaría la mañana cuando se hizo la
+    #: tarde.
+    routine_id: int | None = None
 
     date: Date
     status: SessionStatus = SessionStatus.COMPLETED
@@ -247,13 +272,26 @@ class SessionOut(Model):
 # --------------------------------------------------------------------------
 
 
+class ScheduledRoutineOut(Model):
+    """Una rutina programada ese día, con la sesión que la cumplió si la hay."""
+
+    routine_id: int
+    name: str
+    detail: RoutineOut
+    session: SessionOut | None = None
+    can_log: bool
+
+
 class DayOut(Model):
     date: Date
     state: DayState
     reason: str
     can_log: bool
-    planned: RoutineOut | None = None
-    session: SessionOut | None = None
+    #: Un día admite varias rutinas: calistenia por la mañana, pesas por la
+    #: tarde. Cada una lleva su sesión, o `null` si aún no se ha registrado.
+    scheduled: list[ScheduledRoutineOut] = []
+    #: Lo entrenado ese día fuera de plan.
+    extra_sessions: list[SessionOut] = []
     exception_reason: str | None = None
 
 
@@ -262,9 +300,10 @@ class DayStateOut(Model):
     state: DayState
     reason: str
     #: Lo que se entrenó ese día, o lo que estaba programado si no se entrenó.
+    #: Con varias rutinas, los nombres van unidos por " + ".
     routine_name: str | None = None
     routine_id: int | None = None
-    session_id: int | None = None
+    session_ids: list[int] = []
 
 
 class CalendarOut(Model):

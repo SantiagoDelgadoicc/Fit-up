@@ -21,6 +21,7 @@ def build_sets(
     time_s: int | None = None,
     rir: int | None = None,
     warmup: int = 0,
+    to_failure: bool = False,
 ) -> tuple[PlannedSet, ...]:
     """Genera las filas de series a partir de una prescripción compacta.
 
@@ -30,8 +31,13 @@ def build_sets(
     """
     if count < 1:
         raise Invalid("Una serie planificada como mínimo")
-    if reps is None and time_s is None:
-        raise Invalid("Cada serie necesita repeticiones o tiempo objetivo")
+    if reps is None and time_s is None and not to_failure:
+        raise Invalid("Cada serie necesita repeticiones, tiempo objetivo, o ir al fallo")
+    if to_failure and reps is not None:
+        raise Invalid(
+            "Una serie al fallo no lleva repeticiones objetivo: o se llega al "
+            "fallo, o se llega al número"
+        )
     if reps_max is not None and reps is not None and reps_max < reps:
         raise Invalid("El máximo de repeticiones no puede ser menor que el objetivo")
 
@@ -40,10 +46,12 @@ def build_sets(
         sets.append(
             PlannedSet(
                 set_no=i + 1,
+                # El calentamiento nunca va al fallo, aunque la serie efectiva
+                # sí: calentar hasta no poder más deja sin nada el trabajo.
                 target_reps=reps,
                 target_time_s=time_s,
-                # El calentamiento se propone a la mitad de la carga; es un
-                # punto de partida editable, no una prescripción.
+                # Se propone a la mitad de la carga; es un punto de partida
+                # editable, no una prescripción.
                 target_weight_kg=round(weight_kg / 2, 2) if weight_kg else None,
                 is_warmup=True,
             )
@@ -57,6 +65,7 @@ def build_sets(
                 target_weight_kg=weight_kg,
                 target_time_s=time_s,
                 target_rir=rir,
+                to_failure=to_failure,
             )
         )
     return tuple(sets)
@@ -167,15 +176,20 @@ def archive_routine(
 
 def set_week(
     conn: sqlite3.Connection,
-    assignments: dict[int, int | None],
+    assignments: dict[int, list[int]],
     *,
     effective_from: Date,
     actor: Actor = Actor.USUARIO,
 ) -> WeekPlan:
-    for weekday, routine_id in assignments.items():
+    for weekday, routine_ids in assignments.items():
         if not 0 <= weekday <= 6:
             raise Invalid(f"Día de la semana inválido: {weekday}")
-        if routine_id is not None:
+        if len(set(routine_ids)) != len(routine_ids):
+            raise Invalid(
+                f"El día {weekday} repite alguna rutina. Para hacerla dos veces "
+                "el mismo día, duplícala con otro nombre."
+            )
+        for routine_id in routine_ids:
             planning.get_routine(conn, routine_id)  # existencia
 
     planning.set_week(conn, assignments, effective_from=effective_from)

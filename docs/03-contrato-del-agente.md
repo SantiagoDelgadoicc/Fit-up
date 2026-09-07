@@ -139,6 +139,14 @@ la API aunque lo intente:
 
 - **Las rutinas no se mutan.** Editar crea `version_no + 1`. Una sesión
   histórica sigue apuntando a la versión que se ejecutó.
+- **Un día admite varias rutinas y varias sesiones.** Si el día tiene más de
+  una rutina sin registrar, `registrar_entrenamiento` y `log_as_planned` exigen
+  decir cuál con `routine_id`: dar por hecho que es la primera anotaría la
+  mañana cuando se hizo la tarde.
+- **Una serie se prescribe con repeticiones, con tiempo o al fallo.** Una serie
+  al fallo no lleva objetivo de repeticiones y el esquema lo impide. Si al
+  registrarla no se sabe cuántas se hicieron, se deja en `null`: es un dato que
+  falta, no un cero.
 - **El cliente elige qué progresa, nunca cuánto.** `POST
   /rutinas/{id}/progresion` recibe una lista de ejercicios; el salto lo
   recalcula el motor con sus guardas en cada aplicación. Enviar un peso
