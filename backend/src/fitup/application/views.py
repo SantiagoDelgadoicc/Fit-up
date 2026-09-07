@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import date as Date
 from datetime import datetime
 
+from ..domain.compliance.day_state import DayVerdict
 from ..domain.enums import DayState, SessionOrigin, SessionStatus
 from ..domain.models import PerformedExercise, PlannedExercise
 
@@ -73,6 +74,33 @@ class DayView:
     def can_log(self) -> bool:
         """Si tiene sentido ofrecer el botón de registrar en este día."""
         return self.session is None
+
+
+@dataclass(frozen=True, slots=True)
+class CalendarDay:
+    """Un día del calendario mensual.
+
+    Envuelve el veredicto del dominio en lugar de copiar sus campos, para que
+    el cálculo de adherencia siga trabajando sobre `DayVerdict` sin duplicar la
+    regla de qué estados computan.
+    """
+
+    verdict: DayVerdict
+    routine_id: int | None = None
+    routine_name: str | None = None
+    session_id: int | None = None
+
+    @property
+    def date(self) -> Date:
+        return self.verdict.date
+
+    @property
+    def state(self) -> DayState:
+        return self.verdict.state
+
+    @property
+    def reason(self) -> str:
+        return self.verdict.reason
 
 
 @dataclass(frozen=True, slots=True)

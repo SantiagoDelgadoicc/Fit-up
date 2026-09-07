@@ -61,13 +61,16 @@ def get_settings(request: Request) -> Settings:
 def get_db(request: Request) -> Iterator[sqlite3.Connection]:
     """Una conexion por peticion.
 
-    FastAPI ejecuta los endpoints sincronos en un threadpool y SQLite prohibe
-    usar una conexion desde otro hilo. Compartir una global obligaria a
-    `check_same_thread=False` y a serializar a mano; abrir por peticion cuesta
-    microsegundos, evita estado mutable compartido y deja que cada transaccion
-    quede aislada por si sola.
+    Abrir por peticion cuesta microsegundos, evita estado mutable compartido
+    entre hilos y deja cada transaccion aislada por si sola.
+
+    `same_thread=False` es necesario ademas: FastAPI resuelve esta dependencia
+    en un hilo del threadpool y ejecuta el endpoint en otro, asi que la
+    conexion se crea en uno y se usa en otro. No hay uso concurrente -- la
+    dependencia, el endpoint y el cierre ocurren en secuencia -- que es lo
+    unico que SQLite no admite de verdad.
     """
-    conn = connect(request.app.state.settings.db_path)
+    conn = connect(request.app.state.settings.db_path, same_thread=False)
     try:
         yield conn
     finally:

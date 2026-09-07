@@ -3,8 +3,8 @@
 Aplicación personal de **registro, planificación y progresión de entrenamiento**, con ranking
 muscular visual y preparada para ser operada por un agente de IA local.
 
-> **Estado: F0 y F1 completadas.** La app ya sirve para registrar entrenamientos a diario.
-> Siguiente: F2 — calendario mensual.
+> **Estado: F0, F1 y F2 completadas.** La app ya sirve para registrar entrenamientos a
+> diario y revisar el cumplimiento del mes. Siguiente: F3 — sobrecarga progresiva.
 
 ## Arranque rápido
 
@@ -38,11 +38,12 @@ backend/    Python · dominio puro + aplicación + API FastAPI + SQLite
 frontend/   React + TypeScript · PWA, tipos generados desde OpenAPI
 docs/       Análisis, decisiones (ADR) y plan de implementación
 ```
-| [docs/adr/](docs/adr/) | Architecture Decision Records: distribución, stack, ranking, integración con IA |
+| [docs/adr/](docs/adr/) | Architecture Decision Records: distribución, stack, ranking, IA, superficie principal |
 
 ## Decisiones estructurales
 
 - **Distribución:** servidor local en el PC + PWA accesible desde el móvil por LAN.
+- **Superficie principal:** el PC. El móvil es el segundo escenario, para el gimnasio.
 - **Stack:** Python + FastAPI + SQLite · React + TypeScript · tipos TS generados desde OpenAPI.
 - **Ranking:** el rango Iron→Radiant mide **desarrollo**; la actividad reciente es un indicador secundario.
 - **Agente de IA:** proyecto externo y autónomo. Fit-Up ofrece un contrato estable (OpenAPI + MCP) y protege el historial con **inmutabilidad, auditoría y backups**, no con permisos.

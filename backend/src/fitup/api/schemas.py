@@ -261,6 +261,10 @@ class DayStateOut(Model):
     date: Date
     state: DayState
     reason: str
+    #: Lo que se entrenó ese día, o lo que estaba programado si no se entrenó.
+    routine_name: str | None = None
+    routine_id: int | None = None
+    session_id: int | None = None
 
 
 class CalendarOut(Model):

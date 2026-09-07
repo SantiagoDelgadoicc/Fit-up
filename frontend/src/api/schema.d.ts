@@ -534,6 +534,12 @@ export interface components {
             state: components["schemas"]["DayState"];
             /** Reason */
             reason: string;
+            /** Routine Name */
+            routine_name?: string | null;
+            /** Routine Id */
+            routine_id?: number | null;
+            /** Session Id */
+            session_id?: number | null;
         };
         /** ExceptionIn */
         ExceptionIn: {

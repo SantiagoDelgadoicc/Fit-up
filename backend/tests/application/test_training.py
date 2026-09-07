@@ -282,6 +282,42 @@ def test_la_adherencia_ignora_los_dias_pendientes(db, weekly):
     from fitup.domain.compliance.day_state import adherence
 
     svc.log_as_planned(db, MONDAY, today=SUNDAY)
-    verdicts = svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)
+    days = svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)
     # Lunes cumplido, miércoles no realizado; viernes pendiente no computa.
-    assert adherence(verdicts) == 0.5
+    assert adherence([d.verdict for d in days]) == 0.5
+
+
+# --------------------------------------------------------------------------
+# Contenido del calendario (F2)
+# --------------------------------------------------------------------------
+
+
+def test_el_calendario_dice_que_rutina_tocaba_cada_dia(db, weekly):
+    """La vista mensual necesita el nombre, no solo el color."""
+    dias = {d.date: d for d in svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)}
+    assert dias[MONDAY].routine_name == "Empuje"
+    assert dias[MONDAY].routine_id == weekly
+    assert dias[TUESDAY].routine_name is None
+
+
+def test_el_calendario_enlaza_la_sesion_registrada(db, weekly):
+    sesion = svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+    dias = {d.date: d for d in svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)}
+    assert dias[FRIDAY].session_id == sesion.id
+    assert dias[MONDAY].session_id is None
+
+
+def test_un_entrenamiento_extra_muestra_lo_que_se_hizo_no_lo_programado(db, weekly):
+    """El calendario cuenta lo que pasó, no lo que debería haber pasado."""
+    svc.log_session(db, day=TUESDAY, exercises=[performed()], today=SUNDAY, routine_id=weekly)
+    dias = {d.date: d for d in svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)}
+    assert dias[TUESDAY].routine_name == "Empuje"
+    assert dias[TUESDAY].state is DayState.EXTRA
+
+
+def test_el_veredicto_del_dominio_viaja_intacto_en_cada_dia(db, weekly):
+    """Envolverlo, no copiarlo: la regla de adherencia sigue en un solo sitio."""
+    dias = svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)
+    for dia in dias:
+        assert dia.state is dia.verdict.state
+        assert dia.reason == dia.verdict.reason

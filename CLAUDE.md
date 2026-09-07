@@ -8,9 +8,12 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0 y F1 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA:
-la app ya se usa a diario. Siguiente F2 (calendario). Ver
+**Fase actual: F0, F1 y F2 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA
+con registro y calendario: la app ya se usa a diario. Siguiente F3 (progresión). Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
+
+**El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
+después que funciona a 375 px, no al revés.
 
 ## Idioma
 
@@ -77,7 +80,7 @@ backend/src/fitup/
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
   components/     primitivas compartidas
-  pages/          Hoy · Rutinas · RoutineEditor · Semana · Historial · Ajustes
+  pages/          Hoy · Calendario · Rutinas · RoutineEditor · Semana · Historial · Ajustes
 ```
 
 `schema.d.ts` se genera: **no lo edites a mano**.
@@ -135,6 +138,7 @@ Los cuatro ADR de [docs/adr/](docs/adr/) son vinculantes:
 | 0002 | Python + FastAPI + SQLite · React + TypeScript · tipos TS generados desde OpenAPI |
 | 0003 | El rango mide **desarrollo**; la actividad es un halo secundario |
 | 0004 | El agente de IA es **externo y autónomo**: la protección es reversibilidad y auditoría, no permisos |
+| 0005 | El **PC** es la superficie principal; el móvil, la secundaria |
 
 Sobre 0004, un matiz que condiciona el diseño: los scopes del agente son un guardarraíl
 **contra errores**, no una frontera de seguridad — un proceso con control del PC puede
@@ -164,6 +168,19 @@ Decisión requerida: ...
 
 Si detectas una mejora significativa, propónla con su porqué y su impacto; no la incorpores
 sola si es importante.
+
+## Probar
+
+- El dominio se prueba con tests unitarios deterministas: la fecha se inyecta.
+- La API tiene tests con `TestClient` **y** un test contra un **uvicorn real**
+  (`tests/api/test_servidor_real.py`). El segundo existe porque `TestClient` no reproducía
+  el reparto de hilos del threadpool y dejó pasar un fallo que rompía el servidor entero.
+- Ese test lanza las peticiones **en paralelo** a propósito. En serie no fallaba.
+- Cuando escribas un test para cubrir un fallo concreto, **comprueba que falla con el
+  fallo puesto**. Un test que pasa en ambos casos no cubre nada.
+- Los cambios de interfaz se verifican en la app real, no solo en tests: en F1 y F2, dos
+  fallos (calentamientos descartados al guardar, y un selector que no hacía nada) solo
+  aparecieron al usarla.
 
 ## Nunca
 

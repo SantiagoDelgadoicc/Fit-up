@@ -12,6 +12,7 @@ node_modules/
 dist/
 build/
 .vite/
+*.tsbuildinfo
 
 # Datos locales (NUNCA versionar la BD del usuario)
 *.db

@@ -40,12 +40,24 @@ def calendar(
     db: sqlite3.Connection = Depends(get_db),
     today: Date = Depends(today_dep),
 ):
-    verdicts = svc.calendar(db, start, end, today=today)
+    days = svc.calendar(db, start, end, today=today)
     return schemas.CalendarOut(
         start=start,
         end=min(end, today),
-        days=[schemas.DayStateOut(date=v.date, state=v.state, reason=v.reason) for v in verdicts],
-        adherence=adherence(verdicts),
+        days=[
+            schemas.DayStateOut(
+                date=d.date,
+                state=d.state,
+                reason=d.reason,
+                routine_name=d.routine_name,
+                routine_id=d.routine_id,
+                session_id=d.session_id,
+            )
+            for d in days
+        ],
+        # La adherencia se calcula sobre el veredicto del dominio: la regla de
+        # qué estados computan vive ahí, no aquí.
+        adherence=adherence([d.verdict for d in days]),
     )
 
 
