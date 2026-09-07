@@ -3,7 +3,19 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0–F5 completadas · F6 en curso (falta el servidor MCP)
+**Estado global: en pruebas y pulido.** F0–F5 completadas · F6 en curso (falta el
+servidor MCP).
+
+La app se usa a diario y la funcionalidad está completa, pero lleva poco tiempo en uso
+real: lo que queda es encontrar asperezas usándola. Dos cosas siguen explícitamente sin
+validar y así se presentan en la interfaz:
+
+- **La calibración del ranking** (D9). Los umbrales están razonados, no confirmados con
+  datos reales; confirmarlos necesita meses de historial.
+- **Los permisos del agente**, que aún no ha ejercitado ningún agente de verdad.
+
+Ninguna de las dos compromete el historial, que es inmutable, versionado, auditado y con
+copia diaria.
 
 | Fase | Objetivo | Estado |
 |---|---|---|

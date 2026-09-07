@@ -8,10 +8,15 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0–F5 completadas · F6 en curso.** Hay dominio, esquema, catálogo, API
-HTTP y PWA con registro, calendario, sobrecarga progresiva, ranking muscular sobre mapa
-corporal y temporizador: la app ya se usa a diario. De F6 está la superficie para el
-agente externo (actor, permisos, auditoría, copias previas); falta el servidor MCP. Ver
+**Fase actual: en pruebas y pulido.** F0–F5 completadas · F6 en curso. Hay dominio,
+esquema, catálogo, API HTTP y PWA con registro, calendario, sobrecarga progresiva, ranking
+muscular sobre mapa corporal y temporizador: la app se usa a diario. De F6 está la
+superficie para el agente externo (actor, permisos, auditoría, copias previas); falta el
+servidor MCP.
+
+Que esté en pruebas cambia cómo se trabaja: **lo que aparece usándola tiene prioridad
+sobre lo que aparece en el plan**. Un fallo de interfaz encontrado entrenando vale más que
+una casilla pendiente. Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -37,6 +42,7 @@ python -m ruff check . && python -m ruff format .
 python -m fitup.cli init            # crear/actualizar BD y sembrar catálogo
 python -m fitup.cli check           # integridad + coherencia del catálogo
 python -m fitup.cli serve           # API + PWA en 127.0.0.1:8000
+python -m fitup.cli serve --abrir   # además abre el navegador al estar listo
 python -m fitup.cli serve --lan     # accesible desde el móvil, con token
 python -m fitup.cli export          # volcado JSON
 ```
@@ -79,6 +85,9 @@ backend/src/fitup/
   api/            adaptador HTTP: schemas, routers, mappers, deps
     agent.py      quién escribe (`actor`), qué se le permite (scopes) y copia previa
   cli.py
+
+scripts/          Fit-Up.bat (lanzador, destino de los accesos directos) ·
+                  crear-accesos-directos.ps1 (los genera con su icono)
 
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
