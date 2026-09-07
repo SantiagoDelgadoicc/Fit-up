@@ -1476,6 +1476,326 @@
         }
       }
     },
+    "/api/rutinas/{routine_id}/progresion": {
+      "get": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Evaluate Routine",
+        "description": "Veredicto para cada ejercicio, con su motivo aunque no se pueda progresar.",
+        "operationId": "evaluate_routine_api_rutinas__routine_id__progresion_get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineProgressionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Apply Progression",
+        "description": "Aplica las progresiones elegidas: una versión nueva y un evento por ejercicio.\n\nSe recalcula antes de escribir. Si algo dejó de ser seguro entre la\npantalla y el botón, responde 409 con el motivo en vez de aplicarlo.",
+        "operationId": "apply_progression_api_rutinas__routine_id__progresion_post",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressionApplyIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressionAppliedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progresion/listas": {
+      "get": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Readiness",
+        "description": "Rutinas con algo que ofrecer. Lo que avisa en «Hoy».",
+        "operationId": "readiness_api_progresion_listas_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineReadinessOut"
+                  },
+                  "title": "Response Readiness Api Progresion Listas Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progresiones": {
+      "get": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "List Events",
+        "operationId": "list_events_api_progresiones_get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Routine Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProgressionEventOut"
+                  },
+                  "title": "Response List Events Api Progresiones Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progresiones/{event_id}/deshacer": {
+      "post": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Undo Progression",
+        "description": "Deshacer es avanzar: crea la versión que restaura el plan anterior.",
+        "operationId": "undo_progression_api_progresiones__event_id__deshacer_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressionAppliedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/salud": {
       "get": {
         "tags": [
@@ -2955,6 +3275,278 @@
         ],
         "title": "PlannedSetOut"
       },
+      "ProgressionAppliedOut": {
+        "properties": {
+          "routine": {
+            "$ref": "#/components/schemas/RoutineOut"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressionEventOut"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine",
+          "events"
+        ],
+        "title": "ProgressionAppliedOut"
+      },
+      "ProgressionApplyIn": {
+        "properties": {
+          "exercises": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Exercises"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercises"
+        ],
+        "title": "ProgressionApplyIn"
+      },
+      "ProgressionEventOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "exercise_name": {
+            "type": "string",
+            "title": "Exercise Name"
+          },
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "routine_name": {
+            "type": "string",
+            "title": "Routine Name"
+          },
+          "rule_slug": {
+            "type": "string",
+            "title": "Rule Slug"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "applied_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Applied At"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "before_summary": {
+            "type": "string",
+            "title": "Before Summary"
+          },
+          "after_summary": {
+            "type": "string",
+            "title": "After Summary"
+          },
+          "before_exercise_slug": {
+            "type": "string",
+            "title": "Before Exercise Slug"
+          },
+          "after_exercise_slug": {
+            "type": "string",
+            "title": "After Exercise Slug"
+          },
+          "reverted": {
+            "type": "boolean",
+            "title": "Reverted",
+            "default": false
+          },
+          "is_reversal": {
+            "type": "boolean",
+            "title": "Is Reversal",
+            "default": false
+          },
+          "from_version_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Version No"
+          },
+          "to_version_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Version No"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "exercise_slug",
+          "exercise_name",
+          "routine_id",
+          "routine_name",
+          "rule_slug",
+          "rationale",
+          "applied_at",
+          "actor",
+          "before_summary",
+          "after_summary",
+          "before_exercise_slug",
+          "after_exercise_slug"
+        ],
+        "title": "ProgressionEventOut"
+      },
+      "ProgressionItemOut": {
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "exercise_name": {
+            "type": "string",
+            "title": "Exercise Name"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ProgressionOutcome"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "current": {
+            "type": "string",
+            "title": "Current"
+          },
+          "applicable": {
+            "type": "boolean",
+            "title": "Applicable"
+          },
+          "rule_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Slug"
+          },
+          "rule_inherited": {
+            "type": "boolean",
+            "title": "Rule Inherited",
+            "default": false
+          },
+          "proposed": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed"
+          },
+          "proposed_sets": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedSetOut"
+            },
+            "type": "array",
+            "title": "Proposed Sets",
+            "default": []
+          },
+          "next_exercise_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Exercise Slug"
+          },
+          "next_exercise_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Exercise Name"
+          },
+          "last_progression": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Progression"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_slug",
+          "exercise_name",
+          "outcome",
+          "reason",
+          "current",
+          "applicable"
+        ],
+        "title": "ProgressionItemOut",
+        "description": "Veredicto para un ejercicio.\n\n``reason`` viaja siempre, también en ``undetermined``: un cliente que solo\npintara los ``ready`` estaría ocultando justo lo que hay que decidir."
+      },
+      "ProgressionOutcome": {
+        "type": "string",
+        "enum": [
+          "ready",
+          "not_yet",
+          "undetermined",
+          "deload_suggested"
+        ],
+        "title": "ProgressionOutcome",
+        "description": "Resultado de evaluar una progresión.\n\nUNDETERMINED es un ciudadano de primera clase: cuando el sistema no puede\ndeterminar con seguridad cómo progresar, lo dice en vez de inventarlo."
+      },
       "RoutineIn": {
         "properties": {
           "name": {
@@ -3046,6 +3638,75 @@
           "exercises"
         ],
         "title": "RoutineOut"
+      },
+      "RoutineProgressionOut": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "routine_name": {
+            "type": "string",
+            "title": "Routine Name"
+          },
+          "version_no": {
+            "type": "integer",
+            "title": "Version No"
+          },
+          "ready": {
+            "type": "integer",
+            "title": "Ready"
+          },
+          "deload": {
+            "type": "integer",
+            "title": "Deload"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressionItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "routine_name",
+          "version_no",
+          "ready",
+          "deload",
+          "items"
+        ],
+        "title": "RoutineProgressionOut"
+      },
+      "RoutineReadinessOut": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "routine_name": {
+            "type": "string",
+            "title": "Routine Name"
+          },
+          "ready": {
+            "type": "integer",
+            "title": "Ready"
+          },
+          "deload": {
+            "type": "integer",
+            "title": "Deload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "routine_name",
+          "ready",
+          "deload"
+        ],
+        "title": "RoutineReadinessOut"
       },
       "RoutineSummaryOut": {
         "properties": {

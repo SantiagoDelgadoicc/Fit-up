@@ -324,6 +324,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rutinas/{routine_id}/progresion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evaluate Routine
+         * @description Veredicto para cada ejercicio, con su motivo aunque no se pueda progresar.
+         */
+        get: operations["evaluate_routine_api_rutinas__routine_id__progresion_get"];
+        put?: never;
+        /**
+         * Apply Progression
+         * @description Aplica las progresiones elegidas: una versión nueva y un evento por ejercicio.
+         *
+         *     Se recalcula antes de escribir. Si algo dejó de ser seguro entre la
+         *     pantalla y el botón, responde 409 con el motivo en vez de aplicarlo.
+         */
+        post: operations["apply_progression_api_rutinas__routine_id__progresion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progresion/listas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness
+         * @description Rutinas con algo que ofrecer. Lo que avisa en «Hoy».
+         */
+        get: operations["readiness_api_progresion_listas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progresiones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_api_progresiones_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progresiones/{event_id}/deshacer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo Progression
+         * @description Deshacer es avanzar: crea la versión que restaura el plan anterior.
+         */
+        post: operations["undo_progression_api_progresiones__event_id__deshacer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/salud": {
         parameters: {
             query?: never;
@@ -791,6 +875,114 @@ export interface components {
              */
             is_warmup: boolean;
         };
+        /** ProgressionAppliedOut */
+        ProgressionAppliedOut: {
+            routine: components["schemas"]["RoutineOut"];
+            /** Events */
+            events: components["schemas"]["ProgressionEventOut"][];
+        };
+        /** ProgressionApplyIn */
+        ProgressionApplyIn: {
+            /** Exercises */
+            exercises: string[];
+            /** Note */
+            note?: string | null;
+        };
+        /** ProgressionEventOut */
+        ProgressionEventOut: {
+            /** Id */
+            id: number;
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Exercise Name */
+            exercise_name: string;
+            /** Routine Id */
+            routine_id: number;
+            /** Routine Name */
+            routine_name: string;
+            /** Rule Slug */
+            rule_slug: string;
+            /** Rationale */
+            rationale: string;
+            /**
+             * Applied At
+             * Format: date-time
+             */
+            applied_at: string;
+            /** Actor */
+            actor: string;
+            /** Before Summary */
+            before_summary: string;
+            /** After Summary */
+            after_summary: string;
+            /** Before Exercise Slug */
+            before_exercise_slug: string;
+            /** After Exercise Slug */
+            after_exercise_slug: string;
+            /**
+             * Reverted
+             * @default false
+             */
+            reverted: boolean;
+            /**
+             * Is Reversal
+             * @default false
+             */
+            is_reversal: boolean;
+            /** From Version No */
+            from_version_no?: number | null;
+            /** To Version No */
+            to_version_no?: number | null;
+        };
+        /**
+         * ProgressionItemOut
+         * @description Veredicto para un ejercicio.
+         *
+         *     ``reason`` viaja siempre, también en ``undetermined``: un cliente que solo
+         *     pintara los ``ready`` estaría ocultando justo lo que hay que decidir.
+         */
+        ProgressionItemOut: {
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Exercise Name */
+            exercise_name: string;
+            outcome: components["schemas"]["ProgressionOutcome"];
+            /** Reason */
+            reason: string;
+            /** Current */
+            current: string;
+            /** Applicable */
+            applicable: boolean;
+            /** Rule Slug */
+            rule_slug?: string | null;
+            /**
+             * Rule Inherited
+             * @default false
+             */
+            rule_inherited: boolean;
+            /** Proposed */
+            proposed?: string | null;
+            /**
+             * Proposed Sets
+             * @default []
+             */
+            proposed_sets: components["schemas"]["PlannedSetOut"][];
+            /** Next Exercise Slug */
+            next_exercise_slug?: string | null;
+            /** Next Exercise Name */
+            next_exercise_name?: string | null;
+            /** Last Progression */
+            last_progression?: string | null;
+        };
+        /**
+         * ProgressionOutcome
+         * @description Resultado de evaluar una progresión.
+         *
+         *     UNDETERMINED es un ciudadano de primera clase: cuando el sistema no puede
+         *     determinar con seguridad cómo progresar, lo dice en vez de inventarlo.
+         * @enum {string}
+         */
+        ProgressionOutcome: "ready" | "not_yet" | "undetermined" | "deload_suggested";
         /** RoutineIn */
         RoutineIn: {
             /** Name */
@@ -821,6 +1013,32 @@ export interface components {
             note?: string | null;
             /** Exercises */
             exercises: components["schemas"]["PlannedExerciseOut"][];
+        };
+        /** RoutineProgressionOut */
+        RoutineProgressionOut: {
+            /** Routine Id */
+            routine_id: number;
+            /** Routine Name */
+            routine_name: string;
+            /** Version No */
+            version_no: number;
+            /** Ready */
+            ready: number;
+            /** Deload */
+            deload: number;
+            /** Items */
+            items: components["schemas"]["ProgressionItemOut"][];
+        };
+        /** RoutineReadinessOut */
+        RoutineReadinessOut: {
+            /** Routine Id */
+            routine_id: number;
+            /** Routine Name */
+            routine_name: string;
+            /** Ready */
+            ready: number;
+            /** Deload */
+            deload: number;
         };
         /** RoutineSummaryOut */
         RoutineSummaryOut: {
@@ -1782,6 +2000,174 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_routine_api_rutinas__routine_id__progresion_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                routine_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutineProgressionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_progression_api_rutinas__routine_id__progresion_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                routine_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressionApplyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressionAppliedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    readiness_api_progresion_listas_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutineReadinessOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_events_api_progresiones_get: {
+        parameters: {
+            query?: {
+                routine_id?: number | null;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressionEventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_progression_api_progresiones__event_id__deshacer_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressionAppliedOut"];
+                };
             };
             /** @description Validation Error */
             422: {

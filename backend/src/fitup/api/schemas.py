@@ -13,7 +13,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..domain.enums import DayState, SessionOrigin, SessionStatus
+from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus
 
 
 class Model(BaseModel):
@@ -303,3 +303,77 @@ class SettingIn(Model):
 
 class ErrorOut(Model):
     detail: str
+
+
+# --------------------------------------------------------------------------
+# Progresión
+# --------------------------------------------------------------------------
+
+
+class ProgressionItemOut(Model):
+    """Veredicto para un ejercicio.
+
+    ``reason`` viaja siempre, también en ``undetermined``: un cliente que solo
+    pintara los ``ready`` estaría ocultando justo lo que hay que decidir.
+    """
+
+    exercise_slug: str
+    exercise_name: str
+    outcome: ProgressionOutcome
+    reason: str
+    current: str
+    applicable: bool
+    rule_slug: str | None = None
+    rule_inherited: bool = False
+    proposed: str | None = None
+    proposed_sets: list[PlannedSetOut] = []
+    next_exercise_slug: str | None = None
+    next_exercise_name: str | None = None
+    last_progression: Date | None = None
+
+
+class RoutineProgressionOut(Model):
+    routine_id: int
+    routine_name: str
+    version_no: int
+    ready: int
+    deload: int
+    items: list[ProgressionItemOut]
+
+
+class RoutineReadinessOut(Model):
+    routine_id: int
+    routine_name: str
+    ready: int
+    deload: int
+
+
+class ProgressionApplyIn(Model):
+    #: Slugs de los ejercicios a progresar. El servidor recalcula *cuánto*.
+    exercises: list[str] = Field(min_length=1)
+    note: str | None = None
+
+
+class ProgressionEventOut(Model):
+    id: int
+    exercise_slug: str
+    exercise_name: str
+    routine_id: int
+    routine_name: str
+    rule_slug: str
+    rationale: str
+    applied_at: datetime
+    actor: str
+    before_summary: str
+    after_summary: str
+    before_exercise_slug: str
+    after_exercise_slug: str
+    reverted: bool = False
+    is_reversal: bool = False
+    from_version_no: int | None = None
+    to_version_no: int | None = None
+
+
+class ProgressionAppliedOut(Model):
+    routine: RoutineOut
+    events: list[ProgressionEventOut]

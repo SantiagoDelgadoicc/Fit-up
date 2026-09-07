@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from ...domain.enums import Actor
-from ..repositories import history, planning
+from ..repositories import history, planning, progression
 from ..views import RoutineDetail
 
 EXPORT_FORMAT_VERSION = "1"
@@ -135,6 +135,22 @@ def export_data(conn: sqlite3.Connection) -> dict[str, Any]:
             for s in planning.list_slots(conn)
         ],
         "sessions": sessions,
+        "progressions": [
+            {
+                "id": e.id,
+                "exercise": e.exercise_slug,
+                "routine_id": e.routine_id,
+                "rule": e.rule_slug,
+                "rationale": e.rationale,
+                "applied_at": e.applied_at.isoformat(),
+                "actor": e.actor,
+                "before": e.before,
+                "after": e.after,
+                "reverted": e.reverted,
+                "is_reversal": e.is_reversal,
+            }
+            for e in progression.list_events(conn, limit=1_000_000)
+        ],
         "bodyweight": [
             {"date": d.isoformat(), "weight_kg": w} for d, w in history.bodyweight_history(conn)
         ],

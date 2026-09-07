@@ -2,11 +2,14 @@
 
 import { Link } from "react-router-dom";
 
-import { useArchiveRoutine, useRoutines } from "../api/hooks";
+import type { RoutineReadiness } from "../api/client";
+
+import { useArchiveRoutine, useReadiness, useRoutines } from "../api/hooks";
 import { Empty, ErrorCard, Loading, useToast } from "../components/ui";
 
 export default function Routines() {
   const routines = useRoutines();
+  const readiness = useReadiness();
   const archive = useArchiveRoutine();
   const toast = useToast();
 
@@ -14,6 +17,9 @@ export default function Routines() {
   if (routines.error) return <ErrorCard error={routines.error} />;
 
   const list = routines.data ?? [];
+  // El aviso se calcula una vez para todas las rutinas: entrar en cada una a
+  // comprobarlo sería justo lo que hace que la progresion no se use.
+  const ready = new Map((readiness.data ?? []).map((r) => [r.routine_id, r]));
 
   return (
     <div className="stack-lg">
@@ -44,8 +50,20 @@ export default function Routines() {
                     {routine.exercise_count} ejercicio
                     {routine.exercise_count === 1 ? "" : "s"} · versión {routine.version_no}
                   </div>
+                  {ready.has(routine.id) && (
+                    <span className="badge" data-outcome="ready" style={{ marginTop: 8 }}>
+                      <span aria-hidden="true">🟢</span>
+                      {readyLabel(ready.get(routine.id)!)}
+                    </span>
+                  )}
                 </div>
                 <div className="spacer" />
+                <Link
+                  className={ready.has(routine.id) ? "btn btn-sm btn-primary" : "btn btn-sm"}
+                  to={`/rutinas/${routine.id}/progresion`}
+                >
+                  Progresar
+                </Link>
                 <Link className="btn btn-sm" to={`/rutinas/${routine.id}`}>
                   Editar
                 </Link>
@@ -72,4 +90,12 @@ export default function Routines() {
       </p>
     </div>
   );
+}
+
+/** "2 para progresar", o la descarga si es lo único que hay que decidir. */
+function readyLabel(readiness: RoutineReadiness): string {
+  const partes: string[] = [];
+  if (readiness.ready > 0) partes.push(`${readiness.ready} para progresar`);
+  if (readiness.deload > 0) partes.push(`${readiness.deload} con descarga`);
+  return partes.join(" · ");
 }

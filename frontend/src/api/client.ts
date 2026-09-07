@@ -27,6 +27,12 @@ export type Week = S["WeekOut"];
 export type Bodyweight = S["BodyweightOut"];
 export type RoutineInput = S["RoutineIn"];
 export type SetSpec = S["SetSpec"];
+export type RoutineProgression = S["RoutineProgressionOut"];
+export type ProgressionItem = S["ProgressionItemOut"];
+export type ProgressionOutcome = S["ProgressionOutcome"];
+export type ProgressionEvent = S["ProgressionEventOut"];
+export type ProgressionApplied = S["ProgressionAppliedOut"];
+export type RoutineReadiness = S["RoutineReadinessOut"];
 
 const TOKEN_KEY = "fitup.token";
 

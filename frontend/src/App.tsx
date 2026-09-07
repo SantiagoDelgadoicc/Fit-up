@@ -5,6 +5,7 @@ import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { ToastProvider } from "./components/ui";
 import CalendarPage from "./pages/Calendar";
 import History from "./pages/History";
+import Progression from "./pages/Progression";
 import RoutineEditor from "./pages/RoutineEditor";
 import Routines from "./pages/Routines";
 import Settings from "./pages/Settings";
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/calendario" element={<CalendarPage />} />
             <Route path="/rutinas" element={<Routines />} />
             <Route path="/rutinas/:id" element={<RoutineEditor />} />
+            <Route path="/rutinas/:id/progresion" element={<Progression />} />
             <Route path="/semana" element={<Week />} />
             <Route path="/historial" element={<History />} />
             <Route path="/ajustes" element={<Settings />} />

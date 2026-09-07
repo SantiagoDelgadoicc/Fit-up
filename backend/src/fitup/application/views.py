@@ -12,8 +12,8 @@ from datetime import date as Date
 from datetime import datetime
 
 from ..domain.compliance.day_state import DayVerdict
-from ..domain.enums import DayState, SessionOrigin, SessionStatus
-from ..domain.models import PerformedExercise, PlannedExercise
+from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus
+from ..domain.models import PerformedExercise, PlannedExercise, PlannedSet
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,3 +121,105 @@ class WeekPlan:
     #: weekday (0 = lunes) → id de rutina, o None si es día de descanso.
     days: dict[int, int | None] = field(default_factory=dict)
     names: dict[int, str] = field(default_factory=dict)
+
+
+# --------------------------------------------------------------------------
+# Progresión
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ProgressionItem:
+    """Veredicto del motor para un ejercicio concreto de una rutina.
+
+    Lleva el motivo siempre, no solo cuando se puede progresar: un
+    ``UNDETERMINED`` sin explicación sería exactamente el silencio que el
+    proyecto se prohíbe.
+    """
+
+    exercise_slug: str
+    exercise_name: str
+    outcome: ProgressionOutcome
+    reason: str
+    #: Regla aplicada, ya resuelta: la de la rutina o, si no la hay, la que el
+    #: catálogo declara por defecto para ese ejercicio.
+    rule_slug: str | None = None
+    rule_inherited: bool = False
+    current: str = ""
+    proposed: str | None = None
+    proposed_sets: tuple[PlannedSet, ...] = ()
+    #: Solo en la estrategia 'variante': el ejercicio pasa a ser otro.
+    next_exercise_slug: str | None = None
+    next_exercise_name: str | None = None
+    last_progression: Date | None = None
+
+    @property
+    def is_applicable(self) -> bool:
+        """Si existe una propuesta que el usuario pueda aplicar."""
+        return self.outcome in (
+            ProgressionOutcome.READY,
+            ProgressionOutcome.DELOAD_SUGGESTED,
+        ) and bool(self.proposed_sets or self.next_exercise_slug)
+
+
+@dataclass(frozen=True, slots=True)
+class RoutineProgression:
+    """Evaluación completa de una rutina, ejercicio a ejercicio."""
+
+    routine_id: int
+    routine_name: str
+    version_id: int
+    version_no: int
+    items: tuple[ProgressionItem, ...] = ()
+
+    @property
+    def ready(self) -> int:
+        return sum(1 for i in self.items if i.outcome is ProgressionOutcome.READY)
+
+    @property
+    def deload(self) -> int:
+        return sum(1 for i in self.items if i.outcome is ProgressionOutcome.DELOAD_SUGGESTED)
+
+
+@dataclass(frozen=True, slots=True)
+class RoutineReadiness:
+    """Resumen por rutina para la pantalla «Hoy»."""
+
+    routine_id: int
+    routine_name: str
+    ready: int
+    deload: int
+
+
+@dataclass(frozen=True, slots=True)
+class ProgressionEventView:
+    """Una progresión aplicada. Es historia: no se borra, se revierte."""
+
+    id: int
+    exercise_slug: str
+    exercise_name: str
+    routine_id: int
+    routine_name: str
+    rule_slug: str
+    rationale: str
+    applied_at: datetime
+    actor: str
+    before: dict
+    after: dict
+    from_version_no: int | None = None
+    to_version_no: int | None = None
+    reverted: bool = False
+    #: True si este evento es en sí mismo la reversión de otro.
+    is_reversal: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ProgressionApplied:
+    """Resultado de aplicar una o varias progresiones a la vez.
+
+    Un solo salto de versión para todo el lote, y un evento por ejercicio: así
+    la rutina no acumula una versión por cada serie que sube.
+    """
+
+    routine: RoutineDetail
+    events: tuple[ProgressionEventView, ...] = ()

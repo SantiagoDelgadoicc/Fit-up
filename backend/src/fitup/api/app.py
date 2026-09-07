@@ -21,6 +21,7 @@ from ..application.services import maintenance
 from ..infrastructure.seed import catalog
 from .deps import Settings, load_settings, open_database, require_auth
 from .routers import catalog as catalog_router
+from .routers import progression as progression_router
 from .routers import routines as routines_router
 from .routers import system as system_router
 from .routers import training as training_router
@@ -86,6 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         catalog_router.router,
         routines_router.router,
         training_router.router,
+        progression_router.router,
         system_router.router,
     )
     for router in routers:

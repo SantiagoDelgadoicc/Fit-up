@@ -8,8 +8,9 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0, F1 y F2 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA
-con registro y calendario: la app ya se usa a diario. Siguiente F3 (progresión). Ver
+**Fase actual: F0, F1, F2 y F3 completadas.** Hay dominio, esquema, catálogo, API HTTP y
+PWA con registro, calendario y sobrecarga progresiva aplicable y reversible: la app ya se
+usa a diario. Siguiente F4 (métricas y ranking muscular). Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -69,7 +70,7 @@ backend/src/fitup/
     models.py       entidades inmutables (frozen dataclasses)
     metrics/load.py normalización de carga a kg equivalentes, volumen, e1RM
     compliance/     máquina de estados del día (7 estados)
-    progression/    motor de sobrecarga progresiva
+    progression/    motor de sobrecarga progresiva (propone; nunca aplica ni inventa)
     ranking/        tiers + fórmula v1 (versionada)
   infrastructure/
     db/             conexión, migrador, migrations/*.sql
@@ -80,7 +81,8 @@ backend/src/fitup/
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
   components/     primitivas compartidas
-  pages/          Hoy · Calendario · Rutinas · RoutineEditor · Semana · Historial · Ajustes
+  pages/          Hoy · Calendario · Rutinas · RoutineEditor · Progression · Semana ·
+                  Historial · Ajustes
 ```
 
 `schema.d.ts` se genera: **no lo edites a mano**.
@@ -188,4 +190,6 @@ sola si es importante.
 - Almacenar como dato permanente algo derivable del historial.
 - Inventar una progresión, una carga o una métrica cuando faltan datos.
 - Mutar una versión de rutina ya referenciada por el historial.
+- Dejar que un cliente decida **cuánto** se progresa: elige qué ejercicios; el salto lo
+  recalcula el motor en el servidor, con sus guardas, en cada aplicación.
 - Añadir una tecnología porque sea popular.

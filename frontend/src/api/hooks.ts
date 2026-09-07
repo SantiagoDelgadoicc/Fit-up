@@ -17,8 +17,12 @@ import {
   type Exercise,
   type Muscle,
   type PendingDay,
+  type ProgressionApplied,
+  type ProgressionEvent,
   type Routine,
   type RoutineInput,
+  type RoutineProgression,
+  type RoutineReadiness,
   type RoutineSummary,
   type Rule,
   type Session,
@@ -39,6 +43,9 @@ const keys = {
   rules: ["reglas"] as const,
   settings: ["ajustes"] as const,
   bodyweight: ["peso"] as const,
+  progression: (id: number) => ["progresion", id] as const,
+  progressionEvents: (id: number) => ["progresiones", id] as const,
+  readiness: ["progresion-listas"] as const,
 };
 
 /** Todo lo que deja de ser cierto cuando se registra o borra un entrenamiento. */
@@ -252,4 +259,68 @@ export function useExerciseNames(): (slug: string) => string {
   return (slug: string) =>
     data?.find((e) => e.slug === slug)?.name ??
     slug.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+// --------------------------------------------------------------------------
+// Progresión
+// --------------------------------------------------------------------------
+
+/**
+ * Aplicar o deshacer una progresión cambia la rutina, su versión, lo que toca
+ * hoy y el propio veredicto. Invalidar de menos aquí deja la pantalla
+ * ofreciendo una subida que ya se aplicó.
+ */
+function invalidateProgression(qc: ReturnType<typeof useQueryClient>, routineId: number) {
+  for (const key of [
+    keys.routines,
+    keys.routine(routineId),
+    keys.progression(routineId),
+    keys.progressionEvents(routineId),
+    keys.readiness,
+  ]) {
+    void qc.invalidateQueries({ queryKey: key as readonly unknown[] });
+  }
+  invalidateTraining(qc);
+}
+
+export const useProgression = (id: number | null) =>
+  useQuery({
+    queryKey: keys.progression(id ?? 0),
+    queryFn: () => api<RoutineProgression>(`/rutinas/${id}/progresion`),
+    enabled: id !== null,
+  });
+
+export const useProgressionEvents = (id: number | null) =>
+  useQuery({
+    queryKey: keys.progressionEvents(id ?? 0),
+    queryFn: () => api<ProgressionEvent[]>(`/progresiones?routine_id=${id}`),
+    enabled: id !== null,
+  });
+
+/** Rutinas con ejercicios listos. Alimenta el aviso de la pantalla «Hoy». */
+export const useReadiness = () =>
+  useQuery({
+    queryKey: keys.readiness,
+    queryFn: () => api<RoutineReadiness[]>("/progresion/listas"),
+  });
+
+export function useApplyProgression(routineId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (exercises: string[]) =>
+      api<ProgressionApplied>(`/rutinas/${routineId}/progresion`, {
+        method: "POST",
+        body: { exercises },
+      }),
+    onSuccess: () => invalidateProgression(qc, routineId),
+  });
+}
+
+export function useUndoProgression(routineId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (eventId: number) =>
+      api<ProgressionApplied>(`/progresiones/${eventId}/deshacer`, { method: "POST" }),
+    onSuccess: () => invalidateProgression(qc, routineId),
+  });
 }

@@ -3,15 +3,15 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0, F1 y F2 completadas · siguiente F3
+**Estado global:** F0, F1, F2 y F3 completadas · siguiente F4
 
 | Fase | Objetivo | Estado |
 |---|---|---|
 | [F0](#f0--fundamentos) | Base técnica: esquema, dominio, catálogo, CI | ✅ Completada |
 | [F1](#f1--mvp-de-registro) | Registrar entrenamientos a diario | ✅ Completada |
 | [F2](#f2--calendario-y-cumplimiento) | Ver adherencia en un calendario mensual | ✅ Completada |
-| [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ⬜ Siguiente |
-| [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ⬜ |
+| [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ✅ Completada |
+| [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ⬜ Siguiente |
 | [F5](#f5--temporizador) | Descansos durante el entrenamiento | ⬜ |
 | [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ⬜ |
 | [F7](#f7--pulido) | Backups, offline, accesibilidad | ⬜ |
@@ -130,15 +130,56 @@ página, densidad mayor en pantalla ancha y navegación lateral con marca.
 
 **Objetivo:** el botón "Progresar" del enunciado, sin que pueda subir la dificultad de
 forma irresponsable.
+**Completada:** 2026-09-07
+**Criterio de aceptación:** ver qué toca subir, entender por qué, aplicarlo y poder
+volver atrás sin perder historial. ✅ Verificado en la app real.
 
-- [ ] `EvaluarProgresion` sobre todos los ejercicios de una rutina
-- [ ] `AplicarProgresion`: nueva versión + `progression_event`, transaccional
-- [ ] Deshacer una progresión (nueva versión que revierte; nunca se borra historia)
-- [ ] UI: badge "listo para progresar", preview del diff, confirmación
-- [ ] Mostrar `UNDETERMINED` con su motivo, sin ocultarlo
-- [ ] Editor de reglas por ejercicio
-- [ ] Deload sugerido tras regresiones *(M3)*
-- [ ] Cadena de variantes para calistenia en la UI *(M8)*
+- [x] `EvaluarProgresion` sobre todos los ejercicios de una rutina
+- [x] `AplicarProgresion`: nueva versión + `progression_event`, transaccional
+- [x] Deshacer una progresión (nueva versión que revierte; nunca se borra historia)
+- [x] UI: badge "listo para progresar", preview del diff, confirmación
+- [x] Mostrar `UNDETERMINED` con su motivo, sin ocultarlo
+- [x] Editor de reglas por ejercicio
+- [x] Deload sugerido tras regresiones *(M3)*
+- [x] Cadena de variantes para calistenia en la UI *(M8)*
+- [x] Aviso de progresiones disponibles en «Hoy» y en el listado de rutinas
+- [x] Progresiones incluidas en el export JSON
+
+Sin migraciones: `progression_event` estaba en el esquema desde F0 y el motor puro, con
+sus siete estrategias y sus guardas, también. F3 fue conectar ambos extremos.
+
+### Decisiones aplicadas
+
+- **Regla efectiva heredada.** Si la rutina no fija regla para un ejercicio, se usa la
+  que el catálogo declara para él, y la UI lo dice ("heredada del catálogo"). No es
+  suponer: está escrita, solo que en otro sitio. La alternativa —exigirla explícita—
+  dejaba sin progresión todas las rutinas creadas en F1.
+- **Alcance por ejercicio, no por rutina.** El historial que alimenta el motor y el
+  cooldown cuentan el ejercicio en todas las rutinas, incluidos los entrenamientos
+  ad-hoc: el músculo no distingue de qué rutina venía el estímulo.
+- **Un lote, una versión.** Progresar tres ejercicios crea *una* versión con los tres
+  cambios y *tres* eventos, no tres versiones.
+- **Aplicar re-evalúa.** El cliente elige *qué* ejercicios progresan; *cuánto* lo decide
+  el motor en el servidor cada vez. Ningún cliente puede pedir un salto que las guardas
+  no permitirían.
+- **Deshacer estricto.** Si el plan cambió después de la progresión, deshacer se niega
+  con el motivo en vez de pisar esa edición. Una reversión libera el cooldown: esperar
+  una semana por una subida que ya no está sería castigar por nada.
+
+**Aprendido en F3** — tres cosas, y ninguna estaba en el plan:
+
+1. **El editor perdía la regla de progresión.** Desde F1, guardar una rutina no enviaba
+   `rule_slug`, así que cada guardado lo borraba en silencio. Nadie lo notó porque hasta
+   F3 ese campo no se leía. Es el mismo patrón que el calentamiento descartado: *si el
+   backend soporta algo, la UI debe poder producirlo y no destruirlo*.
+2. **Un test verde que no probaba nada.** El primer test del cooldown pasaba por
+   casualidad: `applied_at` es un instante de auditoría que pone el reloj real, no la
+   fecha inyectada, y resultaba posterior a la fecha del test. Se arregló fijando el
+   instante explícitamente. La fecha se inyecta en el dominio, pero la auditoría no
+   —ni debe—, y esa frontera hay que tenerla presente al escribir el test.
+3. **La casilla de selección salía encima del nombre.** El `label` global apila etiqueta
+   e input en columna, que es lo correcto en un formulario y lo contrario de lo que pide
+   una casilla. Solo se vio abriendo la app; ningún test lo habría cogido.
 
 ---
 
@@ -218,11 +259,11 @@ lo justifica.
 |---|---|---|
 | M1 | RIR/RPE opcional por serie | F1 |
 | M2 | Peso corporal + `load_factor` | F0 ✅ / F1 (UI) |
-| M3 | Deload sugerido | F3 |
+| M3 | Deload sugerido | F3 ✅ |
 | M4 | Bandeja de propuestas | F6 (diferida) |
 | M5 | Export/import JSON + backup automático | F1 |
 | M6 | Estado "Sin datos" ≠ Iron | F0 ✅ |
 | M7 | Avisos de equilibrio muscular | F4 |
-| M8 | Cadena de variantes para calistenia | F0 ✅ (motor) / F3 (UI) |
+| M8 | Cadena de variantes para calistenia | F0 ✅ (motor) / F3 ✅ (UI) |
 | M9 | Estado `partial` de sesión | F0 ✅ (esquema) / F1 (UI) |
 | M10 | Ciclos rotativos A/B/C | Sin programar; el esquema lo contempla |
