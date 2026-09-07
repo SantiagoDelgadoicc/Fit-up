@@ -810,7 +810,10 @@ label {
   --tier-diamond: #58a6ff;
   --tier-ascendant: #56d364;
   --tier-immortal: #bc6ff1;
-  --tier-radiant: #ffd166;
+  /* Radiant en rojo: es el techo de la escalera y tiene que destacar sobre el
+     dorado de Gold. Aqui el rojo no es una alarma -en el calendario si lo es,
+     pero el mapa corporal no usa los colores de estado del dia. */
+  --tier-radiant: #ff4655;
 }
 
 .badge[data-tier] {

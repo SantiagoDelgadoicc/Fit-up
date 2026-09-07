@@ -240,7 +240,8 @@ Para cada músculo m:
 - Músculo sin ejercicios asociados → **Sin datos** (gris), no Iron.
 
 ### 6.3 Mapeo score → tier
-Decisión abierta (D4). Tres enfoques: relativo a tu propia historia, umbrales absolutos anclados al peso corporal, o híbrido.
+Resuelto en [ADR-0003](adr/0003-ranking-desarrollo-con-halo-actividad.md) e implementado en F4: **umbrales absolutos anclados al peso corporal**, con la tabla `reference_ratio` por músculo en `domain/ranking/calibration.py` y editable desde ajustes.
+La calibración es **provisional** (D9): el tope de la escala se fijó al doble de una marca de élite amateur para que la escalera tenga recorrido durante años, y se validará con historial real.
 
 ### 6.4 Explicabilidad (no negociable)
 Tocar un músculo abre: rango, score, los 3 factores que más aportan, ejercicios contribuyentes, sparkline del rango y **qué haría falta para el siguiente tier**.

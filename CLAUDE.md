@@ -131,6 +131,10 @@ ciclos. `catalog.validate()` lo comprueba y los tests de `test_schema.py` lo bli
 - Ruff con `line-length = 100`. `N812`, `N818` y `B008` están ignoradas a propósito, con el
   motivo documentado en `pyproject.toml`.
 - El frontend usa CSS plano con variables: cinco pantallas no justifican un framework.
+- El mapa corporal (`components/BodyMap.tsx`) es **datos, no lógica**: cada zona es una
+  forma asociada a un `svg_key` del catálogo, y el estado (tier, halo de actividad, sin
+  datos, selección) se pinta desde CSS. Si lo sustituyes por otra silueta, cambia las
+  formas y respeta ese contrato — está previsto que ocurra (M11).
 
 ## Decisiones cerradas
 

@@ -202,6 +202,11 @@ poder responder «¿por qué este rango?» sin salir de la pantalla. ✅ Verific
 
 Sin migraciones: `muscle_score_snapshot` y la fórmula `ranking/v1` estaban desde F0.
 
+**Pendiente conocido:** el dibujo del cuerpo es geométrico y se ve tosco. `BodyMap` está
+escrito para que cambiarlo sea cambiar formas —las zonas se identifican por `svg_key` y
+todo el estado (tier, halo, sin datos, selección) vive en CSS—, así que sustituirlo por
+una silueta anatómica no toca la lógica. Anotado como M11 en F7.
+
 ### Decisiones aplicadas
 
 - **La referencia es el techo de la escalera, no una marca de élite.** `reference_ratio`
@@ -275,6 +280,12 @@ rutina. Se decide con historial real y el agente funcionando.
 
 ## F7 · Pulido
 
+- [ ] **Sustituir el mapa corporal por una silueta anatómica** *(M11)*. El de F4 es
+      geométrico y funciona, pero se ve tosco. Se reemplazará por un modelo mejor
+      (HTML/CSS/SVG de terceros o dibujado a medida) **conservando el contrato**:
+      una zona por `svg_key` del catálogo, vista frontal y dorsal, y los cuatro estados
+      que ya sabe pintar `BodyMap` — color por tier, halo de actividad en el borde,
+      trama para "sin datos" y marca de selección. Solo cambian las formas, no la lógica.
 - [ ] PWA offline en modo lectura *(mitiga el "PC apagado" de ADR-0001)*
 - [ ] Accesibilidad: contraste, targets ≥ 44 px, uso con una mano
 - [ ] Rendimiento con años de historial
@@ -301,3 +312,4 @@ lo justifica.
 | M8 | Cadena de variantes para calistenia | F0 ✅ (motor) / F3 ✅ (UI) |
 | M9 | Estado `partial` de sesión | F0 ✅ (esquema) / F1 (UI) |
 | M10 | Ciclos rotativos A/B/C | Sin programar; el esquema lo contempla |
+| M11 | Silueta anatómica para el mapa corporal | F7 |
