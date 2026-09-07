@@ -8,9 +8,9 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0–F4 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
-registro, calendario, sobrecarga progresiva y ranking muscular sobre mapa corporal: la app
-ya se usa a diario. Siguiente F5 (temporizador). Ver
+**Fase actual: F0–F5 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
+registro, calendario, sobrecarga progresiva, ranking muscular sobre mapa corporal y
+temporizador de descanso: la app ya se usa a diario. Siguiente F6 (agente de IA). Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -81,8 +81,8 @@ backend/src/fitup/
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
   components/     primitivas compartidas · BodyMap (mapa corporal) · bodyPaths (su geometría)
-  pages/          Hoy · Calendario · Cuerpo · Rutinas · RoutineEditor · Progression ·
-                  Semana · Historial · Ajustes
+  pages/          Hoy · Calendario · Cuerpo · Descanso · Rutinas · RoutineEditor ·
+                  Progression · Semana · Historial · Ajustes
 ```
 
 `schema.d.ts` se genera: **no lo edites a mano**.

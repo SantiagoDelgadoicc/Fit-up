@@ -125,7 +125,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "inicio_semana": "lunes",
     "dias_gracia": 3,
     "tema": "oscuro",
-    "timer_presets_s": [60, 90, 120, 180],
+    # Tres tiempos y no cuatro: en el gimnasio se elige de un vistazo, y un
+    # cuarto botón solo añade una decisión. Editables desde la pantalla.
+    "timer_presets_s": [120, 90, 240],
     "ranking_formula_version": "v1",
     "peso_corporal_kg": None,
 }

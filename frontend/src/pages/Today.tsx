@@ -7,7 +7,7 @@
  * no hay progresión ni ranking.
  */
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { localDate } from "../api/client";
 import {
@@ -19,6 +19,7 @@ import {
   useToday,
 } from "../api/hooks";
 import type { Day, PendingDay, RoutineReadiness } from "../api/client";
+import { formatPreset, useTimer } from "../components/timer";
 import {
   describePlanned,
   Empty,
@@ -152,6 +153,8 @@ function TodayCard({
   onSkip: () => void;
 }) {
   const nameOf = useExerciseNames();
+  const timer = useTimer();
+  const navigate = useNavigate();
 
   if (day.session) {
     return (
@@ -200,8 +203,18 @@ function TodayCard({
               <span className="exercise-name">{nameOf(exercise.exercise_slug)}</span>
               <span className="prescription">{describePlanned(exercise)}</span>
             </div>
+            {/* Arrancar el descanso del ejercicio sin teclear su duración:
+                el dato ya está en el plan y a mitad de serie no se elige. */}
             {exercise.rest_seconds ? (
-              <span className="faint">Descanso {exercise.rest_seconds}s</span>
+              <button
+                className="btn btn-ghost btn-sm rest-btn"
+                onClick={() => {
+                  timer.start(exercise.rest_seconds ?? undefined);
+                  navigate("/descanso");
+                }}
+              >
+                ⏱ Descansar {formatPreset(exercise.rest_seconds)}
+              </button>
             ) : null}
           </div>
         ))}
