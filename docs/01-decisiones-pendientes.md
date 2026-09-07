@@ -8,6 +8,7 @@
 | D2 | Stack principal | Python + FastAPI + SQLite; React + TypeScript (PWA); tipos TS generados desde OpenAPI | [ADR-0002](adr/0002-stack-python-react.md) |
 | D3 | Significado del rango muscular | Rango = Desarrollo/Capacidad; Actividad como halo secundario; umbrales absolutos editables | [ADR-0003](adr/0003-ranking-desarrollo-con-halo-actividad.md) |
 | D4 | Integración con la IA | Replanteada: el agente es un proyecto externo y autónomo. Protección por reversibilidad y auditoría, no por permisos | [ADR-0004](adr/0004-integracion-con-agente-externo-autonomo.md) |
+| D8 | Superficie principal | El PC. El escritorio deja de ser una adaptación del móvil y tiene disposición propia | [ADR-0005](adr/0005-el-pc-es-la-superficie-principal.md) |
 
 ## Defaults aplicados (revocables en cualquier momento)
 
@@ -32,3 +33,4 @@
 | D5 | ¿Bandeja de propuestas para el agente (`AgentProposal`)? | F6, con historial real y el agente en funcionamiento |
 | D6 | ¿Registro offline desde el móvil con cola y sincronización? | F7, si el uso real lo justifica |
 | D7 | ¿Ciclos rotativos A/B/C además de semana fija? | Cuando lo necesites; el esquema ya lo contempla |
+| D9 | Calibrar `reference_ratio` por músculo para el ranking | F4, cuando haya meses de historial real |
