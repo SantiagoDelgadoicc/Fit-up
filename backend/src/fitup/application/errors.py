@@ -28,6 +28,15 @@ class Invalid(ApplicationError):
     """
 
 
+class Denied(ApplicationError):
+    """El agente intentó algo para lo que no tiene permiso.
+
+    No es un error de programación ni de datos: es el guardarraíl de ADR-0004
+    haciendo su trabajo. Se distingue del resto porque el cliente puede
+    resolverlo pidiendo al usuario que active el permiso.
+    """
+
+
 class Undeterminable(ApplicationError):
     """Faltan datos para responder con seguridad.
 

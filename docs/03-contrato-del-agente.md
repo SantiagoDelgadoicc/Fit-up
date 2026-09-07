@@ -30,13 +30,23 @@ amenaza— sino que **el agente honesto deje huella y no rompa nada por error**.
 
 ---
 
-## 2. Usa la API, no el fichero
+## 2. Dos superficies, un solo núcleo
 
-La interfaz soportada es **HTTP + OpenAPI** en `http://127.0.0.1:8000/api`.
+Hay dos formas soportadas de hablar con Fit-Up, y aplican **exactamente las
+mismas reglas** porque por debajo llaman a las mismas funciones:
+
+| | Cuándo |
+|---|---|
+| **MCP** por stdio: `python -m fitup.cli mcp` | Un agente que descubre las herramientas solo. Es lo normal |
+| **HTTP + OpenAPI** en `http://127.0.0.1:8000/api` | Un cliente que ya habla HTTP, o cualquier cosa que no sea MCP |
+
+Elige una. Lo que no se puede hacer por una, tampoco por la otra.
+
 El esquema de la base de datos es **detalle interno** y puede cambiar en
 cualquier migración sin aviso.
 
-- Contrato completo y tipado: `GET /openapi.json`, o `backend/openapi.json`.
+- Herramientas MCP: las publica el propio servidor; el agente las descubre.
+- Contrato HTTP completo y tipado: `GET /openapi.json`, o `backend/openapi.json`.
 - Para analizar en frío sin el proceso vivo: `GET /api/export` devuelve el
   volcado JSON completo, con `format_version`.
 
@@ -52,7 +62,10 @@ algo.
 
 ## 3. Identificarse
 
-Toda petición admite la cabecera:
+**Por MCP no hace falta:** quien habla por ahí *es* el agente, y todo lo que
+haga se graba como tal. No hay ambigüedad posible.
+
+**Por HTTP sí**, porque el mismo endpoint lo usa también la interfaz:
 
 ```
 X-Fitup-Actor: agente
@@ -61,7 +74,7 @@ X-Fitup-Actor: agente
 Valores válidos: `usuario`, `agente`, `sistema`. Sin cabecera se asume
 `usuario`.
 
-Un valor desconocido devuelve **400**, no se degrada a `usuario`: una cabecera
+Un valor desconocido devuelve **422**, no se degrada a `usuario`: una cabecera
 mal escrita dejaría al agente operando de incógnito, que es justo lo que esto
 viene a evitar.
 
@@ -77,7 +90,7 @@ Consultables en `GET /api/agente/permisos`. Se guardan en el ajuste
 | Permiso | Qué abre | Por defecto |
 |---|---|---|
 | `read` | Todas las consultas. Es el interruptor general | ✅ |
-| `propose` | `GET /rutinas/{id}/progresion` y `/progresion/listas` | ✅ |
+| `propose` | Evaluar progresiones: calcular y explicar sin escribir | ✅ |
 | `write_sessions` | Registrar sesiones, marcar días no realizados, borrar sesiones | ❌ |
 | `write_routines` | Crear y versionar rutinas, aplicar y deshacer progresiones, semana y excepciones | ❌ |
 | `write_settings` | Ajustes y peso corporal | ❌ |
@@ -85,9 +98,13 @@ Consultables en `GET /api/agente/permisos`. Se guardan en el ajuste
 Sólo se comprueban cuando el actor es `agente`. El usuario nunca pasa por
 ellos: es el dueño de sus datos.
 
-Un permiso denegado devuelve **403** y **deja constancia** en la auditoría con
-`result='rechazado'`. Consulta los permisos antes de planificar un lote, en
-vez de descubrir el 403 a mitad.
+Un permiso denegado **deja constancia** en la auditoría con
+`result='rechazado'`, y devuelve un error que **nombra el permiso que falta**,
+para que puedas pedirle al usuario que lo active en vez de quedarte con un
+«error» a secas. Por HTTP es un 403; por MCP, un error de la tool.
+
+Consulta los permisos (`permisos` por MCP, `GET /api/agente/permisos` por HTTP)
+antes de planificar un lote, en vez de descubrirlo a mitad.
 
 Recordatorio: esto es un guardarraíl contra equivocaciones, no una frontera de
 seguridad.
@@ -98,10 +115,13 @@ seguridad.
 
 ### Idempotencia
 
-`POST /api/sesiones` y `POST /api/sesiones/como-planificado` aceptan
-`Idempotency-Key`. Un reintento con la misma clave devuelve la sesión ya
-creada en vez de duplicarla. **Úsala siempre**: un agente que reintenta por
-timeout es el caso normal, no el excepcional.
+Por MCP, `registrar_entrenamiento` acepta `clave_idempotencia`. Por HTTP,
+`POST /api/sesiones` y `POST /api/sesiones/como-planificado` aceptan la
+cabecera `Idempotency-Key`.
+
+Un reintento con la misma clave devuelve la sesión ya creada en vez de
+duplicarla. **Úsala siempre**: un agente que reintenta por timeout es el caso
+normal, no el excepcional.
 
 ### Copia previa al lote
 
@@ -177,11 +197,42 @@ Deshacer nunca borra: crea el movimiento contrario y lo deja registrado.
 
 ---
 
-## 9. Lo que todavía no existe
+## 9. Herramientas MCP
 
-- **Servidor MCP.** ADR-0004 lo contempla como segunda superficie sobre los
-  mismos casos de uso. Hoy solo está HTTP + OpenAPI, que es funcionalmente
-  completa. Añadirlo implica una dependencia nueva y está sin decidir.
+Arranque: `python -m fitup.cli mcp` (stdio). Con la base en otro sitio,
+`--db ruta` o la variable `FITUP_DB`.
+
+| Tool | Permiso |
+|---|---|
+| `consultar_dia`, `listar_rutinas`, `ver_rutina`, `historial`, `calendario` | `read` |
+| `ranking_muscular`, `detalle_musculo`, `progreso_ejercicio`, `permisos`, `auditoria` | `read` |
+| `evaluar_progresion`, `progresiones_disponibles` | `propose` |
+| `registrar_entrenamiento`, `marcar_no_realizado` | `write_sessions` |
+| `aplicar_progresion`, `deshacer_progresion` | `write_routines` |
+
+Cada una lleva su descripción y el esquema de sus parámetros: no hay que
+programarlas en el agente, se descubren. Las que pueden devolver texto escrito
+por una persona lo avisan en su propia descripción, que es donde el modelo lo
+lee.
+
+### Ejemplo de configuración
+
+```json
+{
+  "mcpServers": {
+    "fitup": {
+      "command": "python",
+      "args": ["-m", "fitup.cli", "mcp"],
+      "cwd": "C:/Projects/Fit-up/backend"
+    }
+  }
+}
+```
+
+---
+
+## 10. Lo que todavía no existe
+
 - **Bandeja de propuestas** (`AgentProposal`, D5). Sin decidir a propósito:
   depende de si las propuestas del agente resultan acertadas, y eso solo se
   sabe usándolo.

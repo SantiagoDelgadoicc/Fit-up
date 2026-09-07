@@ -13,6 +13,10 @@ dependencies = [
     "fastapi>=0.115",
     "pydantic>=2.9",
     "uvicorn[standard]>=0.30",
+    # Segunda superficie del ADR-0004. Se admite como dependencia porque
+    # implementar el protocolo a mano seria mucho mas codigo que mantener que
+    # el que ahorra, y es agnostico de modelo: no ata Fit-Up a ninguna IA.
+    "mcp>=2.0",
 ]
 
 [project.optional-dependencies]

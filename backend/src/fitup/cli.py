@@ -137,6 +137,21 @@ def cmd_serve(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el
     return 0
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el servidor
+    """Levanta el servidor MCP por stdio, que es como lo lanza un cliente local.
+
+    No imprime nada: en stdio, la salida estandar **es** el canal del protocolo
+    y un mensaje de bienvenida lo corromperia.
+    """
+    import os
+
+    from .mcp_server import main as mcp_main
+
+    os.environ.setdefault("FITUP_DB", str(Path(args.db)))
+    mcp_main()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fitup", description="Fit-Up")
     parser.add_argument("--db", default=str(DEFAULT_DB), help="ruta de la base de datos")
@@ -161,12 +176,15 @@ def main(argv: list[str] | None = None) -> int:
         help="abrir el navegador cuando el servidor esté listo",
     )
 
+    sub.add_parser("mcp", help="servidor MCP por stdio, para el agente de IA")
+
     args = parser.parse_args(argv)
     handler = {
         "init": cmd_init,
         "check": cmd_check,
         "export": cmd_export,
         "serve": cmd_serve,
+        "mcp": cmd_mcp,
     }[args.command]
     return handler(args)
 

@@ -8,11 +8,10 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: en pruebas y pulido.** F0–F5 completadas · F6 en curso. Hay dominio,
-esquema, catálogo, API HTTP y PWA con registro, calendario, sobrecarga progresiva, ranking
-muscular sobre mapa corporal y temporizador: la app se usa a diario. De F6 está la
-superficie para el agente externo (actor, permisos, auditoría, copias previas); falta el
-servidor MCP.
+**Fase actual: en pruebas y pulido.** F0–F6 completadas. Hay dominio, esquema, catálogo,
+API HTTP y PWA con registro, calendario, sobrecarga progresiva, ranking muscular sobre
+mapa corporal y temporizador: la app se usa a diario. El agente externo tiene su superficie
+completa: servidor MCP, actor, permisos, auditoría y copias previas.
 
 Que esté en pruebas cambia cómo se trabaja: **lo que aparece usándola tiene prioridad
 sobre lo que aparece en el plan**. Un fallo de interfaz encontrado entrenando vale más que
@@ -45,6 +44,7 @@ python -m fitup.cli serve           # API + PWA en 127.0.0.1:8000
 python -m fitup.cli serve --abrir   # además abre el navegador al estar listo
 python -m fitup.cli serve --lan     # accesible desde el móvil, con token
 python -m fitup.cli export          # volcado JSON
+python -m fitup.cli mcp             # servidor MCP por stdio, para el agente
 ```
 
 Frontend (desde `frontend/`):
@@ -82,8 +82,11 @@ backend/src/fitup/
   infrastructure/
     db/             conexión, migrador, migrations/*.sql
     seed/           catálogo JSON + cargador idempotente
+  application/
+    services/agent.py  política del agente: permisos, auditoría y copia de lote
   api/            adaptador HTTP: schemas, routers, mappers, deps
-    agent.py      quién escribe (`actor`), qué se le permite (scopes) y copia previa
+    agent.py      lee el actor de la cabecera y envuelve la política en Depends
+  mcp_server.py   adaptador MCP: 16 tools sobre los mismos casos de uso
   cli.py
 
 scripts/          Fit-Up.bat (lanzador, destino de los accesos directos) ·
@@ -141,8 +144,9 @@ ciclos. `catalog.validate()` lo comprueba y los tests de `test_schema.py` lo bli
 - Los tests documentan el comportamiento esperado: nombres descriptivos en español y
   docstring cuando el caso encierra una decisión de diseño.
 - Sin dependencias nuevas salvo que sustituyan código que habría que mantener. Las que hay
-  pasaron ese filtro: FastAPI/pydantic/uvicorn en el backend; react, react-router y
-  react-query en el frontend. El **dominio no depende de ninguna**, y eso no cambia.
+  pasaron ese filtro: FastAPI/pydantic/uvicorn y el SDK `mcp` en el backend; react,
+  react-router y react-query en el frontend. El **dominio no depende de ninguna**, y eso
+  no cambia.
 - Ruff con `line-length = 100`. `N812`, `N818` y `B008` están ignoradas a propósito, con el
   motivo documentado en `pyproject.toml`.
 - El frontend usa CSS plano con variables: cinco pantallas no justifican un framework.

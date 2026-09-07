@@ -3,8 +3,7 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global: en pruebas y pulido.** F0–F5 completadas · F6 en curso (falta el
-servidor MCP).
+**Estado global: en pruebas y pulido.** F0–F6 completadas.
 
 La app se usa a diario y la funcionalidad está completa, pero lleva poco tiempo en uso
 real: lo que queda es encontrar asperezas usándola. Dos cosas siguen explícitamente sin
@@ -25,7 +24,7 @@ copia diaria.
 | [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ✅ Completada |
 | [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ✅ Completada |
 | [F5](#f5--temporizador) | Descansos durante el entrenamiento | ✅ Completada |
-| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | 🟡 En curso |
+| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ✅ Completada |
 | [F7](#f7--pulido) | Backups, offline, accesibilidad | ⬜ |
 
 ---
@@ -293,11 +292,9 @@ ninguna IA concreta. El agente **es otro proyecto**: aquí solo se construye la 
 
 Contrato completo en [03-contrato-del-agente.md](03-contrato-del-agente.md).
 
-- [ ] **Servidor MCP** sobre los mismos casos de uso (wrappers finos) — *pendiente,
-      requiere decidir una dependencia nueva*
-- [x] Tools de lectura: la API HTTP + OpenAPI ya las cubre y es funcionalmente completa
-- [x] Tools de propuesta (no escriben): permiso `propose` sobre los endpoints de
-      evaluación de progresión
+- [x] **Servidor MCP** sobre los mismos casos de uso (wrappers finos): 16 tools por stdio
+- [x] Tools de lectura: 10, y la API HTTP + OpenAPI las cubre también
+- [x] Tools de propuesta (no escriben): permiso `propose`, en MCP y en HTTP
 - [x] Scopes en configuración local, escrituras sensibles desactivadas por defecto
 - [x] `AuditLog` de toda operación del agente, **y legible** vía `GET /api/auditoria`
 - [x] Claves de idempotencia en escrituras de sesión
@@ -336,11 +333,28 @@ La auditoría existía desde F0 pero **no servía para lo que iba a hacer falta*
   secas, la diaria barría las del agente y al revés — la copia previa a un lote habría
   desaparecido justo cuando hiciera falta.
 
-### Pendiente
+### El servidor MCP
 
-- **Servidor MCP.** ADR-0004 lo contempla como segunda superficie. Implica una dependencia
-  nueva (el SDK de MCP), que CLAUDE.md obliga a consultar. La API HTTP + OpenAPI ya es
-  funcionalmente completa para un agente, así que esto es comodidad, no capacidad.
+Se construyó al confirmarse que habrá **más de una app de este estilo**. Con una sola, MCP
+ahorra escribir un cliente HTTP y es prescindible; con varias, un único agente las conecta
+todas sin un cliente por cada una, que es justo para lo que se diseñó el protocolo.
+
+Es la primera dependencia añadida desde F0 (`mcp>=2.0`). Pasa el filtro: implementar el
+protocolo a mano sería mucho más código que mantener del que ahorra, y es agnóstico de
+modelo, así que no ata Fit-Up a ninguna IA.
+
+Dos cosas que salieron al probarlo contra un cliente MCP real, no en los tests:
+
+- **El SDK solo deja llegar al modelo el texto de un `ToolError`.** Cualquier otra
+  excepción le llega como «error inesperado». Un agente al que le dicen «error» no puede
+  corregirse; uno al que le nombran el permiso que falta, sí. Los errores de aplicación se
+  traducen, igual que el adaptador HTTP los traduce a códigos de estado.
+- **La conversión de la entrada tenía que ir dentro del traductor**, no antes: una fecha
+  mal escrita se escapaba como `ValueError` pelado.
+
+La política de permisos se movió de `api/` a `application/services/agent.py`. Tenerla en un
+adaptador obligaba al otro a importarlo, y eso convierte a dos hermanos en padre e hijo
+(invariante 6).
 
 ### Decisión diferida a esta fase
 **D5 — ¿Bandeja de propuestas (`AgentProposal`)?** Con un agente autónomo puede ser

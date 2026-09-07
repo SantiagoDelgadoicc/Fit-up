@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from ..application.errors import Conflict, Invalid, NotFound, Undeterminable
+from ..application.errors import Conflict, Denied, Invalid, NotFound, Undeterminable
 from ..application.services import maintenance
 from ..application.services import ranking as ranking_svc
 from ..infrastructure.seed import catalog
@@ -41,7 +41,7 @@ migraciones. Para analizar en frío, `GET /api/export`.
 
 **Identifícate.** Manda `X-Fitup-Actor: agente` en cada petición. Queda
 grabado en toda escritura y en el registro de auditoría. Un valor desconocido
-devuelve 400: sin actor correcto, la traza no sirve para nada.
+devuelve 422: sin actor correcto, la traza no sirve para nada.
 
 **Permisos.** `GET /api/agente/permisos` dice qué puedes hacer. Por defecto el
 agente lee y propone, pero no escribe; el usuario los activa desde Ajustes. Un
@@ -70,6 +70,9 @@ _ERROR_STATUS = {
     Conflict: 409,
     Invalid: 422,
     Undeterminable: 409,
+    # 403 y no 401: el problema no es quién eres, es que ese permiso está
+    # apagado. Se arregla activándolo, no autenticándose de otra forma.
+    Denied: 403,
 }
 
 

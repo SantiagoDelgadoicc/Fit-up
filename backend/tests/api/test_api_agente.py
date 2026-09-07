@@ -47,7 +47,8 @@ def test_un_actor_desconocido_se_rechaza_en_vez_de_pasar_por_usuario(client):
     tiene que doler.
     """
     response = client.post("/api/sesiones", json=_sesion(), headers={ACTOR_HEADER: "superusuario"})
-    assert response.status_code == 400
+    # 422 como cualquier otra entrada que el dominio rechaza, no un 400 aparte.
+    assert response.status_code == 422
     assert "superusuario" in response.json()["detail"]
 
 

@@ -3,11 +3,11 @@
 Aplicación personal de **registro, planificación y progresión de entrenamiento**, con ranking
 muscular visual y preparada para ser operada por un agente de IA local.
 
-> **Estado: en pruebas y pulido.** F0–F5 completadas y F6 casi. La app se usa a diario:
+> **Estado: en pruebas y pulido.** F0–F6 completadas. La app se usa a diario:
 > registrar entrenamientos, revisar el cumplimiento del mes, aplicar sobrecarga progresiva
 > —con su motivo a la vista y siempre reversible—, ver el ranking muscular sobre un mapa
-> corporal y cronometrar los descansos. La superficie para el agente de IA externo ya está
-> (actor, permisos, auditoría y copias previas); falta el servidor MCP.
+> corporal y cronometrar los descansos. El agente de IA externo tiene su superficie
+> completa: servidor MCP, permisos, auditoría y copias previas.
 >
 > **Qué significa "en pruebas":** la funcionalidad está completa y probada, pero lleva
 > poco tiempo en uso real. Se esperan asperezas de interfaz y ajustes de calibración. En
@@ -30,7 +30,8 @@ Abre `http://127.0.0.1:8000`.
 Para no repetir eso cada día:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\crear-accesos-directos.ps1 -Imagen "C:uta	u\icono.png"
+powershell -ExecutionPolicy Bypass -File scripts\crear-accesos-directos.ps1 -Imagen "C:
+uta	u\icono.png"
 ```
 
 Crea **Fit-Up** en el escritorio y en la carpeta del proyecto. Doble clic arranca el
@@ -40,6 +41,17 @@ Los accesos apuntan a [`scripts/Fit-Up.bat`](scripts/Fit-Up.bat), que vive en el
 repositorio: actualizar la app es un `git pull` y no hay que rehacerlos. El icono se
 convierte y se guarda en `local/`, fuera de control de versiones — cada equipo genera el
 suyo a partir de la imagen que quiera.
+
+### Para el agente de IA
+
+```bash
+cd backend && python -m fitup.cli mcp
+```
+
+Servidor MCP por stdio, con 16 herramientas. Un agente lo conecta y descubre lo que puede
+hacer; por defecto lee y propone, pero no escribe. Los permisos se activan en
+**Ajustes → Permisos del agente**. Contrato completo en
+[docs/03-contrato-del-agente.md](docs/03-contrato-del-agente.md).
 
 ### Desde el móvil
 
