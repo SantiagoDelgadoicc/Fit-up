@@ -14,10 +14,10 @@ from datetime import date, timedelta
 
 import pytest
 
-from conftest import history, make_exercise, performed, planned, rule
 from fitup.domain.enums import Modality, ProgressionOutcome, Strategy
 from fitup.domain.models import Guards, PerformedExercise, PerformedSet, PlannedSet
 from fitup.domain.progression.engine import describe_sets, evaluate
+from helpers_domain import history, make_exercise, performed, planned, rule
 
 TODAY = date(2026, 3, 15)
 D1, D2, D3 = TODAY - timedelta(days=7), TODAY - timedelta(days=4), TODAY - timedelta(days=1)

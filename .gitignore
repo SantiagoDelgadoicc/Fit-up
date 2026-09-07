@@ -6,6 +6,8 @@
 venv/
 __pycache__/
 *.py[cod]
+*.egg-info/
+.eggs/
 node_modules/
 dist/
 build/

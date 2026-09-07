@@ -1,0 +1,287 @@
+"""Registro de entrenamientos, con foco en el caso retroactivo.
+
+El criterio de aceptación de F1 es registrar el martes desde el domingo. Casi
+todo lo que se prueba aquí gira alrededor de eso.
+"""
+
+from __future__ import annotations
+
+from datetime import date, timedelta
+
+import pytest
+
+from fitup.application.errors import Conflict, Invalid, NotFound
+from fitup.application.services import planning as planning_svc
+from fitup.application.services import training as svc
+from fitup.domain.enums import DayState, SessionOrigin, SessionStatus
+from fitup.domain.models import PerformedExercise, PerformedSet
+from helpers_app import plan
+
+SUNDAY = date(2026, 3, 15)
+MONDAY = date(2026, 3, 9)  # programado
+WEDNESDAY = date(2026, 3, 11)  # programado
+TUESDAY = date(2026, 3, 10)  # sin rutina
+FRIDAY = date(2026, 3, 13)  # programado
+
+
+def performed(slug="flexiones", reps=15, sets=3):
+    return PerformedExercise(
+        exercise_slug=slug,
+        position=0,
+        sets=tuple(PerformedSet(set_no=i + 1, reps=reps) for i in range(sets)),
+    )
+
+
+# --------------------------------------------------------------------------
+# Registro como planificado: el camino de un toque
+# --------------------------------------------------------------------------
+
+
+def test_hice_esta_rutina_copia_el_plan_completo(db, weekly):
+    session = svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+
+    assert session.status is SessionStatus.COMPLETED
+    assert session.origin is SessionOrigin.PLANIFICADA
+    assert len(session.exercises) == 3
+    flexiones = next(e for e in session.exercises if e.exercise_slug == "flexiones")
+    assert [s.reps for s in flexiones.sets] == [15, 15, 15]
+    assert all(s.completed for s in flexiones.sets)
+
+
+def test_el_registro_del_domingo_para_el_viernes_queda_marcado_retroactivo(db, weekly):
+    """Distinguirlo permite auditar la calidad del dato (regla R9)."""
+    session = svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+    assert session.is_retroactive
+
+
+def test_se_conservan_las_series_por_tiempo_y_con_peso(db, weekly):
+    session = svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+    plancha = next(e for e in session.exercises if e.exercise_slug == "plancha")
+    press = next(e for e in session.exercises if e.exercise_slug == "press_banca")
+    assert all(s.time_s == 45 for s in plancha.sets)
+    assert all(s.weight_kg == 40.0 for s in press.sets)
+
+
+def test_no_se_puede_registrar_como_planificado_un_dia_sin_rutina(db, weekly):
+    with pytest.raises(Invalid, match="ninguna rutina programada"):
+        svc.log_as_planned(db, TUESDAY, today=SUNDAY)
+
+
+def test_no_se_puede_registrar_dos_veces_el_mismo_dia(db, weekly):
+    svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+    with pytest.raises(Conflict, match="ya tiene un entrenamiento"):
+        svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+
+
+def test_el_futuro_esta_prohibido(db, weekly):
+    with pytest.raises(Invalid, match="futuro"):
+        svc.log_as_planned(db, SUNDAY + timedelta(days=1), today=SUNDAY)
+
+
+def test_una_fecha_absurdamente_lejana_se_rechaza(db, weekly):
+    """Casi siempre es un error de tecleo, no un entrenamiento de hace dos años."""
+    with pytest.raises(Invalid, match="error de tecleo"):
+        svc.log_as_planned(db, SUNDAY - timedelta(days=800), today=SUNDAY)
+
+
+def test_se_usa_el_plan_vigente_ese_dia_no_el_de_hoy(db, weekly):
+    """Editar la rutina el sábado no debe cambiar lo que se hizo el lunes."""
+    planning_svc.update_routine(db, weekly, exercises=[plan("flexiones", reps=99)])
+    db.execute(
+        "UPDATE routine_version SET created_at = '2026-03-14T10:00:00+01:00' "
+        "WHERE routine_id = ? AND version_no = 2",
+        (weekly,),
+    )
+    db.commit()
+
+    session = svc.log_as_planned(db, MONDAY, today=SUNDAY)
+    assert session.routine_version_no == 1
+    assert len(session.exercises) == 3
+
+
+def test_una_sesion_parcial_se_registra_como_tal(db, weekly):
+    session = svc.log_as_planned(db, FRIDAY, today=SUNDAY, status=SessionStatus.PARTIAL)
+    assert session.status is SessionStatus.PARTIAL
+
+
+def test_la_clave_de_idempotencia_devuelve_la_sesion_existente(db, weekly):
+    """Un cliente que reintenta no debe crear dos entrenamientos."""
+    first = svc.log_as_planned(db, FRIDAY, today=SUNDAY, idempotency_key="abc")
+    second = svc.log_as_planned(db, FRIDAY, today=SUNDAY, idempotency_key="abc")
+    assert first.id == second.id
+
+
+# --------------------------------------------------------------------------
+# Registro libre
+# --------------------------------------------------------------------------
+
+
+def test_registro_libre_en_un_dia_sin_rutina_es_adhoc(db, weekly):
+    session = svc.log_session(db, day=TUESDAY, exercises=[performed()], today=SUNDAY)
+    assert session.origin is SessionOrigin.ADHOC
+    assert session.routine_version_id is None
+
+
+def test_registro_libre_en_un_dia_programado_se_asocia_a_la_rutina(db, weekly):
+    session = svc.log_session(db, day=FRIDAY, exercises=[performed(reps=12)], today=SUNDAY)
+    assert session.origin is SessionOrigin.PLANIFICADA
+    assert session.routine_version_no == 1
+    assert [s.reps for s in session.exercises[0].sets] == [12, 12, 12]
+
+
+def test_un_registro_sin_ejercicios_se_rechaza(db, weekly):
+    with pytest.raises(Invalid, match="al menos un ejercicio"):
+        svc.log_session(db, day=TUESDAY, exercises=[], today=SUNDAY)
+
+
+def test_un_ejercicio_inexistente_se_rechaza(db, weekly):
+    with pytest.raises(NotFound):
+        svc.log_session(db, day=TUESDAY, exercises=[performed("fantasma")], today=SUNDAY)
+
+
+def test_se_guardan_rir_y_esfuerzo_percibido(db, weekly):
+    """El RIR es lo que hará segura la progresión en F3."""
+    ejercicio = PerformedExercise(
+        exercise_slug="press_banca",
+        position=0,
+        sets=(PerformedSet(set_no=1, reps=8, weight_kg=40.0, rir=2),),
+    )
+    session = svc.log_session(
+        db, day=TUESDAY, exercises=[ejercicio], today=SUNDAY, perceived_effort=7
+    )
+    assert session.exercises[0].sets[0].rir == 2
+    assert session.perceived_effort == 7
+
+
+def test_declarar_que_no_se_entreno_es_informacion_no_ausencia(db, weekly):
+    session = svc.skip_day(db, MONDAY, today=SUNDAY)
+    assert session.status is SessionStatus.SKIPPED
+
+    day = svc.get_day(db, MONDAY, today=SUNDAY)
+    assert day.state is DayState.MISSED  # sin esperar la ventana de gracia
+
+
+def test_borrar_una_sesion(db, weekly):
+    session = svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+    svc.delete_session(db, session.id)
+    assert svc.get_day(db, FRIDAY, today=SUNDAY).session is None
+
+
+def test_borrar_una_sesion_inexistente_falla(db):
+    with pytest.raises(NotFound):
+        svc.delete_session(db, 999)
+
+
+# --------------------------------------------------------------------------
+# Vista de un día
+# --------------------------------------------------------------------------
+
+
+def test_el_dia_de_hoy_trae_el_plan_aunque_no_haya_registro(db, weekly):
+    day = svc.get_day(db, WEDNESDAY, today=WEDNESDAY)
+    assert day.state is DayState.PENDING
+    assert day.planned is not None
+    assert len(day.planned.exercises) == 3
+    assert day.can_log
+
+
+def test_un_dia_sin_rutina_es_descanso(db, weekly):
+    day = svc.get_day(db, TUESDAY, today=SUNDAY)
+    assert day.state is DayState.REST
+    assert day.planned is None
+
+
+def test_un_dia_registrado_ya_no_ofrece_registrar(db, weekly):
+    svc.log_as_planned(db, FRIDAY, today=SUNDAY)
+    day = svc.get_day(db, FRIDAY, today=SUNDAY)
+    assert day.state is DayState.DONE
+    assert not day.can_log
+
+
+def test_no_se_consulta_el_futuro(db, weekly):
+    with pytest.raises(Invalid, match="futuro"):
+        svc.get_day(db, SUNDAY + timedelta(days=1), today=SUNDAY)
+
+
+def test_una_excepcion_excusa_el_dia(db, weekly):
+    from fitup.domain.enums import ExceptionReason
+    from fitup.domain.models import ScheduleException
+
+    planning_svc.set_exception(db, ScheduleException(MONDAY, ExceptionReason.LESION))
+    day = svc.get_day(db, MONDAY, today=SUNDAY)
+    assert day.state is DayState.EXCUSED
+    assert day.exception_reason == "lesion"
+
+
+# --------------------------------------------------------------------------
+# Pendientes de registrar
+# --------------------------------------------------------------------------
+
+
+def test_los_pendientes_son_lo_programado_y_no_registrado_dentro_de_la_gracia(db, weekly):
+    """Es la lista que la pantalla Hoy resuelve de un toque."""
+    pendientes = svc.pending_days(db, today=FRIDAY)
+    assert [p.date for p in pendientes] == [FRIDAY, WEDNESDAY]
+    assert pendientes[0].routine_name == "Empuje"
+
+
+def test_registrar_saca_el_dia_de_pendientes(db, weekly):
+    svc.log_as_planned(db, FRIDAY, today=FRIDAY)
+    assert [p.date for p in svc.pending_days(db, today=FRIDAY)] == [WEDNESDAY]
+
+
+def test_una_excepcion_saca_el_dia_de_pendientes(db, weekly):
+    from fitup.domain.enums import ExceptionReason
+    from fitup.domain.models import ScheduleException
+
+    planning_svc.set_exception(db, ScheduleException(WEDNESDAY, ExceptionReason.VIAJE))
+    assert [p.date for p in svc.pending_days(db, today=FRIDAY)] == [FRIDAY]
+
+
+def test_fuera_de_la_ventana_de_gracia_deja_de_ser_pendiente(db, weekly):
+    """El lunes, visto el domingo, ya no es "pendiente": es no realizado."""
+    pendientes = svc.pending_days(db, today=SUNDAY)
+    assert MONDAY not in [p.date for p in pendientes]
+    assert svc.get_day(db, MONDAY, today=SUNDAY).state is DayState.MISSED
+
+
+def test_la_ventana_de_gracia_es_configurable(db, weekly):
+    from fitup.application.repositories import history
+
+    history.set_setting(db, "dias_gracia", 10)
+    db.commit()
+    assert MONDAY in [p.date for p in svc.pending_days(db, today=SUNDAY)]
+
+
+# --------------------------------------------------------------------------
+# Calendario
+# --------------------------------------------------------------------------
+
+
+def test_el_calendario_resuelve_cada_dia_del_rango(db, weekly):
+    svc.log_as_planned(db, MONDAY, today=SUNDAY)
+    verdicts = svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)
+
+    por_dia = {v.date: v.state for v in verdicts}
+    assert por_dia[MONDAY] is DayState.DONE
+    assert por_dia[TUESDAY] is DayState.REST
+    assert por_dia[WEDNESDAY] is DayState.MISSED  # fuera de la gracia
+    assert por_dia[FRIDAY] is DayState.PENDING  # dentro de la gracia
+
+
+def test_el_calendario_nunca_pasa_de_hoy(db, weekly):
+    verdicts = svc.calendar(db, MONDAY, SUNDAY + timedelta(days=30), today=SUNDAY)
+    assert max(v.date for v in verdicts) == SUNDAY
+
+
+def test_un_rango_invertido_devuelve_vacio(db, weekly):
+    assert svc.calendar(db, SUNDAY, MONDAY, today=SUNDAY) == []
+
+
+def test_la_adherencia_ignora_los_dias_pendientes(db, weekly):
+    from fitup.domain.compliance.day_state import adherence
+
+    svc.log_as_planned(db, MONDAY, today=SUNDAY)
+    verdicts = svc.calendar(db, MONDAY, SUNDAY, today=SUNDAY)
+    # Lunes cumplido, miércoles no realizado; viernes pendiente no computa.
+    assert adherence(verdicts) == 0.5

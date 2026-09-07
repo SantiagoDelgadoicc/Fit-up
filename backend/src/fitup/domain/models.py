@@ -28,6 +28,17 @@ from .enums import (
 
 
 @dataclass(frozen=True, slots=True)
+class MuscleGroup:
+    slug: str
+    name: str
+    region: str
+    body_view: str
+    #: Identificador del trazo en el SVG del mapa corporal.
+    svg_key: str
+    display_order: int = 0
+
+
+@dataclass(frozen=True, slots=True)
 class MuscleLink:
     """Participación de un músculo en un ejercicio."""
 

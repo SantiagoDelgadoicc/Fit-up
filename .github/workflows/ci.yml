@@ -41,6 +41,11 @@ jobs:
       - name: Cobertura mínima del dominio
         run: coverage report --include="src/fitup/domain/*" --fail-under=90
 
+      # La capa de aplicacion y la API concentran las reglas de escritura:
+      # versionado inmutable, fechas y estados. Tambien se blindan.
+      - name: Cobertura mínima de aplicación y API
+        run: coverage report --include="src/fitup/application/*,src/fitup/api/*" --fail-under=90
+
       # `fitup init` es lo primero que ejecuta cualquiera: si se rompe, no hay
       # proyecto. Se verifica de extremo a extremo, incluida la idempotencia.
       - name: Arranque de extremo a extremo
@@ -48,3 +53,5 @@ jobs:
           python -m fitup.cli --db /tmp/ci.db init
           python -m fitup.cli --db /tmp/ci.db init
           python -m fitup.cli --db /tmp/ci.db check
+          python -m fitup.cli --db /tmp/ci.db export --salida /tmp/ci-export.json
+          test -s /tmp/ci-export.json

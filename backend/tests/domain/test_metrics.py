@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from conftest import make_exercise
 from fitup.domain.enums import LoadType, Modality
 from fitup.domain.metrics.load import (
     LoadUndeterminable,
@@ -14,6 +13,7 @@ from fitup.domain.metrics.load import (
     set_volume_kg,
 )
 from fitup.domain.models import PerformedSet
+from helpers_domain import make_exercise
 
 
 def test_carga_externa_usa_el_peso_registrado():
