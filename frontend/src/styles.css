@@ -696,3 +696,407 @@ label {
   font-size: 0.75rem;
   color: var(--text-dim);
 }
+
+/* ------------------------------------------------------------ Progresión */
+
+/* Los cuatro veredictos, con el mismo criterio que los estados del día:
+   nunca solo color. `undetermined` va en azul de información y no en gris,
+   porque no es "nada que ver aquí": es algo que arreglar (una regla sin
+   asignar, un peso sin registrar). */
+.badge[data-outcome="ready"] {
+  color: var(--done);
+  border-color: color-mix(in srgb, var(--done) 40%, transparent);
+}
+.badge[data-outcome="deload_suggested"] {
+  color: var(--partial);
+  border-color: color-mix(in srgb, var(--partial) 40%, transparent);
+}
+.badge[data-outcome="undetermined"] {
+  color: var(--extra);
+  border-color: color-mix(in srgb, var(--extra) 40%, transparent);
+  border-style: dashed;
+}
+.badge[data-outcome="not_yet"] {
+  color: var(--text-faint);
+}
+
+/* Un filo de color a la izquierda de la tarjeta: dice de un vistazo cuáles
+   piden decisión sin tener que leer cada badge. */
+.card[data-outcome="ready"] {
+  border-left: 3px solid var(--done);
+}
+.card[data-outcome="deload_suggested"] {
+  border-left: 3px solid var(--partial);
+}
+.card[data-outcome="undetermined"] {
+  border-left: 3px solid var(--extra);
+}
+
+.diff {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+}
+
+.diff-from {
+  color: var(--text-dim);
+}
+
+.diff-to {
+  color: var(--text);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--done) 14%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 2px 10px;
+}
+
+.card[data-outcome="deload_suggested"] .diff-to {
+  background: color-mix(in srgb, var(--partial) 16%, transparent);
+}
+
+.variant {
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+  color: var(--text-dim);
+}
+
+/* Casilla y nombre son un solo objetivo táctil: en el móvil acertar en un
+   checkbox de 16 px es una lotería. */
+.pick {
+  display: flex;
+  /* El `label` global apila etiqueta e input en columna; aquí el texto va al
+     lado de la casilla, no debajo. */
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.pick input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--text-faint);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------- Ranking muscular */
+
+/* Los rangos tienen color propio, con la escalera legible de un vistazo: gris
+   metálico abajo, cálidos en el medio, fríos brillantes arriba. Ninguno se
+   comunica solo por color — llevan siempre su nombre al lado. */
+:root {
+  --tier-iron: #7d8590;
+  --tier-bronze: #b5793f;
+  --tier-silver: #c3ccd6;
+  --tier-gold: #e3b23c;
+  --tier-platinum: #5fd3c4;
+  --tier-diamond: #58a6ff;
+  --tier-ascendant: #56d364;
+  --tier-immortal: #bc6ff1;
+  /* Radiant en rojo: es el techo de la escalera y tiene que destacar sobre el
+     dorado de Gold. Aqui el rojo no es una alarma -en el calendario si lo es,
+     pero el mapa corporal no usa los colores de estado del dia. */
+  --tier-radiant: #ff4655;
+}
+
+.badge[data-tier] {
+  color: var(--tier);
+  border-color: color-mix(in srgb, var(--tier) 45%, transparent);
+  background: color-mix(in srgb, var(--tier) 12%, var(--surface-2));
+}
+.badge[data-tier="sin_datos"] {
+  color: var(--text-faint);
+  border-style: dashed;
+  background: var(--surface-2);
+}
+.badge-lg {
+  font-size: 0.95rem;
+  padding: 6px 14px;
+}
+
+[data-tier="iron"] { --tier: var(--tier-iron); }
+[data-tier="bronze"] { --tier: var(--tier-bronze); }
+[data-tier="silver"] { --tier: var(--tier-silver); }
+[data-tier="gold"] { --tier: var(--tier-gold); }
+[data-tier="platinum"] { --tier: var(--tier-platinum); }
+[data-tier="diamond"] { --tier: var(--tier-diamond); }
+[data-tier="ascendant"] { --tier: var(--tier-ascendant); }
+[data-tier="immortal"] { --tier: var(--tier-immortal); }
+[data-tier="radiant"] { --tier: var(--tier-radiant); }
+
+/* ------------------------------------------------------------ Mapa corporal */
+
+.body-views {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Las dos vistas caben siempre juntas, tambien en 375 px: el mapa se lee de
+   un vistazo o no sirve, y apilarlas obligaba a hacer scroll para comparar
+   delante y detras. La interaccion fina en el movil la cubre la lista. */
+.body-map {
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 260px;
+  text-align: center;
+}
+
+.body-map svg {
+  width: 100%;
+  height: auto;
+  max-height: 62vh;
+}
+
+.body-map figcaption {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+/* Capa de fondo: da forma al cuerpo por debajo de los musculos, para que un
+   grupo sin datos no deje un agujero con forma de nada. */
+.silhouette {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+/* Codos, manos y rodillas van encima y recortan los musculos: sin ellos, el
+   biceps y el antebrazo parecen una sola pieza. */
+.joint {
+  fill: color-mix(in srgb, var(--surface-2) 65%, var(--bg));
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.zone {
+  fill: var(--tier, var(--surface-2));
+  stroke: var(--border);
+  stroke-width: 1;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+
+/* El músculo sin datos va con trama además de gris: quien no distinga los
+   colores tiene que poder ver que ahí no hay medición, no un rango bajo. */
+.zone[data-tier="sin_datos"] {
+  fill: var(--sin-datos);
+}
+
+/* El halo es actividad reciente, nunca rango: por eso vive en el borde.
+   Atenuado a proposito: cuando se entrena todo el cuerpo, un verde saturado
+   en cada pieza compite con el color del rango, que es lo que importa. */
+.zone[data-fresh="fresh"] {
+  stroke: color-mix(in srgb, var(--done) 75%, transparent);
+  stroke-width: 2;
+}
+.zone[data-fresh="warm"] {
+  stroke: color-mix(in srgb, var(--partial) 70%, transparent);
+  stroke-width: 1.5;
+}
+
+.zone:hover {
+  filter: brightness(1.25);
+}
+
+.zone[data-selected] {
+  stroke: var(--text);
+  stroke-width: 3;
+}
+
+.zone:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tier-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.tier-chip {
+  font-size: 0.68rem;
+  font-weight: 650;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--tier, var(--text-faint));
+  border: 1px solid color-mix(in srgb, var(--tier, var(--border)) 45%, transparent);
+}
+
+/* ------------------------------------------------------- Lista de músculos */
+
+.muscle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.muscle-row:last-child {
+  border-bottom: none;
+}
+
+.muscle-row:hover,
+.muscle-row[aria-pressed="true"] {
+  background: var(--surface-2);
+}
+
+.muscle-name {
+  flex: 0 0 8.5rem;
+  font-weight: 600;
+}
+
+.bar {
+  flex: 1 1 auto;
+  height: 8px;
+  min-width: 40px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--tier, var(--accent));
+}
+
+.muscle-score {
+  flex: 0 0 2.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.halo-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+}
+.halo-dot[data-fresh="fresh"] {
+  border-color: var(--done);
+  background: color-mix(in srgb, var(--done) 40%, transparent);
+}
+.halo-dot[data-fresh="warm"] {
+  border-color: var(--partial);
+}
+
+.row-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-button:hover {
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------- Ficha del músculo */
+
+.metric-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 14px;
+}
+
+.factors {
+  margin: 10px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.factors > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.factors dt {
+  color: var(--text-dim);
+}
+
+.factors dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sparkline {
+  width: 100%;
+  height: 60px;
+  margin-top: 6px;
+}
+
+.sparkline path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.sparkline.empty {
+  height: 60px;
+  border-radius: var(--radius-sm);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--surface-2) 0 8px,
+    transparent 8px 16px
+  );
+}
+
+/* Aviso informativo: ni error ni éxito, algo que hay que leer una vez. */
+.note {
+  border-left: 3px solid var(--extra);
+  font-size: 0.92rem;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+}

@@ -33,4 +33,4 @@
 | D5 | ¿Bandeja de propuestas para el agente (`AgentProposal`)? | F6, con historial real y el agente en funcionamiento |
 | D6 | ¿Registro offline desde el móvil con cola y sincronización? | F7, si el uso real lo justifica |
 | D7 | ¿Ciclos rotativos A/B/C además de semana fija? | Cuando lo necesites; el esquema ya lo contempla |
-| D9 | Calibrar `reference_ratio` por músculo para el ranking | F4, cuando haya meses de historial real |
+| D9 | Validar la calibración de `reference_ratio` con datos reales | Sigue abierta: F4 dejó una tabla provisional razonada y editable desde ajustes (`ranking_reference_ratio`); confirmarla necesita meses de historial |

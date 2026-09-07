@@ -13,7 +13,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..domain.enums import DayState, SessionOrigin, SessionStatus
+from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus, Tier
 
 
 class Model(BaseModel):
@@ -303,3 +303,179 @@ class SettingIn(Model):
 
 class ErrorOut(Model):
     detail: str
+
+
+# --------------------------------------------------------------------------
+# Progresión
+# --------------------------------------------------------------------------
+
+
+class ProgressionItemOut(Model):
+    """Veredicto para un ejercicio.
+
+    ``reason`` viaja siempre, también en ``undetermined``: un cliente que solo
+    pintara los ``ready`` estaría ocultando justo lo que hay que decidir.
+    """
+
+    exercise_slug: str
+    exercise_name: str
+    outcome: ProgressionOutcome
+    reason: str
+    current: str
+    applicable: bool
+    rule_slug: str | None = None
+    rule_inherited: bool = False
+    proposed: str | None = None
+    proposed_sets: list[PlannedSetOut] = []
+    next_exercise_slug: str | None = None
+    next_exercise_name: str | None = None
+    last_progression: Date | None = None
+
+
+class RoutineProgressionOut(Model):
+    routine_id: int
+    routine_name: str
+    version_no: int
+    ready: int
+    deload: int
+    items: list[ProgressionItemOut]
+
+
+class RoutineReadinessOut(Model):
+    routine_id: int
+    routine_name: str
+    ready: int
+    deload: int
+
+
+class ProgressionApplyIn(Model):
+    #: Slugs de los ejercicios a progresar. El servidor recalcula *cuánto*.
+    exercises: list[str] = Field(min_length=1)
+    note: str | None = None
+
+
+class ProgressionEventOut(Model):
+    id: int
+    exercise_slug: str
+    exercise_name: str
+    routine_id: int
+    routine_name: str
+    rule_slug: str
+    rationale: str
+    applied_at: datetime
+    actor: str
+    before_summary: str
+    after_summary: str
+    before_exercise_slug: str
+    after_exercise_slug: str
+    reverted: bool = False
+    is_reversal: bool = False
+    from_version_no: int | None = None
+    to_version_no: int | None = None
+
+
+class ProgressionAppliedOut(Model):
+    routine: RoutineOut
+    events: list[ProgressionEventOut]
+
+
+# --------------------------------------------------------------------------
+# Ranking muscular
+# --------------------------------------------------------------------------
+
+
+class MuscleRankingOut(Model):
+    """Un músculo del mapa corporal.
+
+    ``development`` es ``null`` cuando no hay rango: el cliente no debe pintar
+    un cero, porque "sin medir" y "cero" no son lo mismo (ADR-0003).
+    """
+
+    muscle_slug: str
+    name: str
+    region: str
+    body_view: str
+    svg_key: str
+    display_order: int
+    tier: Tier
+    has_data: bool
+    activity: float
+    development: float | None = None
+    days_since_stimulus: int | None = None
+    points_to_next_tier: float | None = None
+    notes: list[str] = []
+
+
+class BalanceCheckOut(Model):
+    key: str
+    name: str
+    verdict: str
+    message: str
+    left_name: str
+    right_name: str
+    left_score: float | None = None
+    right_score: float | None = None
+    ratio: float | None = None
+    missing: list[str] = []
+
+
+class RankingOut(Model):
+    today: Date
+    formula_version: str
+    #: La calibración de los umbrales es provisional mientras no haya meses de
+    #: historial real. La interfaz debe decirlo.
+    provisional: bool
+    measured: int
+    bodyweight_kg: float | None = None
+    entries: list[MuscleRankingOut] = []
+    balance: list[BalanceCheckOut] = []
+    notes: list[str] = []
+
+
+class MuscleUsageOut(Model):
+    volume_kg: float
+    sessions: int
+    sessions_per_week: float
+
+
+class ExerciseContributionOut(Model):
+    exercise_slug: str
+    exercise_name: str
+    role: str
+    role_factor: float
+    volume_kg: float
+    best_e1rm_kg: float | None = None
+    last_date: Date | None = None
+
+
+class ScorePointOut(Model):
+    date: Date
+    development: float
+    activity: float
+    tier: Tier
+
+
+class MuscleDetailOut(Model):
+    muscle: MuscleRankingOut
+    #: Desglose de la fórmula. Sin esto el rango sería un número mágico.
+    factors: dict[str, float] = {}
+    next_tier: Tier | None = None
+    points_to_next_tier: float | None = None
+    recent: MuscleUsageOut | None = None
+    quarter: MuscleUsageOut | None = None
+    exercises: list[ExerciseContributionOut] = []
+    history: list[ScorePointOut] = []
+
+
+class ExercisePointOut(Model):
+    date: Date
+    volume_kg: float
+    sets: int
+    e1rm_kg: float | None = None
+
+
+class ExerciseProgressOut(Model):
+    exercise_slug: str
+    best_e1rm_kg: float | None = None
+    best_on: Date | None = None
+    points: list[ExercisePointOut] = []

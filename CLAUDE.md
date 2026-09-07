@@ -8,8 +8,9 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0, F1 y F2 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA
-con registro y calendario: la app ya se usa a diario. Siguiente F3 (progresión). Ver
+**Fase actual: F0–F4 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA con
+registro, calendario, sobrecarga progresiva y ranking muscular sobre mapa corporal: la app
+ya se usa a diario. Siguiente F5 (temporizador). Ver
 [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 **El uso principal es el PC** (ADR-0005). Diseña cada pantalla para monitor y verifica
@@ -69,7 +70,7 @@ backend/src/fitup/
     models.py       entidades inmutables (frozen dataclasses)
     metrics/load.py normalización de carga a kg equivalentes, volumen, e1RM
     compliance/     máquina de estados del día (7 estados)
-    progression/    motor de sobrecarga progresiva
+    progression/    motor de sobrecarga progresiva (propone; nunca aplica ni inventa)
     ranking/        tiers + fórmula v1 (versionada)
   infrastructure/
     db/             conexión, migrador, migrations/*.sql
@@ -79,8 +80,9 @@ backend/src/fitup/
 
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
-  components/     primitivas compartidas
-  pages/          Hoy · Calendario · Rutinas · RoutineEditor · Semana · Historial · Ajustes
+  components/     primitivas compartidas · BodyMap (mapa corporal SVG)
+  pages/          Hoy · Calendario · Cuerpo · Rutinas · RoutineEditor · Progression ·
+                  Semana · Historial · Ajustes
 ```
 
 `schema.d.ts` se genera: **no lo edites a mano**.
@@ -96,6 +98,8 @@ frontend/src/
    `routine_exercise` o `planned_set` de una versión ya usada.
 4. **Lo derivable se calcula.** Volumen, adherencia, e1RM y ranking no se almacenan. Única
    excepción: `muscle_score_snapshot`, caché reconstruible marcada con `formula_version`.
+   El rango que se muestra es una **estimación de calibración provisional** (D9 abierta):
+   preséntalo siempre como tal, nunca como una medición.
 5. **Si no se puede determinar, se dice.** El motor devuelve `UNDETERMINED` con motivo;
    `load.py` lanza `LoadUndeterminable`; `adherence()` devuelve `None`, no `0`. **Nunca
    rellenes un hueco con una suposición por defecto.**
@@ -127,6 +131,10 @@ ciclos. `catalog.validate()` lo comprueba y los tests de `test_schema.py` lo bli
 - Ruff con `line-length = 100`. `N812`, `N818` y `B008` están ignoradas a propósito, con el
   motivo documentado en `pyproject.toml`.
 - El frontend usa CSS plano con variables: cinco pantallas no justifican un framework.
+- El mapa corporal (`components/BodyMap.tsx`) es **datos, no lógica**: cada zona es una
+  forma asociada a un `svg_key` del catálogo, y el estado (tier, halo de actividad, sin
+  datos, selección) se pinta desde CSS. Si lo sustituyes por otra silueta, cambia las
+  formas y respeta ese contrato — está previsto que ocurra (M11).
 
 ## Decisiones cerradas
 
@@ -188,4 +196,6 @@ sola si es importante.
 - Almacenar como dato permanente algo derivable del historial.
 - Inventar una progresión, una carga o una métrica cuando faltan datos.
 - Mutar una versión de rutina ya referenciada por el historial.
+- Dejar que un cliente decida **cuánto** se progresa: elige qué ejercicios; el salto lo
+  recalcula el motor en el servidor, con sus guardas, en cada aplicación.
 - Añadir una tecnología porque sea popular.

@@ -10,8 +10,15 @@
 import { Link } from "react-router-dom";
 
 import { localDate } from "../api/client";
-import { useExerciseNames, useLogAsPlanned, usePending, useSkipDay, useToday } from "../api/hooks";
-import type { Day, PendingDay } from "../api/client";
+import {
+  useExerciseNames,
+  useLogAsPlanned,
+  usePending,
+  useReadiness,
+  useSkipDay,
+  useToday,
+} from "../api/hooks";
+import type { Day, PendingDay, RoutineReadiness } from "../api/client";
 import {
   describePlanned,
   Empty,
@@ -25,6 +32,7 @@ import {
 export default function Today() {
   const today = useToday();
   const pending = usePending();
+  const readiness = useReadiness();
   const toast = useToast();
   const log = useLogAsPlanned();
   const skip = useSkipDay();
@@ -72,6 +80,8 @@ export default function Today() {
         }
       />
 
+      <ProgressionNotice routines={readiness.data ?? []} />
+
       {otherPending.length > 0 && (
         <section className="stack">
           <h2>Pendientes de registrar</h2>
@@ -89,6 +99,44 @@ export default function Today() {
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * Aviso de progresiones disponibles.
+ *
+ * Vive en «Hoy» porque es donde se entra a diario: una progresión que hay que
+ * salir a buscar a la pantalla de cada rutina no se aplica nunca. Avisa y
+ * enlaza, pero no aplica nada desde aquí — eso pide ver el diff antes.
+ */
+function ProgressionNotice({ routines }: { routines: RoutineReadiness[] }) {
+  if (routines.length === 0) return null;
+
+  return (
+    <section className="stack">
+      <h2>Progresiones disponibles</h2>
+      {routines.map((routine) => (
+        <div className="card" key={routine.routine_id}>
+          <div className="row">
+            <div>
+              <strong>{routine.routine_name}</strong>
+              <div className="faint">
+                {routine.ready > 0 &&
+                  `${routine.ready} ejercicio${routine.ready === 1 ? "" : "s"} listo${
+                    routine.ready === 1 ? "" : "s"
+                  } para subir`}
+                {routine.ready > 0 && routine.deload > 0 && " · "}
+                {routine.deload > 0 && `${routine.deload} con descarga sugerida`}
+              </div>
+            </div>
+            <div className="spacer" />
+            <Link className="btn btn-sm btn-primary" to={`/rutinas/${routine.routine_id}/progresion`}>
+              Revisar
+            </Link>
+          </div>
+        </div>
+      ))}
+    </section>
   );
 }
 

@@ -187,6 +187,19 @@ def test_todo_musculo_del_mapa_tiene_algun_ejercicio(seeded):
     assert [r["slug"] for r in huerfanos] == []
 
 
+def test_todo_musculo_tiene_referencia_de_calibracion(seeded):
+    """Sin referencia propia, un músculo cae en el valor por defecto.
+
+    Funciona, pero su rango deja de ser comparable con el de los demás, y eso
+    es justo lo que el mapa corporal invita a hacer de un vistazo.
+    """
+    from fitup.domain.ranking.calibration import REFERENCE_RATIO
+
+    slugs = {r["slug"] for r in seeded.execute("SELECT slug FROM muscle_group").fetchall()}
+    assert slugs - set(REFERENCE_RATIO) == set()
+    assert all(v > 0 for v in REFERENCE_RATIO.values())
+
+
 def test_los_ejercicios_de_peso_corporal_declaran_load_factor(seeded):
     faltan = seeded.execute(
         "SELECT slug FROM exercise WHERE load_type = 'corporal' AND load_factor <= 0"

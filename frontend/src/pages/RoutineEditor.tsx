@@ -13,8 +13,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import type { Exercise, RoutineInput } from "../api/client";
-import { useExercises, useRoutine, useSaveRoutine } from "../api/hooks";
+import type { Exercise, Rule, RoutineInput } from "../api/client";
+import { useExercises, useRoutine, useRules, useSaveRoutine } from "../api/hooks";
 import { ErrorCard, Loading, useToast } from "../components/ui";
 
 type Draft = {
@@ -25,6 +25,8 @@ type Draft = {
   weightKg: number | null;
   restSeconds: number | null;
   warmup: number;
+  /** `null` = hereda la regla que el catálogo declara para el ejercicio. */
+  ruleSlug: string | null;
 };
 
 export default function RoutineEditor() {
@@ -33,6 +35,7 @@ export default function RoutineEditor() {
 
   const existing = useRoutine(routineId);
   const catalog = useExercises();
+  const rules = useRules();
   const save = useSaveRoutine();
   const navigate = useNavigate();
   const toast = useToast();
@@ -59,6 +62,7 @@ export default function RoutineEditor() {
           // Se conserva: guardar no debe destruir en silencio el calentamiento
           // que ya tenia la rutina.
           warmup: e.sets.length - work.length,
+          ruleSlug: e.rule_slug ?? null,
         };
       }),
     );
@@ -83,6 +87,7 @@ export default function RoutineEditor() {
         weightKg: exercise.load_type === "externa" ? 20 : null,
         restSeconds: exercise.default_rest_seconds,
         warmup: 0,
+        ruleSlug: null,
       },
     ]);
     setPicker("");
@@ -106,6 +111,7 @@ export default function RoutineEditor() {
       exercises: items.map((item) => ({
         exercise_slug: item.slug,
         rest_seconds: item.restSeconds,
+        rule_slug: item.ruleSlug,
         spec: {
           count: item.count,
           reps: item.reps,
@@ -147,6 +153,7 @@ export default function RoutineEditor() {
             key={item.slug}
             item={item}
             exercise={bySlug.get(item.slug)}
+            rules={rules.data ?? []}
             first={index === 0}
             last={index === items.length - 1}
             onChange={(patch) => update(index, patch)}
@@ -189,6 +196,7 @@ export default function RoutineEditor() {
 function ExerciseRow({
   item,
   exercise,
+  rules,
   first,
   last,
   onChange,
@@ -197,6 +205,7 @@ function ExerciseRow({
 }: {
   item: Draft;
   exercise: Exercise | undefined;
+  rules: Rule[];
   first: boolean;
   last: boolean;
   onChange: (patch: Partial<Draft>) => void;
@@ -301,6 +310,29 @@ function ExerciseRow({
           />
         </label>
       </div>
+
+      <label style={{ marginTop: 12 }}>
+        Progresión
+        <select
+          value={item.ruleSlug ?? ""}
+          onChange={(e) => onChange({ ruleSlug: e.target.value || null })}
+        >
+          <option value="">{defaultRuleLabel(exercise, rules)}</option>
+          {rules.map((rule) => (
+            <option key={rule.slug} value={rule.slug}>
+              {rule.name}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
+}
+
+/** Qué regla se usará si no se elige ninguna: la del catálogo, dicha por su nombre. */
+function defaultRuleLabel(exercise: Exercise | undefined, rules: Rule[]): string {
+  const slug = exercise?.default_rule_slug;
+  if (!slug) return "Sin regla: no se propondrá progresión";
+  const name = rules.find((r) => r.slug === slug)?.name ?? slug;
+  return `Por defecto del ejercicio (${name})`;
 }

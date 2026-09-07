@@ -1476,6 +1476,555 @@
         }
       }
     },
+    "/api/rutinas/{routine_id}/progresion": {
+      "get": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Evaluate Routine",
+        "description": "Veredicto para cada ejercicio, con su motivo aunque no se pueda progresar.",
+        "operationId": "evaluate_routine_api_rutinas__routine_id__progresion_get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineProgressionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Apply Progression",
+        "description": "Aplica las progresiones elegidas: una versión nueva y un evento por ejercicio.\n\nSe recalcula antes de escribir. Si algo dejó de ser seguro entre la\npantalla y el botón, responde 409 con el motivo en vez de aplicarlo.",
+        "operationId": "apply_progression_api_rutinas__routine_id__progresion_post",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressionApplyIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressionAppliedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progresion/listas": {
+      "get": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Readiness",
+        "description": "Rutinas con algo que ofrecer. Lo que avisa en «Hoy».",
+        "operationId": "readiness_api_progresion_listas_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineReadinessOut"
+                  },
+                  "title": "Response Readiness Api Progresion Listas Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progresiones": {
+      "get": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "List Events",
+        "operationId": "list_events_api_progresiones_get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Routine Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProgressionEventOut"
+                  },
+                  "title": "Response List Events Api Progresiones Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progresiones/{event_id}/deshacer": {
+      "post": {
+        "tags": [
+          "progresión"
+        ],
+        "summary": "Undo Progression",
+        "description": "Deshacer es avanzar: crea la versión que restaura el plan anterior.",
+        "operationId": "undo_progression_api_progresiones__event_id__deshacer_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Event Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressionAppliedOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ranking": {
+      "get": {
+        "tags": [
+          "ranking"
+        ],
+        "summary": "Muscle Ranking",
+        "description": "Los 18 músculos con su rango, su halo de actividad y sus avisos.",
+        "operationId": "muscle_ranking_api_ranking_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ranking/{muscle_slug}": {
+      "get": {
+        "tags": [
+          "ranking"
+        ],
+        "summary": "Muscle Detail",
+        "description": "Ficha explicable: factores, ejercicios que aportan, histórico y qué falta.",
+        "operationId": "muscle_detail_api_ranking__muscle_slug__get",
+        "parameters": [
+          {
+            "name": "muscle_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Muscle Slug"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MuscleDetailOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ranking/snapshot": {
+      "post": {
+        "tags": [
+          "ranking"
+        ],
+        "summary": "Take Snapshot",
+        "description": "Fuerza un punto del histórico. Recalcularlo sobrescribe: es caché.",
+        "operationId": "take_snapshot_api_ranking_snapshot_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metricas/ejercicios/{exercise_slug}": {
+      "get": {
+        "tags": [
+          "ranking",
+          "métricas"
+        ],
+        "summary": "Exercise Progress",
+        "description": "Evolución de un ejercicio: volumen y 1RM equivalente sesión a sesión.",
+        "operationId": "exercise_progress_api_metricas_ejercicios__exercise_slug__get",
+        "parameters": [
+          {
+            "name": "exercise_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Exercise Slug"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1825,
+              "minimum": 7,
+              "default": 180,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseProgressOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/salud": {
       "get": {
         "tags": [
@@ -1902,6 +2451,85 @@
   },
   "components": {
     "schemas": {
+      "BalanceCheckOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "left_name": {
+            "type": "string",
+            "title": "Left Name"
+          },
+          "right_name": {
+            "type": "string",
+            "title": "Right Name"
+          },
+          "left_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left Score"
+          },
+          "right_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right Score"
+          },
+          "ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "verdict",
+          "message",
+          "left_name",
+          "right_name"
+        ],
+        "title": "BalanceCheckOut"
+      },
       "BodyweightIn": {
         "properties": {
           "date": {
@@ -2145,6 +2773,62 @@
         ],
         "title": "ExceptionIn"
       },
+      "ExerciseContributionOut": {
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "exercise_name": {
+            "type": "string",
+            "title": "Exercise Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "role_factor": {
+            "type": "number",
+            "title": "Role Factor"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "best_e1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best E1Rm Kg"
+          },
+          "last_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_slug",
+          "exercise_name",
+          "role",
+          "role_factor",
+          "volume_kg"
+        ],
+        "title": "ExerciseContributionOut"
+      },
       "ExerciseOut": {
         "properties": {
           "slug": {
@@ -2228,6 +2912,85 @@
           "default_rest_seconds"
         ],
         "title": "ExerciseOut"
+      },
+      "ExercisePointOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "sets": {
+            "type": "integer",
+            "title": "Sets"
+          },
+          "e1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "E1Rm Kg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "volume_kg",
+          "sets"
+        ],
+        "title": "ExercisePointOut"
+      },
+      "ExerciseProgressOut": {
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "best_e1rm_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best E1Rm Kg"
+          },
+          "best_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best On"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ExercisePointOut"
+            },
+            "type": "array",
+            "title": "Points",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_slug"
+        ],
+        "title": "ExerciseProgressOut"
       },
       "HTTPValidationError": {
         "properties": {
@@ -2370,6 +3133,83 @@
         ],
         "title": "LogSessionIn"
       },
+      "MuscleDetailOut": {
+        "properties": {
+          "muscle": {
+            "$ref": "#/components/schemas/MuscleRankingOut"
+          },
+          "factors": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Factors",
+            "default": {}
+          },
+          "next_tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Tier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points_to_next_tier": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points To Next Tier"
+          },
+          "recent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleUsageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quarter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleUsageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exercises": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseContributionOut"
+            },
+            "type": "array",
+            "title": "Exercises",
+            "default": []
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ScorePointOut"
+            },
+            "type": "array",
+            "title": "History",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "muscle"
+        ],
+        "title": "MuscleDetailOut"
+      },
       "MuscleLinkOut": {
         "properties": {
           "muscle_slug": {
@@ -2420,6 +3260,123 @@
           "svg_key"
         ],
         "title": "MuscleOut"
+      },
+      "MuscleRankingOut": {
+        "properties": {
+          "muscle_slug": {
+            "type": "string",
+            "title": "Muscle Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "body_view": {
+            "type": "string",
+            "title": "Body View"
+          },
+          "svg_key": {
+            "type": "string",
+            "title": "Svg Key"
+          },
+          "display_order": {
+            "type": "integer",
+            "title": "Display Order"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "has_data": {
+            "type": "boolean",
+            "title": "Has Data"
+          },
+          "activity": {
+            "type": "number",
+            "title": "Activity"
+          },
+          "development": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Development"
+          },
+          "days_since_stimulus": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Since Stimulus"
+          },
+          "points_to_next_tier": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points To Next Tier"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "muscle_slug",
+          "name",
+          "region",
+          "body_view",
+          "svg_key",
+          "display_order",
+          "tier",
+          "has_data",
+          "activity"
+        ],
+        "title": "MuscleRankingOut",
+        "description": "Un músculo del mapa corporal.\n\n``development`` es ``null`` cuando no hay rango: el cliente no debe pintar\nun cero, porque \"sin medir\" y \"cero\" no son lo mismo (ADR-0003)."
+      },
+      "MuscleUsageOut": {
+        "properties": {
+          "volume_kg": {
+            "type": "number",
+            "title": "Volume Kg"
+          },
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "sessions_per_week": {
+            "type": "number",
+            "title": "Sessions Per Week"
+          }
+        },
+        "type": "object",
+        "required": [
+          "volume_kg",
+          "sessions",
+          "sessions_per_week"
+        ],
+        "title": "MuscleUsageOut"
       },
       "PendingDayOut": {
         "properties": {
@@ -2955,6 +3912,342 @@
         ],
         "title": "PlannedSetOut"
       },
+      "ProgressionAppliedOut": {
+        "properties": {
+          "routine": {
+            "$ref": "#/components/schemas/RoutineOut"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressionEventOut"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine",
+          "events"
+        ],
+        "title": "ProgressionAppliedOut"
+      },
+      "ProgressionApplyIn": {
+        "properties": {
+          "exercises": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Exercises"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercises"
+        ],
+        "title": "ProgressionApplyIn"
+      },
+      "ProgressionEventOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "exercise_name": {
+            "type": "string",
+            "title": "Exercise Name"
+          },
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "routine_name": {
+            "type": "string",
+            "title": "Routine Name"
+          },
+          "rule_slug": {
+            "type": "string",
+            "title": "Rule Slug"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "applied_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Applied At"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "before_summary": {
+            "type": "string",
+            "title": "Before Summary"
+          },
+          "after_summary": {
+            "type": "string",
+            "title": "After Summary"
+          },
+          "before_exercise_slug": {
+            "type": "string",
+            "title": "Before Exercise Slug"
+          },
+          "after_exercise_slug": {
+            "type": "string",
+            "title": "After Exercise Slug"
+          },
+          "reverted": {
+            "type": "boolean",
+            "title": "Reverted",
+            "default": false
+          },
+          "is_reversal": {
+            "type": "boolean",
+            "title": "Is Reversal",
+            "default": false
+          },
+          "from_version_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Version No"
+          },
+          "to_version_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Version No"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "exercise_slug",
+          "exercise_name",
+          "routine_id",
+          "routine_name",
+          "rule_slug",
+          "rationale",
+          "applied_at",
+          "actor",
+          "before_summary",
+          "after_summary",
+          "before_exercise_slug",
+          "after_exercise_slug"
+        ],
+        "title": "ProgressionEventOut"
+      },
+      "ProgressionItemOut": {
+        "properties": {
+          "exercise_slug": {
+            "type": "string",
+            "title": "Exercise Slug"
+          },
+          "exercise_name": {
+            "type": "string",
+            "title": "Exercise Name"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ProgressionOutcome"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "current": {
+            "type": "string",
+            "title": "Current"
+          },
+          "applicable": {
+            "type": "boolean",
+            "title": "Applicable"
+          },
+          "rule_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Slug"
+          },
+          "rule_inherited": {
+            "type": "boolean",
+            "title": "Rule Inherited",
+            "default": false
+          },
+          "proposed": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed"
+          },
+          "proposed_sets": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedSetOut"
+            },
+            "type": "array",
+            "title": "Proposed Sets",
+            "default": []
+          },
+          "next_exercise_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Exercise Slug"
+          },
+          "next_exercise_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Exercise Name"
+          },
+          "last_progression": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Progression"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_slug",
+          "exercise_name",
+          "outcome",
+          "reason",
+          "current",
+          "applicable"
+        ],
+        "title": "ProgressionItemOut",
+        "description": "Veredicto para un ejercicio.\n\n``reason`` viaja siempre, también en ``undetermined``: un cliente que solo\npintara los ``ready`` estaría ocultando justo lo que hay que decidir."
+      },
+      "ProgressionOutcome": {
+        "type": "string",
+        "enum": [
+          "ready",
+          "not_yet",
+          "undetermined",
+          "deload_suggested"
+        ],
+        "title": "ProgressionOutcome",
+        "description": "Resultado de evaluar una progresión.\n\nUNDETERMINED es un ciudadano de primera clase: cuando el sistema no puede\ndeterminar con seguridad cómo progresar, lo dice en vez de inventarlo."
+      },
+      "RankingOut": {
+        "properties": {
+          "today": {
+            "type": "string",
+            "format": "date",
+            "title": "Today"
+          },
+          "formula_version": {
+            "type": "string",
+            "title": "Formula Version"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional"
+          },
+          "measured": {
+            "type": "integer",
+            "title": "Measured"
+          },
+          "bodyweight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bodyweight Kg"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/MuscleRankingOut"
+            },
+            "type": "array",
+            "title": "Entries",
+            "default": []
+          },
+          "balance": {
+            "items": {
+              "$ref": "#/components/schemas/BalanceCheckOut"
+            },
+            "type": "array",
+            "title": "Balance",
+            "default": []
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "today",
+          "formula_version",
+          "provisional",
+          "measured"
+        ],
+        "title": "RankingOut"
+      },
       "RoutineIn": {
         "properties": {
           "name": {
@@ -3046,6 +4339,75 @@
           "exercises"
         ],
         "title": "RoutineOut"
+      },
+      "RoutineProgressionOut": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "routine_name": {
+            "type": "string",
+            "title": "Routine Name"
+          },
+          "version_no": {
+            "type": "integer",
+            "title": "Version No"
+          },
+          "ready": {
+            "type": "integer",
+            "title": "Ready"
+          },
+          "deload": {
+            "type": "integer",
+            "title": "Deload"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressionItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "routine_name",
+          "version_no",
+          "ready",
+          "deload",
+          "items"
+        ],
+        "title": "RoutineProgressionOut"
+      },
+      "RoutineReadinessOut": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "routine_name": {
+            "type": "string",
+            "title": "Routine Name"
+          },
+          "ready": {
+            "type": "integer",
+            "title": "Ready"
+          },
+          "deload": {
+            "type": "integer",
+            "title": "Deload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "routine_name",
+          "ready",
+          "deload"
+        ],
+        "title": "RoutineReadinessOut"
       },
       "RoutineSummaryOut": {
         "properties": {
@@ -3154,6 +4516,34 @@
           "strategy"
         ],
         "title": "RuleOut"
+      },
+      "ScorePointOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "development": {
+            "type": "number",
+            "title": "Development"
+          },
+          "activity": {
+            "type": "number",
+            "title": "Activity"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "development",
+          "activity",
+          "tier"
+        ],
+        "title": "ScorePointOut"
       },
       "SessionOrigin": {
         "type": "string",
@@ -3410,6 +4800,23 @@
           "date"
         ],
         "title": "SkipDayIn"
+      },
+      "Tier": {
+        "type": "string",
+        "enum": [
+          "sin_datos",
+          "iron",
+          "bronze",
+          "silver",
+          "gold",
+          "platinum",
+          "diamond",
+          "ascendant",
+          "immortal",
+          "radiant"
+        ],
+        "title": "Tier",
+        "description": "Rangos del ranking muscular, de menor a mayor.\n\nSIN_DATOS no es el escalón más bajo: es la ausencia de escalón. Un músculo\nsin ejercicios asociados no está \"débil\", está \"no medido\" (ADR-0003)."
       },
       "ValidationError": {
         "properties": {

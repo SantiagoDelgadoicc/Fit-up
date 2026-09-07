@@ -3,16 +3,16 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0, F1 y F2 completadas · siguiente F3
+**Estado global:** F0–F4 completadas · siguiente F5
 
 | Fase | Objetivo | Estado |
 |---|---|---|
 | [F0](#f0--fundamentos) | Base técnica: esquema, dominio, catálogo, CI | ✅ Completada |
 | [F1](#f1--mvp-de-registro) | Registrar entrenamientos a diario | ✅ Completada |
 | [F2](#f2--calendario-y-cumplimiento) | Ver adherencia en un calendario mensual | ✅ Completada |
-| [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ⬜ Siguiente |
-| [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ⬜ |
-| [F5](#f5--temporizador) | Descansos durante el entrenamiento | ⬜ |
+| [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ✅ Completada |
+| [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ✅ Completada |
+| [F5](#f5--temporizador) | Descansos durante el entrenamiento | ⬜ Siguiente |
 | [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ⬜ |
 | [F7](#f7--pulido) | Backups, offline, accesibilidad | ⬜ |
 
@@ -130,33 +130,113 @@ página, densidad mayor en pantalla ancha y navegación lateral con marca.
 
 **Objetivo:** el botón "Progresar" del enunciado, sin que pueda subir la dificultad de
 forma irresponsable.
+**Completada:** 2026-09-07
+**Criterio de aceptación:** ver qué toca subir, entender por qué, aplicarlo y poder
+volver atrás sin perder historial. ✅ Verificado en la app real.
 
-- [ ] `EvaluarProgresion` sobre todos los ejercicios de una rutina
-- [ ] `AplicarProgresion`: nueva versión + `progression_event`, transaccional
-- [ ] Deshacer una progresión (nueva versión que revierte; nunca se borra historia)
-- [ ] UI: badge "listo para progresar", preview del diff, confirmación
-- [ ] Mostrar `UNDETERMINED` con su motivo, sin ocultarlo
-- [ ] Editor de reglas por ejercicio
-- [ ] Deload sugerido tras regresiones *(M3)*
-- [ ] Cadena de variantes para calistenia en la UI *(M8)*
+- [x] `EvaluarProgresion` sobre todos los ejercicios de una rutina
+- [x] `AplicarProgresion`: nueva versión + `progression_event`, transaccional
+- [x] Deshacer una progresión (nueva versión que revierte; nunca se borra historia)
+- [x] UI: badge "listo para progresar", preview del diff, confirmación
+- [x] Mostrar `UNDETERMINED` con su motivo, sin ocultarlo
+- [x] Editor de reglas por ejercicio
+- [x] Deload sugerido tras regresiones *(M3)*
+- [x] Cadena de variantes para calistenia en la UI *(M8)*
+- [x] Aviso de progresiones disponibles en «Hoy» y en el listado de rutinas
+- [x] Progresiones incluidas en el export JSON
+
+Sin migraciones: `progression_event` estaba en el esquema desde F0 y el motor puro, con
+sus siete estrategias y sus guardas, también. F3 fue conectar ambos extremos.
+
+### Decisiones aplicadas
+
+- **Regla efectiva heredada.** Si la rutina no fija regla para un ejercicio, se usa la
+  que el catálogo declara para él, y la UI lo dice ("heredada del catálogo"). No es
+  suponer: está escrita, solo que en otro sitio. La alternativa —exigirla explícita—
+  dejaba sin progresión todas las rutinas creadas en F1.
+- **Alcance por ejercicio, no por rutina.** El historial que alimenta el motor y el
+  cooldown cuentan el ejercicio en todas las rutinas, incluidos los entrenamientos
+  ad-hoc: el músculo no distingue de qué rutina venía el estímulo.
+- **Un lote, una versión.** Progresar tres ejercicios crea *una* versión con los tres
+  cambios y *tres* eventos, no tres versiones.
+- **Aplicar re-evalúa.** El cliente elige *qué* ejercicios progresan; *cuánto* lo decide
+  el motor en el servidor cada vez. Ningún cliente puede pedir un salto que las guardas
+  no permitirían.
+- **Deshacer estricto.** Si el plan cambió después de la progresión, deshacer se niega
+  con el motivo en vez de pisar esa edición. Una reversión libera el cooldown: esperar
+  una semana por una subida que ya no está sería castigar por nada.
+
+**Aprendido en F3** — tres cosas, y ninguna estaba en el plan:
+
+1. **El editor perdía la regla de progresión.** Desde F1, guardar una rutina no enviaba
+   `rule_slug`, así que cada guardado lo borraba en silencio. Nadie lo notó porque hasta
+   F3 ese campo no se leía. Es el mismo patrón que el calentamiento descartado: *si el
+   backend soporta algo, la UI debe poder producirlo y no destruirlo*.
+2. **Un test verde que no probaba nada.** El primer test del cooldown pasaba por
+   casualidad: `applied_at` es un instante de auditoría que pone el reloj real, no la
+   fecha inyectada, y resultaba posterior a la fecha del test. Se arregló fijando el
+   instante explícitamente. La fecha se inyecta en el dominio, pero la auditoría no
+   —ni debe—, y esa frontera hay que tenerla presente al escribir el test.
+3. **La casilla de selección salía encima del nombre.** El `label` global apila etiqueta
+   e input en columna, que es lo correcto en un formulario y lo contrario de lo que pide
+   una casilla. Solo se vio abriendo la app; ningún test lo habría cogido.
 
 ---
 
 ## F4 · Métricas y ranking muscular
 
 **Objetivo:** la característica visual insignia.
+**Completada:** 2026-09-07
+**Criterio de aceptación:** ver de un vistazo qué músculos van por delante y por detrás, y
+poder responder «¿por qué este rango?» sin salir de la pantalla. ✅ Verificado en la app real.
 
-- [ ] Servicio de métricas: volumen, frecuencia, e1RM, evolución por ejercicio y músculo
-- [ ] Aplanado historial → `StimulusEvent` por músculo
-- [ ] SVG del cuerpo (frontal y dorsal) con `svg_key` por grupo muscular
-- [ ] Colores por tier + halo de actividad
-- [ ] Ficha de músculo: score, factores, ejercicios, histórico, qué falta para el siguiente tier
-- [ ] `muscle_score_snapshot` semanal, reconstruible
-- [ ] Calibración de `reference_ratio` por músculo con datos reales
-- [ ] Avisos de equilibrio empuje/tirón y cuádriceps/femoral *(M7)*
+- [x] Servicio de métricas: volumen, frecuencia, e1RM, evolución por ejercicio y músculo
+- [x] Aplanado historial → `StimulusEvent` por músculo
+- [x] SVG del cuerpo (frontal y dorsal) con `svg_key` por grupo muscular
+- [x] Colores por tier + halo de actividad
+- [x] Ficha de músculo: score, factores, ejercicios, histórico, qué falta para el siguiente tier
+- [x] `muscle_score_snapshot` semanal, reconstruible
+- [x] Calibración provisional de `reference_ratio` por músculo, editable desde ajustes
+      *(D9 sigue abierta: la validación con datos reales necesita meses de historial)*
+- [x] Avisos de equilibrio empuje/tirón y cuádriceps/femoral *(M7)*
 
-**Riesgo principal:** la calibración de los umbrales. Hasta tener meses de historial real,
-los rangos son provisionales y así deben presentarse.
+Sin migraciones: `muscle_score_snapshot` y la fórmula `ranking/v1` estaban desde F0.
+
+**Pendiente conocido:** el dibujo del cuerpo es geométrico y se ve tosco. `BodyMap` está
+escrito para que cambiarlo sea cambiar formas —las zonas se identifican por `svg_key` y
+todo el estado (tier, halo, sin datos, selección) vive en CSS—, así que sustituirlo por
+una silueta anatómica no toca la lógica. Anotado como M11 en F7.
+
+### Decisiones aplicadas
+
+- **La referencia es el techo de la escalera, no una marca de élite.** `reference_ratio`
+  se fijó al **doble** de una marca élite amateur. Con la referencia puesta en la marca
+  élite, un principiante aparecía en Platinum el primer mes y la escalera se agotaba
+  antes de empezar. Con la calibración actual: principiante en Iron–Bronze, dos o tres
+  años constantes en Gold–Platinum, nivel avanzado en Diamond–Ascendant.
+- **Umbrales editables sin tocar código** (ADR-0003): el ajuste `ranking_reference_ratio`
+  sobrescribe la tabla del dominio; los valores no positivos se ignoran en vez de romper
+  la escala.
+- **Snapshot semanal al arrancar**, igual que la copia de seguridad, y **nunca vacío**:
+  un punto donde ningún músculo tiene rango no es información.
+- **La misma información por dos caminos**: mapa y lista. El mapa solo funciona si
+  distingues los colores; la lista funciona siempre.
+
+**Aprendido en F4** — tres cosas:
+
+1. **La calibración inicial premiaba lo que no se había entrenado.** Antebrazo y bíceps
+   salían Radiant sin haber hecho un solo curl: cobraban media marca del peso muerto y
+   de las dominadas como secundarios, y su referencia estaba pensada para el peso que
+   mueven *directamente*. Un ranking se valida mirando a quién corona, no solo
+   comprobando que la fórmula suma bien.
+2. **El arranque del servidor guardaba un histórico de ceros.** `snapshot_if_stale` se
+   ejecuta al arrancar; con la base recién creada dejaba 18 filas en «sin datos» que
+   luego aparecían como un valle en la gráfica. Lo detectó un test de la API que
+   esperaba un punto y encontró dos.
+3. **Un import circular avisando de un error de capas.** `views` necesitaba un modelo
+   que estaba en `services/metrics`, y `metrics` importaba repositorios que importan
+   `views`. La solución no fue romper el ciclo a la fuerza sino colocar bien la pieza:
+   los modelos de lectura viven todos en `views`.
 
 ---
 
@@ -200,6 +280,12 @@ rutina. Se decide con historial real y el agente funcionando.
 
 ## F7 · Pulido
 
+- [ ] **Sustituir el mapa corporal por una silueta anatómica** *(M11)*. El de F4 es
+      geométrico y funciona, pero se ve tosco. Se reemplazará por un modelo mejor
+      (HTML/CSS/SVG de terceros o dibujado a medida) **conservando el contrato**:
+      una zona por `svg_key` del catálogo, vista frontal y dorsal, y los cuatro estados
+      que ya sabe pintar `BodyMap` — color por tier, halo de actividad en el borde,
+      trama para "sin datos" y marca de selección. Solo cambian las formas, no la lógica.
 - [ ] PWA offline en modo lectura *(mitiga el "PC apagado" de ADR-0001)*
 - [ ] Accesibilidad: contraste, targets ≥ 44 px, uso con una mano
 - [ ] Rendimiento con años de historial
@@ -218,11 +304,12 @@ lo justifica.
 |---|---|---|
 | M1 | RIR/RPE opcional por serie | F1 |
 | M2 | Peso corporal + `load_factor` | F0 ✅ / F1 (UI) |
-| M3 | Deload sugerido | F3 |
+| M3 | Deload sugerido | F3 ✅ |
 | M4 | Bandeja de propuestas | F6 (diferida) |
 | M5 | Export/import JSON + backup automático | F1 |
 | M6 | Estado "Sin datos" ≠ Iron | F0 ✅ |
-| M7 | Avisos de equilibrio muscular | F4 |
-| M8 | Cadena de variantes para calistenia | F0 ✅ (motor) / F3 (UI) |
+| M7 | Avisos de equilibrio muscular | F4 ✅ |
+| M8 | Cadena de variantes para calistenia | F0 ✅ (motor) / F3 ✅ (UI) |
 | M9 | Estado `partial` de sesión | F0 ✅ (esquema) / F1 (UI) |
 | M10 | Ciclos rotativos A/B/C | Sin programar; el esquema lo contempla |
+| M11 | Silueta anatómica para el mapa corporal | F7 |

@@ -324,6 +324,170 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rutinas/{routine_id}/progresion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evaluate Routine
+         * @description Veredicto para cada ejercicio, con su motivo aunque no se pueda progresar.
+         */
+        get: operations["evaluate_routine_api_rutinas__routine_id__progresion_get"];
+        put?: never;
+        /**
+         * Apply Progression
+         * @description Aplica las progresiones elegidas: una versión nueva y un evento por ejercicio.
+         *
+         *     Se recalcula antes de escribir. Si algo dejó de ser seguro entre la
+         *     pantalla y el botón, responde 409 con el motivo en vez de aplicarlo.
+         */
+        post: operations["apply_progression_api_rutinas__routine_id__progresion_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progresion/listas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness
+         * @description Rutinas con algo que ofrecer. Lo que avisa en «Hoy».
+         */
+        get: operations["readiness_api_progresion_listas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progresiones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_api_progresiones_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progresiones/{event_id}/deshacer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo Progression
+         * @description Deshacer es avanzar: crea la versión que restaura el plan anterior.
+         */
+        post: operations["undo_progression_api_progresiones__event_id__deshacer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ranking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Muscle Ranking
+         * @description Los 18 músculos con su rango, su halo de actividad y sus avisos.
+         */
+        get: operations["muscle_ranking_api_ranking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ranking/{muscle_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Muscle Detail
+         * @description Ficha explicable: factores, ejercicios que aportan, histórico y qué falta.
+         */
+        get: operations["muscle_detail_api_ranking__muscle_slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ranking/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take Snapshot
+         * @description Fuerza un punto del histórico. Recalcularlo sobrescribe: es caché.
+         */
+        post: operations["take_snapshot_api_ranking_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/metricas/ejercicios/{exercise_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exercise Progress
+         * @description Evolución de un ejercicio: volumen y 1RM equivalente sesión a sesión.
+         */
+        get: operations["exercise_progress_api_metricas_ejercicios__exercise_slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/salud": {
         parameters: {
             query?: never;
@@ -460,6 +624,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BalanceCheckOut */
+        BalanceCheckOut: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Verdict */
+            verdict: string;
+            /** Message */
+            message: string;
+            /** Left Name */
+            left_name: string;
+            /** Right Name */
+            right_name: string;
+            /** Left Score */
+            left_score?: number | null;
+            /** Right Score */
+            right_score?: number | null;
+            /** Ratio */
+            ratio?: number | null;
+            /**
+             * Missing
+             * @default []
+             */
+            missing: string[];
+        };
         /** BodyweightIn */
         BodyweightIn: {
             /**
@@ -550,6 +740,23 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** ExerciseContributionOut */
+        ExerciseContributionOut: {
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Exercise Name */
+            exercise_name: string;
+            /** Role */
+            role: string;
+            /** Role Factor */
+            role_factor: number;
+            /** Volume Kg */
+            volume_kg: number;
+            /** Best E1Rm Kg */
+            best_e1rm_kg?: number | null;
+            /** Last Date */
+            last_date?: string | null;
+        };
         /** ExerciseOut */
         ExerciseOut: {
             /** Slug */
@@ -577,6 +784,34 @@ export interface components {
              * @default []
              */
             muscles: components["schemas"]["MuscleLinkOut"][];
+        };
+        /** ExercisePointOut */
+        ExercisePointOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Volume Kg */
+            volume_kg: number;
+            /** Sets */
+            sets: number;
+            /** E1Rm Kg */
+            e1rm_kg?: number | null;
+        };
+        /** ExerciseProgressOut */
+        ExerciseProgressOut: {
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Best E1Rm Kg */
+            best_e1rm_kg?: number | null;
+            /** Best On */
+            best_on?: string | null;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["ExercisePointOut"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -622,6 +857,32 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** MuscleDetailOut */
+        MuscleDetailOut: {
+            muscle: components["schemas"]["MuscleRankingOut"];
+            /**
+             * Factors
+             * @default {}
+             */
+            factors: {
+                [key: string]: number;
+            };
+            next_tier?: components["schemas"]["Tier"] | null;
+            /** Points To Next Tier */
+            points_to_next_tier?: number | null;
+            recent?: components["schemas"]["MuscleUsageOut"] | null;
+            quarter?: components["schemas"]["MuscleUsageOut"] | null;
+            /**
+             * Exercises
+             * @default []
+             */
+            exercises: components["schemas"]["ExerciseContributionOut"][];
+            /**
+             * History
+             * @default []
+             */
+            history: components["schemas"]["ScorePointOut"][];
+        };
         /** MuscleLinkOut */
         MuscleLinkOut: {
             /** Muscle Slug */
@@ -641,6 +902,52 @@ export interface components {
             body_view: string;
             /** Svg Key */
             svg_key: string;
+        };
+        /**
+         * MuscleRankingOut
+         * @description Un músculo del mapa corporal.
+         *
+         *     ``development`` es ``null`` cuando no hay rango: el cliente no debe pintar
+         *     un cero, porque "sin medir" y "cero" no son lo mismo (ADR-0003).
+         */
+        MuscleRankingOut: {
+            /** Muscle Slug */
+            muscle_slug: string;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
+            /** Body View */
+            body_view: string;
+            /** Svg Key */
+            svg_key: string;
+            /** Display Order */
+            display_order: number;
+            tier: components["schemas"]["Tier"];
+            /** Has Data */
+            has_data: boolean;
+            /** Activity */
+            activity: number;
+            /** Development */
+            development?: number | null;
+            /** Days Since Stimulus */
+            days_since_stimulus?: number | null;
+            /** Points To Next Tier */
+            points_to_next_tier?: number | null;
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+        };
+        /** MuscleUsageOut */
+        MuscleUsageOut: {
+            /** Volume Kg */
+            volume_kg: number;
+            /** Sessions */
+            sessions: number;
+            /** Sessions Per Week */
+            sessions_per_week: number;
         };
         /** PendingDayOut */
         PendingDayOut: {
@@ -791,6 +1098,145 @@ export interface components {
              */
             is_warmup: boolean;
         };
+        /** ProgressionAppliedOut */
+        ProgressionAppliedOut: {
+            routine: components["schemas"]["RoutineOut"];
+            /** Events */
+            events: components["schemas"]["ProgressionEventOut"][];
+        };
+        /** ProgressionApplyIn */
+        ProgressionApplyIn: {
+            /** Exercises */
+            exercises: string[];
+            /** Note */
+            note?: string | null;
+        };
+        /** ProgressionEventOut */
+        ProgressionEventOut: {
+            /** Id */
+            id: number;
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Exercise Name */
+            exercise_name: string;
+            /** Routine Id */
+            routine_id: number;
+            /** Routine Name */
+            routine_name: string;
+            /** Rule Slug */
+            rule_slug: string;
+            /** Rationale */
+            rationale: string;
+            /**
+             * Applied At
+             * Format: date-time
+             */
+            applied_at: string;
+            /** Actor */
+            actor: string;
+            /** Before Summary */
+            before_summary: string;
+            /** After Summary */
+            after_summary: string;
+            /** Before Exercise Slug */
+            before_exercise_slug: string;
+            /** After Exercise Slug */
+            after_exercise_slug: string;
+            /**
+             * Reverted
+             * @default false
+             */
+            reverted: boolean;
+            /**
+             * Is Reversal
+             * @default false
+             */
+            is_reversal: boolean;
+            /** From Version No */
+            from_version_no?: number | null;
+            /** To Version No */
+            to_version_no?: number | null;
+        };
+        /**
+         * ProgressionItemOut
+         * @description Veredicto para un ejercicio.
+         *
+         *     ``reason`` viaja siempre, también en ``undetermined``: un cliente que solo
+         *     pintara los ``ready`` estaría ocultando justo lo que hay que decidir.
+         */
+        ProgressionItemOut: {
+            /** Exercise Slug */
+            exercise_slug: string;
+            /** Exercise Name */
+            exercise_name: string;
+            outcome: components["schemas"]["ProgressionOutcome"];
+            /** Reason */
+            reason: string;
+            /** Current */
+            current: string;
+            /** Applicable */
+            applicable: boolean;
+            /** Rule Slug */
+            rule_slug?: string | null;
+            /**
+             * Rule Inherited
+             * @default false
+             */
+            rule_inherited: boolean;
+            /** Proposed */
+            proposed?: string | null;
+            /**
+             * Proposed Sets
+             * @default []
+             */
+            proposed_sets: components["schemas"]["PlannedSetOut"][];
+            /** Next Exercise Slug */
+            next_exercise_slug?: string | null;
+            /** Next Exercise Name */
+            next_exercise_name?: string | null;
+            /** Last Progression */
+            last_progression?: string | null;
+        };
+        /**
+         * ProgressionOutcome
+         * @description Resultado de evaluar una progresión.
+         *
+         *     UNDETERMINED es un ciudadano de primera clase: cuando el sistema no puede
+         *     determinar con seguridad cómo progresar, lo dice en vez de inventarlo.
+         * @enum {string}
+         */
+        ProgressionOutcome: "ready" | "not_yet" | "undetermined" | "deload_suggested";
+        /** RankingOut */
+        RankingOut: {
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Formula Version */
+            formula_version: string;
+            /** Provisional */
+            provisional: boolean;
+            /** Measured */
+            measured: number;
+            /** Bodyweight Kg */
+            bodyweight_kg?: number | null;
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["MuscleRankingOut"][];
+            /**
+             * Balance
+             * @default []
+             */
+            balance: components["schemas"]["BalanceCheckOut"][];
+            /**
+             * Notes
+             * @default []
+             */
+            notes: string[];
+        };
         /** RoutineIn */
         RoutineIn: {
             /** Name */
@@ -821,6 +1267,32 @@ export interface components {
             note?: string | null;
             /** Exercises */
             exercises: components["schemas"]["PlannedExerciseOut"][];
+        };
+        /** RoutineProgressionOut */
+        RoutineProgressionOut: {
+            /** Routine Id */
+            routine_id: number;
+            /** Routine Name */
+            routine_name: string;
+            /** Version No */
+            version_no: number;
+            /** Ready */
+            ready: number;
+            /** Deload */
+            deload: number;
+            /** Items */
+            items: components["schemas"]["ProgressionItemOut"][];
+        };
+        /** RoutineReadinessOut */
+        RoutineReadinessOut: {
+            /** Routine Id */
+            routine_id: number;
+            /** Routine Name */
+            routine_name: string;
+            /** Ready */
+            ready: number;
+            /** Deload */
+            deload: number;
         };
         /** RoutineSummaryOut */
         RoutineSummaryOut: {
@@ -864,6 +1336,19 @@ export interface components {
             params: {
                 [key: string]: unknown;
             };
+        };
+        /** ScorePointOut */
+        ScorePointOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Development */
+            development: number;
+            /** Activity */
+            activity: number;
+            tier: components["schemas"]["Tier"];
         };
         /**
          * SessionOrigin
@@ -946,6 +1431,15 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /**
+         * Tier
+         * @description Rangos del ranking muscular, de menor a mayor.
+         *
+         *     SIN_DATOS no es el escalón más bajo: es la ausencia de escalón. Un músculo
+         *     sin ejercicios asociados no está "débil", está "no medido" (ADR-0003).
+         * @enum {string}
+         */
+        Tier: "sin_datos" | "iron" | "bronze" | "silver" | "gold" | "platinum" | "diamond" | "ascendant" | "immortal" | "radiant";
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1782,6 +2276,304 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_routine_api_rutinas__routine_id__progresion_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                routine_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutineProgressionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_progression_api_rutinas__routine_id__progresion_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                routine_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressionApplyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressionAppliedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    readiness_api_progresion_listas_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutineReadinessOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_events_api_progresiones_get: {
+        parameters: {
+            query?: {
+                routine_id?: number | null;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressionEventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_progression_api_progresiones__event_id__deshacer_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressionAppliedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    muscle_ranking_api_ranking_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    muscle_detail_api_ranking__muscle_slug__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                muscle_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MuscleDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_snapshot_api_ranking_snapshot_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exercise_progress_api_metricas_ejercicios__exercise_slug__get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                exercise_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseProgressOut"];
+                };
             };
             /** @description Validation Error */
             422: {

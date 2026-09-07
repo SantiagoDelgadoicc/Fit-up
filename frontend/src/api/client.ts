@@ -27,6 +27,18 @@ export type Week = S["WeekOut"];
 export type Bodyweight = S["BodyweightOut"];
 export type RoutineInput = S["RoutineIn"];
 export type SetSpec = S["SetSpec"];
+export type RoutineProgression = S["RoutineProgressionOut"];
+export type ProgressionItem = S["ProgressionItemOut"];
+export type ProgressionOutcome = S["ProgressionOutcome"];
+export type ProgressionEvent = S["ProgressionEventOut"];
+export type ProgressionApplied = S["ProgressionAppliedOut"];
+export type RoutineReadiness = S["RoutineReadinessOut"];
+export type Ranking = S["RankingOut"];
+export type MuscleRanking = S["MuscleRankingOut"];
+export type MuscleDetail = S["MuscleDetailOut"];
+export type BalanceCheck = S["BalanceCheckOut"];
+export type ExerciseProgress = S["ExerciseProgressOut"];
+export type Tier = S["Tier"];
 
 const TOKEN_KEY = "fitup.token";
 
