@@ -3,17 +3,24 @@
 Aplicación personal de **registro, planificación y progresión de entrenamiento**, con ranking
 muscular visual y preparada para ser operada por un agente de IA local.
 
-> **Estado: F0 completada.** Esquema, dominio puro, catálogo semilla y CI en verde.
-> Siguiente: F1 — MVP de registro.
+> **Estado: F0 y F1 completadas.** La app ya sirve para registrar entrenamientos a diario.
+> Siguiente: F2 — calendario mensual.
 
 ## Arranque rápido
 
 ```bash
-cd backend
-python -m pip install -e ".[dev]"
-python -m fitup.cli --db ../data/fitup.db init
-python -m pytest
+cd backend && python -m pip install -e ".[dev]" && python -m fitup.cli init
+cd ../frontend && npm install && npm run build
+cd ../backend && python -m fitup.cli serve
 ```
+
+Abre `http://127.0.0.1:8000`. Para usarla desde el móvil en tu WiFi:
+
+```bash
+python -m fitup.cli serve --lan
+```
+
+Muestra un token; pégalo en **Ajustes → Acceso desde el móvil**.
 
 ## Documentación
 
@@ -23,6 +30,14 @@ python -m pytest
 | [docs/01-decisiones-pendientes.md](docs/01-decisiones-pendientes.md) | Registro de decisiones: cerradas, defaults aplicados y abiertas |
 | [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md) | Plan por fases con seguimiento de hitos |
 | [CLAUDE.md](CLAUDE.md) | Guía de trabajo: comandos, invariantes y convenciones |
+
+## Estructura
+
+```
+backend/    Python · dominio puro + aplicación + API FastAPI + SQLite
+frontend/   React + TypeScript · PWA, tipos generados desde OpenAPI
+docs/       Análisis, decisiones (ADR) y plan de implementación
+```
 | [docs/adr/](docs/adr/) | Architecture Decision Records: distribución, stack, ranking, integración con IA |
 
 ## Decisiones estructurales

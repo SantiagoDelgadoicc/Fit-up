@@ -7,12 +7,14 @@ mismos servicios, sin lógica duplicada (ADR-0004).
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from ..application.errors import Conflict, Invalid, NotFound, Undeterminable
 from ..application.services import maintenance
@@ -89,7 +91,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     for router in routers:
         app.include_router(router, prefix="/api", dependencies=[Depends(require_auth)])
 
+    _mount_frontend(app)
     return app
+
+
+def _mount_frontend(app: FastAPI) -> None:
+    """Sirve la PWA compilada desde este mismo proceso.
+
+    Un solo servidor para UI y API (ADR-0001): el movil abre una unica URL y no
+    hay CORS ni segundo puerto que gestionar. Si `frontend/dist` no existe
+    -desarrollo, o backend sin compilar- la API sigue funcionando sola.
+    """
+    # app.py -> api -> fitup -> src -> backend -> raiz del repo
+    default = Path(__file__).resolve().parents[4] / "frontend" / "dist"
+    dist = Path(os.environ.get("FITUP_WEB_DIR", default))
+    index = dist / "index.html"
+    if not index.is_file():
+        return
+
+    app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def spa(path: str) -> FileResponse:
+        # Rutas del router de React (/rutinas, /historial...) no son ficheros:
+        # se devuelve el index y el enrutado ocurre en el cliente.
+        candidate = (dist / path).resolve()
+        if path and candidate.is_file() and candidate.is_relative_to(dist):
+            return FileResponse(candidate)
+        return FileResponse(index)
 
 
 def _make_handler(code: int):

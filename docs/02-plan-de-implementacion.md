@@ -3,13 +3,13 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0 completada · siguiente F1
+**Estado global:** F0 y F1 completadas · siguiente F2
 
 | Fase | Objetivo | Estado |
 |---|---|---|
 | [F0](#f0--fundamentos) | Base técnica: esquema, dominio, catálogo, CI | ✅ Completada |
-| [F1](#f1--mvp-de-registro) | Registrar entrenamientos a diario | ⬜ Siguiente |
-| [F2](#f2--calendario-y-cumplimiento) | Ver adherencia en un calendario mensual | ⬜ |
+| [F1](#f1--mvp-de-registro) | Registrar entrenamientos a diario | ✅ Completada |
+| [F2](#f2--calendario-y-cumplimiento) | Ver adherencia en un calendario mensual | ⬜ Siguiente |
 | [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ⬜ |
 | [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ⬜ |
 | [F5](#f5--temporizador) | Descansos durante el entrenamiento | ⬜ |
@@ -44,37 +44,48 @@ poco; fuera, vuelve a `SIN_DATOS` en lugar de afirmar una capacidad sin evidenci
 
 ## F1 · MVP de registro
 
-**Objetivo:** poder usar Fit-Up a diario. Al terminar F1 la app ya sirve, aunque no tenga
-calendario ni ranking.
+**Objetivo:** poder usar Fit-Up a diario.
+**Completada:** 2026-09-06
 **Criterio de aceptación:** registrar el entrenamiento de un martes desde el móvil el
-domingo siguiente, en menos de 30 segundos.
+domingo siguiente, en menos de 30 segundos. ✅ Verificado en la app real.
 
 ### Backend
-- [ ] Capa `application`: casos de uso `CrearRutina`, `EditarRutina` (nueva versión),
-      `ObtenerDiaDeHoy`, `RegistrarEntrenamiento`, `ListarHistorial`
-- [ ] Repositorios SQLite sobre objetos de dominio (no filas)
-- [ ] API FastAPI con OpenAPI: rutinas, planificación semanal, sesiones, historial
-- [ ] Registro **como planificado** en una sola llamada, con desviaciones opcionales
-- [ ] Registro retroactivo con validación de fecha (pasado sí, futuro no)
-- [ ] Peso corporal: registro y consulta
-- [ ] Export JSON completo + backup automático diario *(M5, adelantado a F1: años de
-      historial irreemplazable no pueden esperar a F7)*
-- [ ] Token de acceso y binding configurable (`127.0.0.1` por defecto)
+- [x] Capa `application` con casos de uso puros de HTTP (reutilizables por el MCP de F6)
+- [x] Repositorios SQLite que devuelven objetos de dominio, no filas
+- [x] API FastAPI con OpenAPI: 24 endpoints
+- [x] Registro **como planificado** en una sola llamada
+- [x] Registro retroactivo usando la versión de rutina vigente **ese día**
+- [x] Peso corporal: registro y consulta
+- [x] Export JSON completo + backup diario automático *(M5, adelantado desde F7)*
+- [x] Token de acceso y binding configurable (`127.0.0.1` por defecto, `--lan` para el móvil)
+- [x] Cabecera `Idempotency-Key`: un reintento no duplica el entrenamiento
 
 ### Frontend
-- [ ] Andamiaje React + TypeScript + Vite, PWA instalable, tema oscuro
-- [ ] Generación de tipos TS desde OpenAPI
-- [ ] Pantalla **Hoy**: rutina del día + botón "✓ Hice esta rutina"
-- [ ] Sección "Pendientes de registrar" resoluble en un toque
-- [ ] Editor de rutinas: ejercicios, series, reps, peso, descansos
-- [ ] Organización de la semana
-- [ ] Vista de entrenamiento: alto contraste, check por serie
-- [ ] Historial navegable
+- [x] React + TypeScript + Vite, PWA instalable, tema oscuro
+- [x] Tipos TS generados desde OpenAPI (una sola definición del contrato)
+- [x] Pantalla **Hoy**: rutina del día + botón «✓ Hice esta rutina»
+- [x] Sección «Pendientes de registrar» resoluble en un toque
+- [x] Editor de rutinas con prescripción compacta (3×15) y calentamiento
+- [x] Organización de la semana
+- [x] Historial navegable con detalle por serie
+- [x] Ajustes: peso corporal, ventana de gracia, token, export
+- [x] Servida desde el mismo proceso que la API (ADR-0001)
 
-### Decisiones abiertas de F1
-- Campo RIR/RPE opcional por serie *(recomendado: sí, es lo que hace segura la progresión
-  de F3)*
-- Estado `partial` en la UI de registro *(recomendado: sí)*
+### Decisiones aplicadas
+- **RIR/RPE opcional por serie:** sí. Es la señal que hará segura la progresión de F3.
+- **Estado `partial` visible:** sí, con su propio botón («La hice a medias»).
+
+**Aprendido en F1** — cuatro fallos que encontraron los tests y la prueba en la app real:
+
+1. `set_week` intentaba cerrar un tramo que empezaba ese mismo día, violando el CHECK
+   del esquema. El orden correcto es borrar los tramos superados y solo después cerrar
+   el anterior.
+2. `with sqlite3.connect(...)` gestiona la transacción pero **no cierra** la conexión:
+   cada copia de seguridad dejaba el fichero abierto.
+3. Una conexión SQLite global rompe en el threadpool de FastAPI. Ahora se abre una por
+   petición: sin estado compartido entre hilos y con transacciones aisladas.
+4. El editor descartaba en silencio las series de calentamiento al guardar. Si el
+   backend soporta algo, la UI debe poder producirlo y no destruirlo.
 
 ---
 
@@ -83,13 +94,16 @@ domingo siguiente, en menos de 30 segundos.
 **Objetivo:** ver de un vistazo qué se cumplió y qué no, sin que la app mienta sobre lo
 que aún no has registrado.
 
-- [ ] `ObtenerCalendario(mes)` resolviendo los 7 estados del día
+El backend ya está: F1 necesitaba estos mismos cálculos. Falta la vista.
+
+- [x] `calendario(mes)` resolviendo los 7 estados del día
+- [x] Métrica de adherencia excluyendo `PENDING`
+- [x] Excepciones (descanso, lesión, viaje, movido) en API
+- [x] Ventana de gracia configurable en ajustes
 - [ ] Vista mensual navegable, con **color + icono** (nunca solo color)
 - [ ] Detalle del día: planificado vs realizado, acciones disponibles
-- [ ] Registrar excepciones (descanso, lesión, viaje, movido)
 - [ ] Registro retroactivo desde el calendario, prellenado con lo planificado
-- [ ] Métrica de adherencia excluyendo `PENDING`
-- [ ] Ventana de gracia configurable en ajustes
+- [ ] Marcar excepciones desde la UI
 
 ---
 

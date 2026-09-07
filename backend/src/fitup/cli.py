@@ -1,7 +1,7 @@
 """Interfaz de línea de comandos.
 
-En F0 solo cubre lo necesario para crear y verificar la base de datos. Crece
-con el proyecto; no se adelanta a él.
+Crece con el proyecto; no se adelanta a él. Hoy cubre preparar la base de
+datos, verificarla, exportar y levantar el servidor.
 """
 
 from __future__ import annotations
@@ -87,7 +87,7 @@ def cmd_serve(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el
     db_path = Path(args.db)
     # Con --lan la app queda expuesta en la red doméstica y el token deja de
     # ser opcional: ahí sí es una frontera real frente a otros dispositivos.
-    host = "0.0.0.0" if args.lan else "127.0.0.1"  # noqa: S104
+    host = "0.0.0.0" if args.lan else "127.0.0.1"
     token = ensure_token(db_path.parent / "config") if args.lan else None
 
     print(f"  base de datos: {db_path}")

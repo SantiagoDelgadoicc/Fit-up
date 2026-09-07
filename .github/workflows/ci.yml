@@ -55,3 +55,50 @@ jobs:
           python -m fitup.cli --db /tmp/ci.db check
           python -m fitup.cli --db /tmp/ci.db export --salida /tmp/ci-export.json
           test -s /tmp/ci-export.json
+
+      # El OpenAPI versionado es la fuente de los tipos del frontend. Si el
+      # backend cambia y no se regenera, el contrato queda desincronizado en
+      # silencio: mejor que falle aqui.
+      - name: OpenAPI actualizado
+        run: |
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+          from fitup.api.app import create_app
+          from fitup.api.deps import Settings
+          app = create_app(Settings(db_path=Path("/tmp/spec.db"), token=None, require_token=False))
+          current = json.dumps(app.openapi(), ensure_ascii=False, indent=2)
+          stored = Path("openapi.json").read_text(encoding="utf-8")
+          if current.strip() != stored.strip():
+              raise SystemExit(
+                  "openapi.json esta desactualizado. Regeneralo y vuelve a "
+                  "generar los tipos del frontend (npm run gen:api)."
+              )
+          print("OpenAPI sincronizado")
+          EOF
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Los tipos salen del OpenAPI del backend: si un endpoint cambia y la UI
+      # no se adapta, tiene que fallar aqui y no delante del usuario.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build

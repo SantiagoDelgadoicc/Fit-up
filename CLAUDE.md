@@ -8,8 +8,9 @@ App **personal, monousuario, local-first** de planificación, registro y progres
 entrenamiento, con ranking muscular visual y preparada para ser operada por un agente de
 IA local. Sin nube, sin multiusuario, sin cuentas.
 
-**Fase actual: F0 completada.** Existen dominio, esquema, catálogo y CI. No existen
-todavía API ni frontend. Ver [docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
+**Fase actual: F0 y F1 completadas.** Hay dominio, esquema, catálogo, API HTTP y PWA:
+la app ya se usa a diario. Siguiente F2 (calendario). Ver
+[docs/02-plan-de-implementacion.md](docs/02-plan-de-implementacion.md).
 
 ## Idioma
 
@@ -21,19 +22,40 @@ Sé conciso y denso: pocas palabras, suficiente profundidad. No repitas contexto
 
 ## Comandos
 
-Todo se ejecuta desde `backend/`.
+Backend (desde `backend/`):
 
 ```bash
-python -m pip install -e ".[dev]"        # instalar
-python -m pytest                          # tests
+python -m pip install -e ".[dev]"
+python -m pytest
 python -m pytest --cov --cov-report=term-missing
 python -m ruff check . && python -m ruff format .
-python -m fitup.cli --db ../data/fitup.db init    # crear/actualizar BD y sembrar catálogo
-python -m fitup.cli --db ../data/fitup.db check   # integridad + coherencia del catálogo
+python -m fitup.cli init            # crear/actualizar BD y sembrar catálogo
+python -m fitup.cli check           # integridad + coherencia del catálogo
+python -m fitup.cli serve           # API + PWA en 127.0.0.1:8000
+python -m fitup.cli serve --lan     # accesible desde el móvil, con token
+python -m fitup.cli export          # volcado JSON
 ```
 
-CI ejecuta lint, formato, tests, un mínimo del 90 % de cobertura en `domain/` y un arranque
-de extremo a extremo. Si tocas `domain/`, la cobertura es un requisito, no una aspiración.
+Frontend (desde `frontend/`):
+
+```bash
+npm install
+npm run dev          # Vite con proxy a la API en :8000
+npm run typecheck
+npm run build        # a dist/, que el backend sirve solo
+npm run gen:api      # regenerar tipos desde backend/openapi.json
+```
+
+**Si cambias la API**, regenera el contrato o CI fallará:
+
+```bash
+cd backend && python -c "import json;from pathlib import Path;from fitup.api.app import create_app;from fitup.api.deps import Settings;Path('openapi.json').write_text(json.dumps(create_app(Settings(db_path=Path('data/fitup.db'),token=None,require_token=False)).openapi(),ensure_ascii=False,indent=2),encoding='utf-8')"
+cd ../frontend && npm run gen:api
+```
+
+CI ejecuta lint, formato, tests, cobertura mínima del 90 % en `domain/` y en
+`application/`+`api/`, sincronía del OpenAPI, arranque de extremo a extremo, y typecheck
+y build del frontend.
 
 ## Arquitectura
 
@@ -49,8 +71,16 @@ backend/src/fitup/
   infrastructure/
     db/             conexión, migrador, migrations/*.sql
     seed/           catálogo JSON + cargador idempotente
+  api/            adaptador HTTP: schemas, routers, mappers, deps
   cli.py
+
+frontend/src/
+  api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
+  components/     primitivas compartidas
+  pages/          Hoy · Rutinas · RoutineEditor · Semana · Historial · Ajustes
 ```
+
+`schema.d.ts` se genera: **no lo edites a mano**.
 
 ### Invariantes que no se negocian
 
@@ -88,9 +118,12 @@ ciclos. `catalog.validate()` lo comprueba y los tests de `test_schema.py` lo bli
 - Comentarios que expliquen **por qué**, no qué. Si el comentario reformula el código, sobra.
 - Los tests documentan el comportamiento esperado: nombres descriptivos en español y
   docstring cuando el caso encierra una decisión de diseño.
-- Sin dependencias nuevas salvo que sustituyan código que habría que mantener. F0 no tiene
-  ninguna en producción, y eso es deliberado.
-- Ruff con `line-length = 100`. `N812` y `N818` están ignoradas a propósito (ver pyproject).
+- Sin dependencias nuevas salvo que sustituyan código que habría que mantener. Las que hay
+  pasaron ese filtro: FastAPI/pydantic/uvicorn en el backend; react, react-router y
+  react-query en el frontend. El **dominio no depende de ninguna**, y eso no cambia.
+- Ruff con `line-length = 100`. `N812`, `N818` y `B008` están ignoradas a propósito, con el
+  motivo documentado en `pyproject.toml`.
+- El frontend usa CSS plano con variables: cinco pantallas no justifican un framework.
 
 ## Decisiones cerradas
 
