@@ -20,7 +20,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { BalanceCheck, MuscleDetail, MuscleRanking } from "../api/client";
-import { useMuscle, useRanking } from "../api/hooks";
+import { useExerciseNames, useMarkUnits, useMuscle, useRanking } from "../api/hooks";
 import BodyMap, { FRESHNESS_LABEL, freshness } from "../components/BodyMap";
 import { Empty, ErrorCard, Loading, TierBadge, formatDate, tierLabel } from "../components/ui";
 
@@ -254,6 +254,8 @@ function MuscleRow({
 function MuscleCard({ detail }: { detail: MuscleDetail }) {
   const m = detail.muscle;
   const fresh = freshness(m.days_since_stimulus);
+  const nameOf = useExerciseNames();
+  const marcaUnidad = useMarkUnits();
 
   return (
     <div className="stack">
@@ -283,11 +285,45 @@ function MuscleCard({ detail }: { detail: MuscleDetail }) {
               {FRESHNESS_LABEL[fresh]}
               {m.days_since_stimulus !== null && ` · hace ${m.days_since_stimulus} día(s)`}
             </p>
-            {detail.next_tier && detail.points_to_next_tier !== null && (
-              <p style={{ margin: "10px 0 0" }}>
-                Faltan <strong>{detail.points_to_next_tier?.toFixed(1)}</strong> puntos para{" "}
-                {tierLabel(detail.next_tier)}.
-              </p>
+            {detail.next_tier && (
+              <div className="hito">
+                <span className="hito-etiqueta">Siguiente hito</span>
+                {m.next_mark && m.leading_exercise ? (
+                  <>
+                    {/* La cifra concreta, no los puntos: "te faltan 3 dominadas"
+                        se puede entrenar mañana; "te faltan 12 puntos", no. */}
+                    <p style={{ margin: 0 }}>
+                      <strong>{Math.ceil(m.next_mark)}</strong>{" "}
+                      {marcaUnidad(m.leading_exercise)} de{" "}
+                      <strong>{nameOf(m.leading_exercise)}</strong> para{" "}
+                      {tierLabel(detail.next_tier)}.
+                    </p>
+                    {m.leading_mark !== null && m.leading_mark !== undefined && (
+                      <p className="tiny muted" style={{ margin: 0 }}>
+                        Tu mejor marca confirmada: {m.leading_mark}. Cuenta cuando la
+                        repites en dos sesiones.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  /* Sin marca alcanzable el ejercicio ha tocado su techo.
+                     Decir "faltan N puntos" prometería una subida que no
+                     llega por muchas repeticiones que se hagan. */
+                  <p style={{ margin: 0 }}>
+                    {tierLabel(detail.next_tier)} no se alcanza con lo que entrenas
+                    ahora: hace falta un ejercicio más exigente para este músculo.
+                  </p>
+                )}
+              </div>
+            )}
+            {m.notes.length > 0 && !(detail.next_tier && !m.next_mark) && (
+              <div className="stack" style={{ marginTop: 10, gap: 6 }}>
+                {m.notes.map((note) => (
+                  <p className="tiny muted" key={note} style={{ margin: 0 }}>
+                    {note}
+                  </p>
+                ))}
+              </div>
             )}
           </>
         ) : (
@@ -343,7 +379,9 @@ function MuscleCard({ detail }: { detail: MuscleDetail }) {
               <div className="exercise-head">
                 <span className="exercise-name">{exercise.exercise_name}</span>
                 <span className="prescription">
-                  {exercise.best_e1rm_kg ? `${exercise.best_e1rm_kg} kg` : "—"}
+                  {exercise.best_mark
+                    ? `${exercise.best_mark} ${marcaUnidad(exercise.exercise_slug)}`
+                    : "—"}
                 </span>
               </div>
               <span className="faint tiny">

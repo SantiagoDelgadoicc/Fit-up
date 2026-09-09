@@ -41,6 +41,62 @@ def cmd_init(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def cmd_reglas(args: argparse.Namespace) -> int:
+    """Repunta las rutinas a la regla de sobrecarga que declara el catálogo.
+
+    Existe porque la regla se copia dentro de la versión de rutina cuando se
+    crea: recalibrar el catálogo no alcanza a lo ya planificado. Y como una
+    versión ya ejecutada no se muta (regla R2), reasignar significa **crear una
+    versión nueva**, que es exactamente lo que hace esto —auditado y con la
+    anterior intacta—. Sin `--aplicar` solo enseña lo que cambiaría.
+    """
+    from .application.repositories import catalog as catalog_repo
+    from .application.services import planning
+
+    conn = connection.connect(args.db)
+    try:
+        defaults = {e.slug: e.default_rule_slug for e in catalog_repo.list_exercises(conn)}
+        total = 0
+        for summary in planning.list_routines(conn):
+            detail = planning.get_routine(conn, summary.id)
+            cambios = [
+                (e.exercise_slug, e.rule_slug, defaults.get(e.exercise_slug))
+                for e in detail.exercises
+                if defaults.get(e.exercise_slug) and e.rule_slug != defaults.get(e.exercise_slug)
+            ]
+            if not cambios:
+                continue
+            print(f"  {detail.name} (v{detail.version_no}):")
+            for slug, antes, despues in cambios:
+                # Sin flechas ni guiones largos: la consola de Windows va en
+                # cp1252 y un UnicodeEncodeError aqui tumbaria el comando.
+                print(f"    {slug:28} {antes or 'sin regla'} -> {despues}")
+            total += len(cambios)
+
+            if args.aplicar:
+                from dataclasses import replace
+
+                planning.update_routine(
+                    conn,
+                    summary.id,
+                    exercises=[
+                        replace(e, rule_slug=defaults.get(e.exercise_slug) or e.rule_slug)
+                        for e in detail.exercises
+                    ],
+                    note="Reglas de sobrecarga alineadas con las escaleras de rango",
+                )
+
+        if total == 0:
+            print("  todas las rutinas ya usan la regla del catálogo")
+        elif args.aplicar:
+            print(f"OK · {total} ejercicio(s) repuntado(s), en versiones nuevas")
+        else:
+            print(f"  {total} ejercicio(s) cambiarían. Repite con --aplicar para hacerlo")
+        return 0
+    finally:
+        conn.close()
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     """Verifica integridad, versión de esquema y coherencia del catálogo."""
     catalog.validate()
@@ -79,8 +135,37 @@ def cmd_export(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def _abrir_cuando_responda(url: str, intentos: int = 60) -> None:  # pragma: no cover
+    """Abre el navegador en cuanto el servidor conteste.
+
+    Se sondea en vez de esperar un tiempo fijo: el primer arranque aplica
+    migraciones y siembra el catálogo, y una espera a ojo se queda corta justo
+    la primera vez, que es cuando peor sienta.
+    """
+    import http.client
+    import time
+    import urllib.parse
+    import webbrowser
+
+    partes = urllib.parse.urlsplit(url)
+    for _ in range(intentos):
+        try:
+            conexion = http.client.HTTPConnection(partes.netloc, timeout=0.5)
+            conexion.request("GET", "/api/salud")
+            respuesta = conexion.getresponse()
+            conexion.close()
+            if respuesta.status < 500:
+                webbrowser.open(url)
+                return
+        except OSError:
+            pass
+        time.sleep(0.5)
+
+
 def cmd_serve(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el servidor
     """Levanta la API y la PWA."""
+    import threading
+
     from .api.app import serve
     from .api.deps import ensure_token
 
@@ -98,7 +183,28 @@ def cmd_serve(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el
     else:
         print("  solo accesible desde este equipo; usa --lan para el móvil")
 
+    if args.abrir:
+        # En un hilo aparte porque `serve()` no vuelve hasta que se para el
+        # servidor: esperar aquí dejaría el navegador sin abrir nunca.
+        url = f"http://127.0.0.1:{args.puerto}"
+        threading.Thread(target=_abrir_cuando_responda, args=(url,), daemon=True).start()
+
     serve(db_path=db_path, host=host, port=args.puerto, token=token, require_token=bool(token))
+    return 0
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:  # pragma: no cover - arranca el servidor
+    """Levanta el servidor MCP por stdio, que es como lo lanza un cliente local.
+
+    No imprime nada: en stdio, la salida estandar **es** el canal del protocolo
+    y un mensaje de bienvenida lo corromperia.
+    """
+    import os
+
+    from .mcp_server import main as mcp_main
+
+    os.environ.setdefault("FITUP_DB", str(Path(args.db)))
+    mcp_main()
     return 0
 
 
@@ -110,6 +216,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("init", help="crear/actualizar la base de datos y sembrar el catálogo")
     sub.add_parser("check", help="verificar integridad y coherencia")
 
+    reglas = sub.add_parser("reglas", help="alinear la sobrecarga de las rutinas con el catálogo")
+    reglas.add_argument(
+        "--aplicar", action="store_true", help="crear las versiones nuevas de verdad"
+    )
+
     export = sub.add_parser("export", help="volcar todos los datos a un JSON")
     export.add_argument("--salida", default="data/export.json", help="fichero de destino")
 
@@ -120,13 +231,22 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="exponer en la red local para usar desde el móvil (genera token)",
     )
+    serve_cmd.add_argument(
+        "--abrir",
+        action="store_true",
+        help="abrir el navegador cuando el servidor esté listo",
+    )
+
+    sub.add_parser("mcp", help="servidor MCP por stdio, para el agente de IA")
 
     args = parser.parse_args(argv)
     handler = {
         "init": cmd_init,
         "check": cmd_check,
+        "reglas": cmd_reglas,
         "export": cmd_export,
         "serve": cmd_serve,
+        "mcp": cmd_mcp,
     }[args.command]
     return handler(args)
 

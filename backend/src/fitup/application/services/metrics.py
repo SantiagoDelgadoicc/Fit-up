@@ -18,10 +18,11 @@ from collections import defaultdict
 from datetime import date as Date
 from datetime import timedelta
 
-from ...domain.enums import ROLE_CONTRIBUTION, SessionStatus
-from ...domain.metrics.load import LoadUndeterminable, set_e1rm_kg, set_volume_kg
+from ...domain.enums import ROLE_CONTRIBUTION, LoadType, Modality, SessionStatus
+from ...domain.metrics.load import LoadUndeterminable, set_e1rm_kg, set_mark, set_volume_kg
 from ...domain.models import Exercise
-from ...domain.ranking.v1 import StimulusEvent
+from ...domain.ranking.standards import standard_for
+from ...domain.ranking.v2 import StimulusEvent
 from ..repositories import catalog, history
 from ..views import ExerciseProgress, ExerciseStimulus, MuscleUsage, StimulusData
 
@@ -65,12 +66,17 @@ def load_stimuli(
     exercises: dict[str, Exercise | None] = {}
 
     grouped: dict[tuple[Date, str], list[float]] = defaultdict(list)
+    marks: dict[tuple[Date, str], list[float]] = defaultdict(list)
     volumes: dict[tuple[Date, str], float] = defaultdict(float)
     counts: dict[tuple[Date, str], int] = defaultdict(int)
     skipped = 0
     reasons: dict[str, None] = {}
+    references: dict[str, float] = {}
 
-    for session in history.sessions_between(conn, since, until):
+    # De la sesión más antigua a la más reciente: el peso de referencia de un
+    # ejercicio sin calibrar es el primero que se registró, y para deducirlo
+    # hay que recorrer el historial en orden.
+    for session in sorted(history.sessions_between(conn, since, until), key=lambda s: s.date):
         if session.status is SessionStatus.SKIPPED:
             continue
         weight = bodyweight.at(session.date)
@@ -87,9 +93,19 @@ def load_stimuli(
                 continue
 
             key = (session.date, performed.exercise_slug)
+            reference = _reference_weight(exercise, performed, references)
             for s in performed.sets:
                 if s.is_warmup or not s.completed:
                     continue
+
+                # La marca va primero y fuera del `try`: son repeticiones o
+                # segundos, no kilos, así que existe aunque el volumen no se
+                # pueda calcular. Es lo que permite que el rango funcione sin
+                # peso corporal registrado, cosa que en v1 lo bloqueaba todo.
+                mark = set_mark(exercise, s, bodyweight_kg=weight, reference_weight_kg=reference)
+                if mark is not None:
+                    marks[key].append(mark)
+
                 try:
                     volumes[key] += set_volume_kg(exercise, s, bodyweight_kg=weight)
                     counts[key] += 1
@@ -109,9 +125,13 @@ def load_stimuli(
             # La mejor serie del día representa la capacidad de ese día; las
             # demás ya cuentan en el volumen.
             e1rm_kg=max(grouped[(day, slug)]) if grouped.get((day, slug)) else None,
+            mark=max(marks[(day, slug)]) if marks.get((day, slug)) else None,
             sets=counts[(day, slug)],
         )
-        for (day, slug) in sorted(counts)
+        # Unión, no solo `counts`: una serie cuyo volumen no se puede calcular
+        # sigue teniendo marca, y dejarla fuera perdería el rango de un
+        # ejercicio corporal por no tener el peso anotado.
+        for (day, slug) in sorted(set(counts) | set(marks))
     )
     return StimulusData(
         by_exercise=stimuli,
@@ -119,6 +139,27 @@ def load_stimuli(
         skipped_reasons=tuple(reasons)[:5],
         bodyweight_missing=bodyweight.empty,
     )
+
+
+def _reference_weight(exercise: Exercise, performed, references: dict[str, float]) -> float | None:
+    """Peso con el que se compara la marca de un ejercicio de carga externa.
+
+    El de la escalera si está calibrada; si no, **el primero que registró el
+    usuario**. Así cualquier ejercicio del catálogo tiene una referencia sin
+    que haya que inventarle una: la suya es la propia.
+    """
+    if exercise.load_type is not LoadType.EXTERNA:
+        return None
+
+    calibrated = standard_for(exercise.slug).reference_weight_kg
+    if calibrated:
+        return calibrated
+
+    if exercise.slug not in references:
+        weights = [s.weight_kg for s in performed.sets if s.weight_kg and not s.is_warmup]
+        if weights:
+            references[exercise.slug] = max(weights)
+    return references.get(exercise.slug)
 
 
 def events_by_muscle(
@@ -129,19 +170,27 @@ def events_by_muscle(
     Un press banca aporta al pectoral entero, al tríceps la mitad y al
     deltoide anterior la mitad: los factores viven en ``ROLE_CONTRIBUTION``,
     que es configuración de la fórmula y no un dato del catálogo (regla R15).
+
+    Aquí se resuelve también la escalera de cada ejercicio: el dominio del
+    ranking no conoce el catálogo, así que la recibe ya adjunta al estímulo.
     """
-    links = {e.slug: e.muscles for e in catalog.list_exercises(conn, active_only=False)}
+    exercises = {e.slug: e for e in catalog.list_exercises(conn, active_only=False)}
     result: dict[str, list[StimulusEvent]] = defaultdict(list)
 
     for stimulus in data.by_exercise:
-        for link in links.get(stimulus.exercise_slug, ()):  # type: ignore[union-attr]
+        exercise = exercises.get(stimulus.exercise_slug)
+        if exercise is None:  # pragma: no cover - el catálogo es semilla
+            continue
+        standard = standard_for(exercise.slug, is_time_based=exercise.modality is Modality.TIEMPO)
+        for link in exercise.muscles:
             result[link.muscle_slug].append(
                 StimulusEvent(
                     date=stimulus.date,
                     exercise_slug=stimulus.exercise_slug,
                     role_factor=ROLE_CONTRIBUTION[link.role],
                     volume_kg=stimulus.volume_kg,
-                    e1rm_kg=stimulus.e1rm_kg,
+                    mark=stimulus.mark,
+                    standard=standard,
                 )
             )
     return result

@@ -9,6 +9,17 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>Fit-Up</title>
+    <script>
+      // El tema se aplica antes de pintar. Si esperase a React, cada carga
+      // enseñaría un fogonazo del tema por defecto antes de cambiar al
+      // elegido. La clave es la misma que usa `components/theme.tsx`.
+      try {
+        var t = localStorage.getItem("fitup.tema");
+        if (t) document.documentElement.dataset.tema = t;
+      } catch (e) {
+        /* Almacenamiento bloqueado: se queda el tema por defecto. */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

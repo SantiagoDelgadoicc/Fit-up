@@ -5,7 +5,8 @@ Un fichero por decisión cerrada: `NNNN-titulo.md`.
 Plantilla: **Contexto → Decisión → Alternativas descartadas → Consecuencias → Estado**.
 
 Las decisiones abiertas y los defaults aplicados viven en
-[../01-decisiones-pendientes.md](../01-decisiones-pendientes.md).
+[../01-decisiones-pendientes.md](../01-decisiones-pendientes.md). Cómo se materializa la
+0004 en la práctica, en [../03-contrato-del-agente.md](../03-contrato-del-agente.md).
 
 | ADR | Decisión |
 |---|---|

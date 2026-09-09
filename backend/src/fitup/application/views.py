@@ -15,7 +15,7 @@ from ..domain.compliance.day_state import DayVerdict
 from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus, Tier
 from ..domain.models import PerformedExercise, PlannedExercise, PlannedSet
 from ..domain.ranking.balance import BalanceCheck
-from ..domain.ranking.v1 import MuscleScore
+from ..domain.ranking.v2 import MuscleScore
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,20 +62,50 @@ class SessionDetail:
 
 
 @dataclass(frozen=True, slots=True)
+class ScheduledRoutine:
+    """Una rutina programada un día, y la sesión que la cumplió si la hay.
+
+    Emparejar aquí lo previsto con lo ocurrido evita que cada pantalla tenga
+    que cruzarlo por su cuenta, que es donde aparecerían tres versiones
+    distintas de la misma regla.
+    """
+
+    routine_id: int
+    name: str
+    detail: RoutineDetail
+    session: SessionDetail | None = None
+
+    @property
+    def can_log(self) -> bool:
+        return self.session is None
+
+
+@dataclass(frozen=True, slots=True)
 class DayView:
-    """Todo lo que hace falta para pintar un día: lo previsto y lo ocurrido."""
+    """Todo lo que hace falta para pintar un día: lo previsto y lo ocurrido.
+
+    Un día puede tener varias rutinas —calistenia por la mañana, pesas por la
+    tarde— y varias sesiones. `scheduled` lleva las planificadas, cada una con
+    su sesión si se hizo; `extra_sessions`, lo entrenado fuera de plan.
+    """
 
     date: Date
     state: DayState
     reason: str
-    planned: RoutineDetail | None = None
-    session: SessionDetail | None = None
+    scheduled: list[ScheduledRoutine] = field(default_factory=list)
+    extra_sessions: list[SessionDetail] = field(default_factory=list)
     exception_reason: str | None = None
 
     @property
+    def sessions(self) -> list[SessionDetail]:
+        """Todo lo registrado ese día, planificado o no."""
+        planificadas = [s.session for s in self.scheduled if s.session is not None]
+        return planificadas + self.extra_sessions
+
+    @property
     def can_log(self) -> bool:
-        """Si tiene sentido ofrecer el botón de registrar en este día."""
-        return self.session is None
+        """Si queda algo por registrar: alguna rutina del día sin sesión."""
+        return any(s.can_log for s in self.scheduled)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,9 +118,23 @@ class CalendarDay:
     """
 
     verdict: DayVerdict
-    routine_id: int | None = None
-    routine_name: str | None = None
-    session_id: int | None = None
+    #: Rutinas que tocaban ese día, en orden. Vacío si era descanso.
+    routines: list[tuple[int, str]] = field(default_factory=list)
+    #: Identificadores de las sesiones registradas ese día.
+    session_ids: list[int] = field(default_factory=list)
+
+    @property
+    def routine_id(self) -> int | None:
+        """La primera rutina del día, para quien solo necesita una etiqueta."""
+        return self.routines[0][0] if self.routines else None
+
+    @property
+    def routine_name(self) -> str | None:
+        if not self.routines:
+            return None
+        if len(self.routines) == 1:
+            return self.routines[0][1]
+        return " + ".join(nombre for _, nombre in self.routines)
 
     @property
     def date(self) -> Date:
@@ -120,9 +164,12 @@ class WeekPlan:
     """Asignación de rutinas a los siete días, vigente en una fecha."""
 
     effective_on: Date
-    #: weekday (0 = lunes) → id de rutina, o None si es día de descanso.
-    days: dict[int, int | None] = field(default_factory=dict)
-    names: dict[int, str] = field(default_factory=dict)
+    #: weekday (0 = lunes) → ids de rutina, en orden. Vacío es día de descanso.
+    #: Es una lista porque un día admite varias: calistenia por la mañana y
+    #: pesas por la tarde son dos rutinas, no una partida en dos.
+    days: dict[int, list[int]] = field(default_factory=dict)
+    #: weekday → nombres, en el mismo orden que `days`.
+    names: dict[int, list[str]] = field(default_factory=dict)
 
 
 # --------------------------------------------------------------------------
@@ -241,6 +288,9 @@ class ExerciseStimulus:
     volume_kg: float
     e1rm_kg: float | None
     sets: int
+    #: Mejor serie única del día en las unidades de la escalera del ejercicio
+    #: (repeticiones o segundos). Es lo que alimenta el rango en la fórmula v2.
+    mark: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -334,7 +384,9 @@ class ExerciseContribution:
     role: str
     role_factor: float
     volume_kg: float
-    best_e1rm_kg: float | None = None
+    #: Mejor marca confirmada en este ejercicio, en las unidades de su
+    #: escalera: repeticiones, o segundos si es isométrico.
+    best_mark: float | None = None
     last_date: Date | None = None
 
 

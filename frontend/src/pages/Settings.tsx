@@ -1,9 +1,10 @@
-/** Ajustes: peso corporal, ventana de gracia y emparejamiento del dispositivo. */
+/** Ajustes: apariencia, peso corporal, ventana de gracia, permisos y dispositivo. */
 
 import { useEffect, useState } from "react";
 
 import { api, getToken, localDate, setToken } from "../api/client";
 import { useBodyweight, useSetBodyweight, useSetSetting, useSettings } from "../api/hooks";
+import { ThemePicker } from "../components/theme";
 import { ErrorCard, Loading, useToast } from "../components/ui";
 
 export default function Settings() {
@@ -34,6 +35,15 @@ export default function Settings() {
       <header className="page-head">
         <h1>Ajustes</h1>
       </header>
+
+      <section className="card stack">
+        <h2>Apariencia</h2>
+        <p className="faint" style={{ margin: 0 }}>
+          El tema se guarda en este dispositivo, no en el historial: el PC puede ir en
+          oscuro y el móvil en claro.
+        </p>
+        <ThemePicker />
+      </section>
 
       <section className="card stack">
         <h2>Peso corporal</h2>
@@ -133,6 +143,8 @@ export default function Settings() {
         </div>
       </section>
 
+      <AgentScopes />
+
       <section className="card stack">
         <h2>Copia de seguridad</h2>
         <p className="faint" style={{ margin: 0 }}>
@@ -146,6 +158,87 @@ export default function Settings() {
         </div>
       </section>
     </div>
+  );
+}
+
+/** Los permisos del agente, con su nombre en cristiano y qué abre cada uno. */
+const SCOPES: { key: string; label: string; hint: string }[] = [
+  { key: "read", label: "Leer mis datos", hint: "Historial, rutinas, calendario y ranking." },
+  { key: "propose", label: "Proponer cambios", hint: "Calcular sugerencias sin aplicarlas." },
+  {
+    key: "write_sessions",
+    label: "Registrar entrenamientos",
+    hint: "Anotar sesiones y marcar días como no realizados.",
+  },
+  {
+    key: "write_routines",
+    label: "Modificar rutinas y calendario",
+    hint: "Crear versiones, aplicar progresiones y cambiar la semana.",
+  },
+  { key: "write_settings", label: "Cambiar ajustes", hint: "Peso corporal y preferencias." },
+];
+
+/**
+ * Permisos del agente de IA.
+ *
+ * Importa cómo se presenta esto: **no es una frontera de seguridad**. El agente
+ * corre en este mismo PC con control de la máquina y puede abrir la base de
+ * datos por su cuenta (ADR-0004). Lo que estos interruptores evitan es la
+ * equivocación —un modelo confundido escribiendo historial falso—, y decirlo
+ * claro es parte del diseño: prometer protección que no existe sería peor que
+ * no ofrecer nada.
+ */
+function AgentScopes() {
+  const settings = useSettings();
+  const save = useSetSetting();
+  const toast = useToast();
+
+  const stored = settings.data?.["agent_scopes"];
+  const scopes = (typeof stored === "object" && stored !== null ? stored : {}) as Record<
+    string,
+    boolean
+  >;
+  // Sin ajuste guardado valen los del servidor: leer y proponer, escribir no.
+  const valueOf = (key: string) =>
+    key in scopes ? Boolean(scopes[key]) : key === "read" || key === "propose";
+
+  const toggle = (key: string) => {
+    const next = Object.fromEntries(SCOPES.map((s) => [s.key, valueOf(s.key)]));
+    next[key] = !valueOf(key);
+    save.mutate(
+      { key: "agent_scopes", value: next },
+      {
+        onSuccess: () => toast(next[key] ? "Permiso concedido" : "Permiso retirado"),
+        onError: (e) => toast(e instanceof Error ? e.message : "Error", "error"),
+      },
+    );
+  };
+
+  return (
+    <section className="card stack">
+      <h2>Permisos del agente</h2>
+      <p className="faint" style={{ margin: 0 }}>
+        Qué puede hacer un agente de IA que use la API declarándose como tal. Sirve para
+        evitar equivocaciones suyas, <strong>no</strong> para contener a un programa
+        hostil: cualquier proceso de este PC puede abrir la base de datos por su cuenta.
+        Lo que de verdad protege tu historial es que todo queda registrado, versionado y
+        con copia de seguridad.
+      </p>
+      {SCOPES.map((scope) => (
+        <label key={scope.key} className="scope">
+          <input
+            type="checkbox"
+            checked={valueOf(scope.key)}
+            disabled={save.isPending}
+            onChange={() => toggle(scope.key)}
+          />
+          <span>
+            <strong>{scope.label}</strong>
+            <span className="faint"> {scope.hint}</span>
+          </span>
+        </label>
+      ))}
+    </section>
   );
 }
 

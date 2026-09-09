@@ -130,8 +130,9 @@ def _insert_version(
         for s in planned.sets:
             conn.execute(
                 "INSERT INTO planned_set (routine_exercise_id, set_no, target_reps, "
-                "target_reps_max, target_weight_kg, target_time_s, target_rir, is_warmup) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "target_reps_max, target_weight_kg, target_time_s, target_rir, is_warmup, "
+                "to_failure) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     re_id,
                     s.set_no,
@@ -141,6 +142,7 @@ def _insert_version(
                     s.target_time_s,
                     s.target_rir,
                     int(s.is_warmup),
+                    int(s.to_failure),
                 ),
             )
     return version_id
@@ -208,7 +210,7 @@ def load_exercises(conn: sqlite3.Connection, version_id: int) -> list[PlannedExe
     for r in rows:
         sets = conn.execute(
             "SELECT set_no, target_reps, target_reps_max, target_weight_kg, "
-            "       target_time_s, target_rir, is_warmup "
+            "       target_time_s, target_rir, is_warmup, to_failure "
             "FROM planned_set WHERE routine_exercise_id = ? ORDER BY set_no",
             (r["id"],),
         ).fetchall()
@@ -232,6 +234,7 @@ def load_exercises(conn: sqlite3.Connection, version_id: int) -> list[PlannedExe
                         target_time_s=s["target_time_s"],
                         target_rir=s["target_rir"],
                         is_warmup=bool(s["is_warmup"]),
+                        to_failure=bool(s["to_failure"]),
                     )
                     for s in sets
                 ),
@@ -283,7 +286,7 @@ def archive_routine(conn: sqlite3.Connection, routine_id: int) -> None:
 
 def set_week(
     conn: sqlite3.Connection,
-    assignments: dict[int, int | None],
+    assignments: dict[int, list[int]],
     *,
     effective_from: Date,
 ) -> None:
@@ -295,7 +298,7 @@ def set_week(
     day_before = Date.fromordinal(effective_from.toordinal() - 1).isoformat()
     start = effective_from.isoformat()
 
-    for weekday, routine_id in assignments.items():
+    for weekday, routine_ids in assignments.items():
         if not 0 <= weekday <= 6:
             raise ValueError(f"weekday fuera de rango: {weekday}")
 
@@ -314,7 +317,9 @@ def set_week(
             "  AND (active_to IS NULL OR active_to >= ?)",
             (day_before, weekday, start, start),
         )
-        if routine_id is not None:
+        # El orden de inserción es el que el usuario dio, y `scheduled_routines`
+        # lee por `id`: primero la de la mañana, después la de la tarde.
+        for routine_id in routine_ids:
             conn.execute(
                 "INSERT INTO schedule_slot (weekday, routine_id, active_from) VALUES (?, ?, ?)",
                 (weekday, routine_id, start),
@@ -325,28 +330,37 @@ def get_week(conn: sqlite3.Connection, at: Date) -> WeekPlan:
     rows = conn.execute(
         "SELECT s.weekday, s.routine_id, r.name FROM schedule_slot s "
         "JOIN routine r ON r.id = s.routine_id "
-        "WHERE s.active_from <= ? AND (s.active_to IS NULL OR s.active_to >= ?)",
+        "WHERE s.active_from <= ? AND (s.active_to IS NULL OR s.active_to >= ?) "
+        "ORDER BY s.weekday, s.id",
         (at.isoformat(), at.isoformat()),
     ).fetchall()
-    days: dict[int, int | None] = dict.fromkeys(range(7))
-    names: dict[int, str] = {}
+    days: dict[int, list[int]] = {d: [] for d in range(7)}
+    names: dict[int, list[str]] = {d: [] for d in range(7)}
     for r in rows:
-        days[r["weekday"]] = r["routine_id"]
-        names[r["weekday"]] = r["name"]
+        days[r["weekday"]].append(r["routine_id"])
+        names[r["weekday"]].append(r["name"])
     return WeekPlan(effective_on=at, days=days, names=names)
 
 
-def scheduled_routine(conn: sqlite3.Connection, day: Date) -> tuple[int, str] | None:
-    """Rutina programada ese día, según la planificación vigente entonces."""
-    row = conn.execute(
+def scheduled_routines(conn: sqlite3.Connection, day: Date) -> list[tuple[int, str]]:
+    """Rutinas programadas ese día, según la planificación vigente entonces.
+
+    Devuelve una lista porque un día puede tener más de una: calistenia por la
+    mañana y pesas por la tarde son dos rutinas distintas, y fundirlas perdería
+    el dato de cuál se hizo.
+
+    El orden es el de creación del tramo (`id`), que es el que el usuario dio
+    al planificar la semana: primero la mañana, luego la tarde.
+    """
+    rows = conn.execute(
         "SELECT s.routine_id, r.name FROM schedule_slot s "
         "JOIN routine r ON r.id = s.routine_id "
         "WHERE s.weekday = ? AND s.active_from <= ? "
         "  AND (s.active_to IS NULL OR s.active_to >= ?) "
-        "ORDER BY s.active_from DESC LIMIT 1",
+        "ORDER BY s.id",
         (day.weekday(), day.isoformat(), day.isoformat()),
-    ).fetchone()
-    return (row["routine_id"], row["name"]) if row else None
+    ).fetchall()
+    return [(row["routine_id"], row["name"]) for row in rows]
 
 
 def list_slots(conn: sqlite3.Connection) -> list[ScheduleSlot]:

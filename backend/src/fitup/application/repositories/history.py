@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import dataclass
 from datetime import date as Date
 from datetime import datetime
 
@@ -126,12 +127,17 @@ def get_session(conn: sqlite3.Connection, session_id: int) -> SessionDetail:
     return _to_detail(conn, row)
 
 
-def session_on(conn: sqlite3.Connection, day: Date) -> SessionDetail | None:
-    row = conn.execute(
-        f"{_SESSION_SELECT} WHERE s.date = ? ORDER BY s.id DESC LIMIT 1",
+def sessions_on(conn: sqlite3.Connection, day: Date) -> list[SessionDetail]:
+    """Sesiones registradas ese día, en el orden en que se anotaron.
+
+    Un día admite varias: quien entrena por la mañana y por la tarde registra
+    dos, y cada una conserva su identidad.
+    """
+    rows = conn.execute(
+        f"{_SESSION_SELECT} WHERE s.date = ? ORDER BY s.id",
         (day.isoformat(),),
-    ).fetchone()
-    return _to_detail(conn, row) if row else None
+    ).fetchall()
+    return [_to_detail(conn, row) for row in rows]
 
 
 def sessions_between(conn: sqlite3.Connection, start: Date, end: Date) -> list[SessionDetail]:
@@ -337,3 +343,63 @@ def audit(
             error,
         ),
     )
+
+
+@dataclass(frozen=True, slots=True)
+class AuditEntry:
+    """Una línea del registro, tal cual quedó escrita."""
+
+    id: int
+    ts: str
+    actor: str
+    action: str
+    payload: dict | None
+    result: str
+    error: str | None
+
+
+def list_audit(
+    conn: sqlite3.Connection,
+    *,
+    actor: Actor | None = None,
+    result: str | None = None,
+    since: str | None = None,
+    limit: int = 100,
+) -> list[AuditEntry]:
+    """Últimas operaciones registradas, de la más reciente hacia atrás.
+
+    Existe para poder responder «¿qué tocó el agente ayer?». Sin lectura, la
+    tabla de auditoría es un cajón cerrado: se escribe y no sirve de nada
+    (ADR-0004 §2).
+    """
+    clauses: list[str] = []
+    params: list[object] = []
+    if actor is not None:
+        clauses.append("actor = ?")
+        params.append(str(actor))
+    if result is not None:
+        clauses.append("result = ?")
+        params.append(result)
+    if since is not None:
+        clauses.append("ts >= ?")
+        params.append(since)
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(limit)
+    rows = conn.execute(
+        f"SELECT id, ts, actor, action, payload_json, result, error FROM audit_log "
+        f"{where} ORDER BY id DESC LIMIT ?",
+        params,
+    ).fetchall()
+    return [
+        AuditEntry(
+            id=r["id"],
+            ts=r["ts"],
+            actor=r["actor"],
+            action=r["action"],
+            payload=json.loads(r["payload_json"]) if r["payload_json"] else None,
+            result=r["result"],
+            error=r["error"],
+        )
+        for r in rows
+    ]

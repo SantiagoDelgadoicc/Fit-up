@@ -55,7 +55,7 @@ def weekly(db, push_routine) -> int:
     """La rutina de empuje asignada a lunes, miércoles y viernes."""
     planning_svc.set_week(
         db,
-        {0: push_routine, 2: push_routine, 4: push_routine},
+        {0: [push_routine], 2: [push_routine], 4: [push_routine]},
         effective_from=date(2026, 3, 1),
     )
     return push_routine

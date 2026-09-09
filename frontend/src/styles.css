@@ -15,6 +15,62 @@
  * comunican solo por color.
  */
 
+/*
+ * Tipografía: dos familias variables servidas desde `public/fonts/`.
+ *
+ * Se copian al repositorio en vez de enlazar a Google Fonts porque la app es
+ * local-first (ADR-0001): con un `<link>` a un CDN, entrenar sin conexión
+ * cambiaría la letra de toda la interfaz. Son 180 kB en cuatro archivos y no
+ * añaden dependencia de npm.
+ *
+ * - **Inter** para el texto y, sobre todo, las tablas: sus cifras tabulares
+ *   mantienen las columnas de kg y repeticiones alineadas.
+ * - **Outfit** para marca, titulares y rangos: geométrica y con más carácter,
+ *   marca la jerarquía sin subir el tamaño.
+ *
+ * Ambas OFL; su licencia viaja en `licenses/`.
+ */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/outfit-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/outfit-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
   --bg: #0e1116;
   --surface: #161b22;
@@ -38,10 +94,122 @@
   --radius: 14px;
   --radius-sm: 9px;
   --tap: 44px;
+  --sombra: 0 6px 20px rgb(0 0 0 / 45%);
+
+  --fuente: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fuente-titulo: "Outfit", var(--fuente);
 
   color-scheme: dark;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--fuente);
 }
+
+/* --------------------------------------------------------------------- Temas
+ *
+ * `:root` es el tema **Carbón**, el de siempre. Cada tema alternativo redefine
+ * solo la paleta: fondo, superficies, borde, texto y acento. Ninguno toca
+ * layout ni tamaños, y ninguna regla del resto de la hoja conoce el nombre de
+ * un tema. Añadir uno es añadir un bloque aquí y una entrada en
+ * `components/theme.tsx`; nada más.
+ *
+ * Los colores de estado del día (--done, --missed…) solo se retocan en el tema
+ * claro, donde los tonos pensados para fondo oscuro pierden contraste. En los
+ * oscuros se mantienen idénticos: son el vocabulario del calendario, y
+ * cambiarlos con cada tema obligaría a reaprenderlo.
+ */
+
+[data-tema="indigo"] {
+  --bg: #0d1020;
+  --surface: #151a2e;
+  --surface-2: #1d2440;
+  --border: #2e3660;
+  --text: #e8eaf6;
+  --text-dim: #a6accd;
+  --text-faint: #767ea6;
+  --accent: #8b8cf7;
+  --accent-ink: #0b0c1c;
+}
+
+[data-tema="bosque"] {
+  --bg: #0c1410;
+  --surface: #121e18;
+  --surface-2: #1a2a22;
+  --border: #274036;
+  --text: #e3efe8;
+  --text-dim: #9db8a9;
+  --text-faint: #6d8a7b;
+  /* Lima, no verde hoja: el verde de --done marca "cumplida" en el
+     calendario y el acento no puede confundirse con un estado. */
+  --accent: #9fe04f;
+  --accent-ink: #10200a;
+}
+
+[data-tema="sangre"] {
+  --bg: #140d0f;
+  --surface: #1e1417;
+  --surface-2: #2a1a1f;
+  --border: #40272e;
+  --text: #f4e7ea;
+  --text-dim: #c1a4aa;
+  --text-faint: #8f747c;
+  /* Rojo tirando a magenta por el mismo motivo que el lima de Bosque: el rojo
+     naranja de --missed significa "no realizada" y el acento no es un estado. */
+  --accent: #ff2e63;
+  --accent-ink: #23000c;
+}
+
+[data-tema="oceano"] {
+  --bg: #08141a;
+  --surface: #0f1e26;
+  --surface-2: #152a34;
+  --border: #22414f;
+  --text: #e1f0f6;
+  --text-dim: #96b5c1;
+  --text-faint: #6b8896;
+  --accent: #2ee6d6;
+  --accent-ink: #00201d;
+}
+
+[data-tema="violeta"] {
+  --bg: #120c1a;
+  --surface: #1b1326;
+  --surface-2: #261a34;
+  --border: #3a2650;
+  --text: #f0e7f8;
+  --text-dim: #b8a5c9;
+  --text-faint: #88769e;
+  --accent: #d264f5;
+  --accent-ink: #1c0028;
+}
+
+/* El único claro. Aquí no basta con invertir el fondo: los colores de estado y
+   los de rango se calcularon para brillar sobre negro y sobre blanco quedan
+   lavados, así que se sustituyen por versiones más oscuras del mismo tono. El
+   significado no cambia; el contraste, sí. */
+[data-tema="claro"] {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eceff4;
+  --border: #d3d9e0;
+  --text: #1a1f27;
+  --text-dim: #566171;
+  --text-faint: #79838f;
+  --accent: #a86a00;
+  --accent-ink: #fff8ec;
+  --sombra: 0 6px 20px rgb(15 23 32 / 14%);
+
+  --done: #1a7f37;
+  --partial: #9a6700;
+  --pending: #bc4c00;
+  --missed: #cf222e;
+  --rest: #6e7781;
+  --extra: #0969da;
+  --excused: #6e7781;
+
+  color-scheme: light;
+}
+/* La escalera de rangos también se oscurece para este tema, pero su bloque
+   vive junto al resto de los colores de rango, en «Ranking muscular»: tienen
+   que leerse los nueve juntos para ver que la escalera sigue teniendo sentido. */
 
 * {
   box-sizing: border-box;
@@ -60,6 +228,10 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* Cifras de ancho fijo en toda la app: kilos, repeticiones y puntuaciones
+     cambian constantemente, y con cifras proporcionales las columnas y los
+     contadores bailan a cada actualización. */
+  font-variant-numeric: tabular-nums;
 }
 
 h1,
@@ -67,7 +239,9 @@ h2,
 h3 {
   margin: 0;
   line-height: 1.2;
-  font-weight: 650;
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 h1 {
   font-size: 1.6rem;
@@ -202,12 +376,22 @@ h3 {
     align-items: center;
     gap: 10px;
     padding: 0 12px 20px;
-    font-size: 1.15rem;
+    font-family: var(--fuente-titulo);
+    font-size: 1.3rem;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
+  /* El logo se pinta como máscara, no como imagen: es un PNG monocromo con
+     transparencia, así que recortando el color del acento con su silueta toma
+     el color de cada tema. Con <img> se vería gris oscuro sobre fondo casi
+     negro en todos ellos. */
   .brand-mark {
-    font-size: 1.35rem;
+    width: 34px;
+    aspect-ratio: 283 / 236;
+    flex-shrink: 0;
+    background: var(--accent);
+    -webkit-mask: url("/logo.png") center / contain no-repeat;
+    mask: url("/logo.png") center / contain no-repeat;
   }
   .nav a {
     flex: 0;
@@ -471,8 +655,25 @@ label {
 .week-row {
   display: grid;
   grid-template-columns: 92px 1fr;
-  align-items: center;
+  align-items: start;
   gap: 10px;
+}
+
+.week-row label {
+  min-height: var(--tap);
+  align-items: center;
+}
+
+/* Un día puede llevar varias rutinas: se apilan en su columna. */
+.week-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.week-slots .btn {
+  align-self: flex-start;
 }
 
 /* ------------------------------------------------------------- Estados */
@@ -822,6 +1023,23 @@ label {
   --tier-radiant: #ff4655;
 }
 
+/* Sobre blanco, los nueve pierden contraste —Silver y Platinum desaparecen del
+   todo—, así que el tema claro usa versiones oscurecidas del mismo tono: la
+   escalera conserva su lectura (gris, cálidos, fríos) y el texto se lee.
+   Va después del bloque de arriba a propósito: misma especificidad, gana el
+   último. */
+[data-tema="claro"] {
+  --tier-iron: #6b7480;
+  --tier-bronze: #96601f;
+  --tier-silver: #7f8b99;
+  --tier-gold: #a97c00;
+  --tier-platinum: #0f8a7b;
+  --tier-diamond: #1f6feb;
+  --tier-ascendant: #1a7f37;
+  --tier-immortal: #8a2be2;
+  --tier-radiant: #d81e35;
+}
+
 .badge[data-tier] {
   color: var(--tier);
   border-color: color-mix(in srgb, var(--tier) 45%, transparent);
@@ -923,6 +1141,12 @@ label {
 
 .zone:hover {
   filter: brightness(1.25);
+}
+
+/* Aclarar sobre fondo blanco no resalta nada: en el tema claro el músculo
+   señalado se oscurece en vez de iluminarse. */
+[data-tema="claro"] .zone:hover {
+  filter: brightness(0.88);
 }
 
 .zone[data-selected] {
@@ -1314,7 +1538,7 @@ details summary {
   right: 12px;
   bottom: calc(var(--tap) + 22px + env(safe-area-inset-bottom));
   z-index: 11;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
+  box-shadow: var(--sombra);
 }
 
 .rest-btn {
@@ -1333,6 +1557,219 @@ details summary {
   }
 }
 
+/* ------------------------------------------------------- Caja de ajustes */
+
+/*
+ * Al pie de la barra lateral: el tema y el peso se tocan de vez en cuando, y
+ * no deben competir por sitio con "Hoy" o "Calendario", que se usan a diario.
+ *
+ * Solo existe en escritorio. En móvil la navegación es la barra inferior, no
+ * hay pie donde anclarla, y Ajustes sigue siendo una pestaña más.
+ */
+.ajustes-box {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .nav a.solo-movil {
+    display: none;
+  }
+
+  .ajustes-box {
+    display: block;
+    position: relative;
+    margin-top: 10px;
+  }
+
+  .ajustes-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: var(--tap);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .ajustes-trigger:hover {
+    border-color: var(--text-faint);
+  }
+  .ajustes-trigger[aria-expanded="true"] {
+    border-color: var(--accent);
+  }
+  .ajustes-trigger:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Mismo logo que la marca, en pequeño y por el mismo motivo: enmascarado
+     para que tome el acento del tema. */
+  .ajustes-marca {
+    width: 24px;
+    aspect-ratio: 283 / 236;
+    flex-shrink: 0;
+    background: var(--accent);
+    -webkit-mask: url("/logo.png") center / contain no-repeat;
+    mask: url("/logo.png") center / contain no-repeat;
+  }
+
+  .ajustes-txt {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+  }
+  .ajustes-txt strong {
+    font-size: 0.9rem;
+    font-weight: 650;
+  }
+  /* El tema y el peso caben en una línea; si no caben, se recortan antes que
+     ensanchar la barra. */
+  .ajustes-txt small {
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ajustes-chevron {
+    margin-left: auto;
+    color: var(--text-faint);
+    font-size: 0.85rem;
+  }
+
+  /* Se abre hacia arriba y algo más ancha que la barra: los nombres de tema
+     en dos columnas no caben en los 190 px útiles de la nav. */
+  .ajustes-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    width: 250px;
+    padding: 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--sombra);
+    z-index: 20;
+  }
+
+  .ajustes-titulo {
+    margin: 0 0 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .ajustes-sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0 8px;
+  }
+
+  .ajustes-dato {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 8px 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+  .ajustes-dato strong {
+    color: var(--text);
+    font-weight: 650;
+  }
+
+  /* `.nav a` la apilaría en columna y la estiraría como una pestaña. */
+  .nav .ajustes-item {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 8px;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .nav .ajustes-item:hover {
+    background: var(--surface-2);
+  }
+}
+
+/* ----------------------------------------------------- Selector de tema */
+
+.temas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 6px;
+}
+.temas-compacto {
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+/* `label` es columna por defecto en esta hoja; aquí la muestra y el nombre van
+   en línea. */
+.tema {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.temas-compacto .tema {
+  font-size: 0.8rem;
+  padding: 6px 8px;
+}
+.tema:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* El radio se oculta pero sigue existiendo: así las flechas del teclado
+   recorren los temas y el lector de pantalla anuncia cuál está puesto. */
+.tema input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.tema:has(input:checked) {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.tema:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* La muestra lleva su propio `data-tema`, así que las variables de dentro son
+   las de ESE tema: el cuadrito enseña colores reales, no una aproximación
+   copiada a mano. */
+.tema-muestra {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--surface) 52%, var(--accent) 52%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .timer-arc {
     transition: none;
@@ -1341,4 +1778,47 @@ details summary {
   .nav .timer-pill[data-phase="done"] {
     animation: none;
   }
+}
+
+/* Un permiso del agente: casilla y explicación en la misma línea. */
+.scope {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.scope input {
+  width: auto;
+  min-height: 0;
+  margin-top: 3px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------- Siguiente hito */
+
+/* El objetivo concreto de un músculo: "3 dominadas más", no "12 puntos".
+   Va en su propio bloque destacado porque es la única parte de la ficha que
+   se puede entrenar mañana. */
+.hito {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hito-etiqueta {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
 }

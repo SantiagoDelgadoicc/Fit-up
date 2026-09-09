@@ -3,7 +3,20 @@
 Documento vivo. Se marca cada casilla al completar el hito y se actualiza la tabla de
 estado. Cada fase termina en un incremento **usable**, no en una capa técnica a medias.
 
-**Estado global:** F0–F5 completadas · siguiente F6
+**Estado global: en pruebas y pulido.** F0–F6 completadas, más dos ajustes del modelo
+salidos del uso real (varias sesiones por día y series al fallo, ver
+[abajo](#ajustes-del-modelo-salidos-del-uso-real)).
+
+La app se usa a diario y la funcionalidad está completa, pero lleva poco tiempo en uso
+real: lo que queda es encontrar asperezas usándola. Dos cosas siguen explícitamente sin
+validar y así se presentan en la interfaz:
+
+- **La calibración del ranking** (D9). Los umbrales están razonados, no confirmados con
+  datos reales; confirmarlos necesita meses de historial.
+- **Los permisos del agente**, que aún no ha ejercitado ningún agente de verdad.
+
+Ninguna de las dos compromete el historial, que es inmutable, versionado, auditado y con
+copia diaria.
 
 | Fase | Objetivo | Estado |
 |---|---|---|
@@ -13,7 +26,7 @@ estado. Cada fase termina en un incremento **usable**, no en una capa técnica a
 | [F3](#f3--progresión) | Aplicar sobrecarga progresiva con un botón | ✅ Completada |
 | [F4](#f4--métricas-y-ranking-muscular) | Mapa corporal con rangos Iron→Radiant | ✅ Completada |
 | [F5](#f5--temporizador) | Descansos durante el entrenamiento | ✅ Completada |
-| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ⬜ Siguiente |
+| [F6](#f6--agente-de-ia) | Contrato estable para el agente local | ✅ Completada |
 | [F7](#f7--pulido) | Backups, offline, accesibilidad | ⬜ |
 
 ---
@@ -202,6 +215,10 @@ poder responder «¿por qué este rango?» sin salir de la pantalla. ✅ Verific
 
 Sin migraciones: `muscle_score_snapshot` y la fórmula `ranking/v1` estaban desde F0.
 
+> **Superado por Fit-Up 2.0** (más abajo): la calibración por `reference_ratio` sobre
+> e1RM se retiró. Lo de esta sección se conserva como registro de lo que se hizo en F4
+> y de por qué no funcionó.
+
 **Resuelto después:** el dibujo geométrico se sustituyó por una silueta anatómica
 (M11, ver más abajo). El contrato aguantó: solo cambiaron las formas.
 
@@ -277,22 +294,78 @@ entrada de la barra inferior que cortaba el texto de «Ajustes» en 375 px.
 ## F6 · Agente de IA
 
 **Objetivo:** un contrato estable y auditable para el agente externo, sin acoplar Fit-Up a
-ninguna IA concreta.
+ninguna IA concreta. El agente **es otro proyecto**: aquí solo se construye la puerta.
 
-- [ ] Servidor MCP sobre los mismos casos de uso (wrappers finos)
-- [ ] Tools de lectura: rutinas, historial, calendario, estadísticas, ranking, tendencias
-- [ ] Tools de propuesta (no escriben)
-- [ ] Scopes en configuración local, escrituras sensibles desactivadas por defecto
-- [ ] `AuditLog` de toda operación del agente
-- [ ] Claves de idempotencia en escrituras
-- [ ] Backup automático antes de un lote de escrituras del agente
-- [ ] Documentar el contrato "usa la API, no el fichero"
-- [ ] Documentar la frontera datos/instrucciones en las descripciones de las tools
+Contrato completo en [03-contrato-del-agente.md](03-contrato-del-agente.md).
+
+- [x] **Servidor MCP** sobre los mismos casos de uso (wrappers finos): 16 tools por stdio
+- [x] Tools de lectura: 10, y la API HTTP + OpenAPI las cubre también
+- [x] Tools de propuesta (no escriben): permiso `propose`, en MCP y en HTTP
+- [x] Scopes en configuración local, escrituras sensibles desactivadas por defecto
+- [x] `AuditLog` de toda operación del agente, **y legible** vía `GET /api/auditoria`
+- [x] Claves de idempotencia en escrituras de sesión
+- [x] Backup automático antes de un lote de escrituras del agente
+- [x] Documentar el contrato "usa la API, no el fichero"
+- [x] Documentar la frontera datos/instrucciones
+
+### Lo que había que arreglar antes de nada
+
+La auditoría existía desde F0 pero **no servía para lo que iba a hacer falta**:
+
+1. **La API no permitía declarar el actor.** Cualquier escritura del agente quedaba
+   registrada como `usuario`. La traza —que según ADR-0004 es *la* protección— no
+   distinguía nada. Resuelto con la cabecera `X-Fitup-Actor`.
+2. **`audit_log` se escribía pero no se leía.** Ningún endpoint la exponía: un cajón
+   cerrado. Resuelto con `GET /api/auditoria`.
+3. **Solo auditaban sesiones y progresiones.** Rutinas, semana, excepciones, ajustes y
+   peso escribían sin dejar rastro. Ahora auditan todas.
+
+### Decisiones aplicadas
+
+- **Los permisos son por familia, no por endpoint.** `write_sessions`, `write_routines` y
+  `write_settings` agrupan operaciones que se conceden juntas o no se conceden. Una lista
+  de treinta permisos no la revisa nadie.
+- **`read` se aplica al router entero**, no endpoint a endpoint: es el interruptor general
+  del agente y apagarlo tiene que dejarlo fuera de todo, no solo de lo que alguien se
+  acordó de marcar.
+- **Un rechazo se audita.** `result='rechazado'` estaba en el CHECK del esquema desde F0
+  sin usarse. Un intento bloqueado dice más que uno permitido.
+- **Un actor desconocido devuelve 400**, no se degrada a `usuario`: una cabecera mal
+  escrita dejaría al agente operando de incógnito.
+- **La copia previa al lote se corta por inactividad** (30 min). El agente no anuncia
+  dónde empieza ni acaba un lote; lo que se puede medir es cuánto lleva sin tocar nada.
+  Una copia por escritura llenaría el disco durante una ráfaga.
+- **Las copias del agente y las diarias se podan por separado.** Con un `fitup-*.db` a
+  secas, la diaria barría las del agente y al revés — la copia previa a un lote habría
+  desaparecido justo cuando hiciera falta.
+
+### El servidor MCP
+
+Se construyó al confirmarse que habrá **más de una app de este estilo**. Con una sola, MCP
+ahorra escribir un cliente HTTP y es prescindible; con varias, un único agente las conecta
+todas sin un cliente por cada una, que es justo para lo que se diseñó el protocolo.
+
+Es la primera dependencia añadida desde F0 (`mcp>=2.0`). Pasa el filtro: implementar el
+protocolo a mano sería mucho más código que mantener del que ahorra, y es agnóstico de
+modelo, así que no ata Fit-Up a ninguna IA.
+
+Dos cosas que salieron al probarlo contra un cliente MCP real, no en los tests:
+
+- **El SDK solo deja llegar al modelo el texto de un `ToolError`.** Cualquier otra
+  excepción le llega como «error inesperado». Un agente al que le dicen «error» no puede
+  corregirse; uno al que le nombran el permiso que falta, sí. Los errores de aplicación se
+  traducen, igual que el adaptador HTTP los traduce a códigos de estado.
+- **La conversión de la entrada tenía que ir dentro del traductor**, no antes: una fecha
+  mal escrita se escapaba como `ValueError` pelado.
+
+La política de permisos se movió de `api/` a `application/services/agent.py`. Tenerla en un
+adaptador obligaba al otro a importarlo, y eso convierte a dos hermanos en padre e hijo
+(invariante 6).
 
 ### Decisión diferida a esta fase
 **D5 — ¿Bandeja de propuestas (`AgentProposal`)?** Con un agente autónomo puede ser
 ceremonia innecesaria, o el punto de control que se quiera conservar para los cambios de
-rutina. Se decide con historial real y el agente funcionando.
+rutina. Sigue abierta a propósito: se decide con historial real y el agente funcionando.
 
 ---
 
@@ -312,6 +385,121 @@ rutina. Se decide con historial real y el agente funcionando.
 ### Decisión diferida
 **D6 — ¿Registro offline desde el móvil con cola y sincronización?** Solo si el uso real
 lo justifica.
+
+---
+
+## Ajustes del modelo salidos del uso real
+
+Dos supuestos del diseño original no aguantaron el primer contacto con una rutina de
+verdad. Ninguno estaba en el plan; ambos salieron de intentar cargar la rutina real.
+
+### Un día, varios entrenamientos
+
+**El supuesto:** un día tiene como mucho un entrenamiento. Estaba en la capa de
+aplicación (`Conflict` explícito, `session_on()` devolviendo una sola) y en el plan
+semanal (`dict weekday → una rutina`).
+
+**Por qué falla:** partir el volumen entre mañana y tarde es corriente en calistenia.
+Juntarlo todo en una sesión perdía el dato de cuál se saltó, y obligaba a esperar a la
+noche para anotar lo de la mañana.
+
+**Lo que se cambió.** El esquema no hizo falta tocarlo: `workout_session` nunca tuvo
+`UNIQUE` en `date`, y `schedule_slot` tiene `id` propio sin `UNIQUE` por día. El diseño
+original ya lo contemplaba; la restricción era de la capa de arriba.
+
+- `resolve_day_state` recibe `scheduled_count` y una lista de sesiones.
+- `DayView` pasa a `scheduled` (una entrada por rutina, con su sesión si la hay) y
+  `extra_sessions`.
+- El plan semanal admite varias rutinas por día, en orden.
+- «Hoy» y el calendario pintan una tarjeta por rutina.
+
+**La decisión de diseño que hubo que tomar:** si tocaban dos rutinas y solo se hizo una,
+el día queda **pendiente mientras haya margen** y parcial después. Es el mismo principio
+que sostiene todo el módulo —no registrado no es no realizado— aplicado dentro del día:
+por la tarde todavía puede entrenarse, así que llamarlo parcial adelanta el veredicto.
+
+### Series al fallo
+
+**El supuesto:** toda serie tiene un objetivo numérico. El esquema lo imponía con
+`CHECK (target_reps IS NOT NULL OR target_time_s IS NOT NULL)`.
+
+**Por qué falla:** «pantorrillas 3 × fallo» no tiene objetivo. Rellenarlo con una
+estimación sería inventar el plan, justo lo que prohíbe el invariante 5.
+
+**Lo que se cambió:** migración `0002`, columna `to_failure` en `planned_set`. Hubo que
+recrear la tabla porque SQLite no permite modificar un `CHECK` en sitio. Ahora hay tres
+formas válidas de prescribir una serie —repeticiones, tiempo o al fallo— y una cuarta
+prohibida: al fallo **con** repeticiones objetivo, que es una contradicción.
+
+El catálogo suma nueve ejercicios que la rutina real necesitaba y no existían: flexiones
+abiertas, toque de talón, estrellitas, Arnold press, curl con arm blaster, dominadas
+abiertas y mixtas, sentadilla goblet y saltos de cuerda.
+
+### Pendiente conocido
+
+Registrar «de un toque» una rutina con series al fallo anota la serie **sin
+repeticiones**: el sistema no puede saber cuántas se hicieron. Aparece como `?` en el
+historial hasta que se edite. Es honesto —no se inventa el dato— pero incómodo, y la
+edición de series registradas todavía no existe.
+
+---
+
+## Fit-Up 2.0 — el rango se mide en repeticiones
+
+**Objetivo:** que el ranking refleje lo que de verdad pasa en una rutina de
+calistenia estable, y que Radiant sea un objetivo de años.
+**Criterio de aceptación:** con las marcas actuales, ningún músculo por encima
+de Oro; y cada músculo dice qué marca concreta desbloquea el siguiente rango.
+✅ Verificado en la app real.
+
+- [x] `domain/ranking/standards.py`: escalera de rangos por ejercicio, con techo
+- [x] `domain/ranking/v2.py`: desarrollo por marca confirmada, con trinquete
+- [x] `domain/metrics/load.set_mark`: marca de una serie, sin conversión a kilos
+- [x] Retirados `ranking/v1.py` y `ranking/calibration.py`
+- [x] Reglas de sobrecarga por repeticiones hasta el techo de cada ejercicio
+- [x] `fitup reglas [--aplicar]`: repunta las rutinas creando versión nueva
+- [x] Ficha de músculo: «siguiente hito» con la marca concreta, no puntos
+
+Sin migraciones: el esquema no cambia. Los snapshots de v1 quedan marcados con
+su versión y la ficha solo grafica los de la vigente, así que no se mezclan
+escalas.
+
+### El problema que lo motivó
+
+Dos días de registro y tres músculos en Radiant. La causa no eran los umbrales
+sino **Epley fuera de su rango válido**: `carga × (1 + reps/30)` multiplica por
+2 a 30 repeticiones y por 4,3 a 100. Unas dominadas a 30 repeticiones con 60 kg
+de peso corporal se convertían en «un 1RM de 120 kg» —2× el peso corporal— y
+tocaban el techo de la escala. El sistema medía resistencia y la llamaba fuerza.
+
+### Decisiones aplicadas
+
+- **La marca no se convierte en nada.** 30 dominadas se comparan con la escalera
+  de las dominadas. Desaparecen Epley, `reference_ratio` y la normalización por
+  peso corporal, y con ellos el artefacto entero.
+- **La rutina no cambia.** Se descartó hacer que el rango dependiera de subir de
+  variante: obligaría a cambiar de ejercicio cada pocas semanas y rompería la
+  serie histórica, que es lo que hace útil el registro.
+- **Techo por ejercicio.** Crunch llega a Silver, saltos de cuerda a Bronze,
+  dominadas a Radiant. Sin esto, 300 crunches darían un core de élite.
+- **Trinquete de constancia.** Una marca cuenta cuando se ha repetido en dos
+  sesiones. Es el mismo criterio que ya usaba el motor de progresión.
+- **Subir peso nunca baja el rango.** En carga externa la escalera se define a un
+  peso de referencia y usar más peso multiplica la marca. Si el ejercicio no
+  está calibrado, la referencia es el primer peso que registró el usuario: su
+  propia marca, no una inventada.
+- **El rango ya no depende del peso corporal.** En v1, sin peso anotado el mapa
+  entero quedaba en blanco. Ahora solo se pierde el volumen —el halo—, y se dice.
+- **La sobrecarga apunta donde apunta el rango**: repeticiones por serie hasta el
+  techo del ejercicio, en vez de añadir series. Plan y ranking dejan de medir con
+  varas distintas.
+
+### Pendiente conocido
+
+Los umbrales siguen siendo provisionales (D9). Están calibrados para que las
+marcas de hoy caigan en Oro o por debajo, con Radiant a años vista; validarlos
+necesita historial. Y los ejercicios sin escalera propia usan una genérica que
+se declara provisional y no puede dar rango alto.
 
 ---
 

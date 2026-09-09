@@ -15,7 +15,7 @@ from datetime import date as Date
 from datetime import datetime
 
 from ...domain.enums import Tier
-from ...domain.ranking.v1 import MuscleScore
+from ...domain.ranking.v2 import MuscleScore
 from ..views import ScorePoint
 
 

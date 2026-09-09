@@ -123,11 +123,25 @@ export const useCalendar = (year: number, month: number) =>
 export function useLogAsPlanned() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { date: string; status?: "completed" | "partial" }) =>
+    mutationFn: (input: {
+      date: string;
+      status?: "completed" | "partial";
+      /** Cuál de las rutinas del día; solo hace falta si ese día hay varias. */
+      routine_id?: number;
+    }) =>
       api<Session>("/sesiones/como-planificado", {
         method: "POST",
-        body: { date: input.date, status: input.status ?? "completed" },
-        idempotencyKey: logKey(`planned-${input.status ?? "completed"}`, input.date),
+        body: {
+          date: input.date,
+          status: input.status ?? "completed",
+          routine_id: input.routine_id ?? null,
+        },
+        // La clave incluye la rutina: dos entrenamientos distintos el mismo
+        // día son dos registros, no un reintento del mismo.
+        idempotencyKey: logKey(
+          `planned-${input.status ?? "completed"}-${input.routine_id ?? "auto"}`,
+          input.date,
+        ),
       }),
     onSuccess: () => invalidateTraining(qc),
   });
@@ -204,7 +218,7 @@ export const useWeek = () =>
 export function useSaveWeek() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (days: Record<string, number | null>) =>
+    mutationFn: (days: Record<string, number[]>) =>
       api<Week>("/semana", { method: "PUT", body: { days } }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: keys.week });
@@ -282,6 +296,19 @@ export function useExerciseNames(): (slug: string) => string {
   return (slug: string) =>
     data?.find((e) => e.slug === slug)?.name ??
     slug.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+
+/**
+ * Unidad de la marca de un ejercicio: repeticiones o segundos.
+ *
+ * Sale de la modalidad del catálogo en vez de viajar en la respuesta del
+ * ranking: el dato ya está cargado y ensanchar el contrato por una palabra
+ * sería duplicarlo.
+ */
+export function useMarkUnits(): (slug: string) => string {
+  const { data } = useExercises();
+  return (slug: string) =>
+    data?.find((e) => e.slug === slug)?.modality === "tiempo" ? "segundos" : "repeticiones";
 }
 
 // --------------------------------------------------------------------------

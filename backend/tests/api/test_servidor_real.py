@@ -121,7 +121,8 @@ def test_un_recorrido_completo_sobre_el_servidor_real(server):
         httpx.post(f"{server}/api/sesiones/como-planificado", json={"date": hoy}).status_code == 201
     )
     assert httpx.get(f"{server}/api/hoy").json()["state"] == "done"
-    assert httpx.get(f"{server}/api/dias/{hoy}").json()["session"] is not None
+    dia = httpx.get(f"{server}/api/dias/{hoy}").json()
+    assert dia["scheduled"] and dia["scheduled"][0]["session"] is not None
 
     year, month = date.today().year, date.today().month
     calendario = httpx.get(f"{server}/api/calendario/{year}/{month}").json()

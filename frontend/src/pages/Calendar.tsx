@@ -277,10 +277,14 @@ function DayDetail({ date, today }: { date: string; today: string }) {
   if (!day.data) return null;
 
   const info = day.data;
+  const sesiones = [
+    ...info.scheduled.flatMap((s) => (s.session ? [s.session] : [])),
+    ...info.extra_sessions,
+  ];
   // Un día se puede excusar mientras no conste que se entrenó. Si consta que
   // NO se entrenó ("no la hice"), excusarlo sigue teniendo sentido: es
   // precisamente el caso de la lesión o el viaje.
-  const excusable = !info.session || info.session.status === "skipped";
+  const excusable = sesiones.every((s) => s.status === "skipped");
   const ok = (msg: string) => () => toast(msg);
   const fail = (e: unknown) => toast(e instanceof Error ? e.message : "Error", "error");
 
@@ -295,8 +299,8 @@ function DayDetail({ date, today }: { date: string; today: string }) {
    */
   async function excusar(reason: string) {
     try {
-      if (info.session?.status === "skipped") {
-        await remove.mutateAsync(info.session.id);
+      for (const saltada of sesiones.filter((s) => s.status === "skipped")) {
+        await remove.mutateAsync(saltada.id);
       }
       if (reason === "") {
         await clearExcept.mutateAsync(date);
@@ -325,10 +329,93 @@ function DayDetail({ date, today }: { date: string; today: string }) {
         {info.reason}
       </p>
 
-      {info.session && (
-        <div className="stack">
-          <h3>{info.session.routine_name ?? "Entrenamiento libre"}</h3>
-          {info.session.exercises.map((e) => (
+      {/* Una tarjeta por rutina del día: con mañana y tarde hay que poder ver
+          y registrar cada una por separado. */}
+      {info.scheduled.map((slot) => (
+        <div className="stack" key={slot.routine_id}>
+          <div className="row">
+            <h3 style={{ fontSize: "0.95rem" }}>{slot.name}</h3>
+            <div className="spacer" />
+            <span className="faint">{slot.session ? "Registrada" : "Sin registrar"}</span>
+          </div>
+
+          {slot.session ? (
+            <>
+              {slot.session.exercises.map((e) => (
+                <div className="row" key={e.exercise_slug}>
+                  <span>{nameOf(e.exercise_slug)}</span>
+                  <div className="spacer" />
+                  <span className="prescription">{describePerformed(e)}</span>
+                </div>
+              ))}
+              <button
+                className="btn btn-sm btn-ghost btn-danger"
+                disabled={busy}
+                onClick={() =>
+                  remove.mutate(slot.session!.id, {
+                    onSuccess: ok("Registro borrado"),
+                    onError: fail,
+                  })
+                }
+              >
+                Borrar registro
+              </button>
+            </>
+          ) : (
+            <>
+              {slot.detail.exercises.map((e) => (
+                <div className="row" key={e.exercise_slug}>
+                  <span className="muted">{nameOf(e.exercise_slug)}</span>
+                  <div className="spacer" />
+                  <span className="prescription">{describePlanned(e)}</span>
+                </div>
+              ))}
+              <button
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() =>
+                  log.mutate(
+                    { date, status: "completed", routine_id: slot.routine_id },
+                    { onSuccess: ok("¡Registrado!"), onError: fail },
+                  )
+                }
+              >
+                ✓ Hice esta rutina
+              </button>
+              <div className="row">
+                <button
+                  className="btn btn-sm btn-ghost"
+                  disabled={busy}
+                  onClick={() =>
+                    log.mutate(
+                      { date, status: "partial", routine_id: slot.routine_id },
+                      { onSuccess: ok("Registrado como parcial"), onError: fail },
+                    )
+                  }
+                >
+                  A medias
+                </button>
+                <div className="spacer" />
+                <button
+                  className="btn btn-sm btn-ghost btn-danger"
+                  disabled={busy}
+                  onClick={() => skip.mutate(date, { onSuccess: ok("Marcado"), onError: fail })}
+                >
+                  No la hice
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+
+      {/* Lo entrenado fuera de plan: no tenía rutina, pero cuenta igual. */}
+      {info.extra_sessions.map((sesion) => (
+        <div className="stack" key={sesion.id}>
+          <h3 style={{ fontSize: "0.95rem" }}>
+            {sesion.routine_name ?? "Entrenamiento libre"}
+          </h3>
+          {sesion.exercises.map((e) => (
             <div className="row" key={e.exercise_slug}>
               <span>{nameOf(e.exercise_slug)}</span>
               <div className="spacer" />
@@ -339,62 +426,13 @@ function DayDetail({ date, today }: { date: string; today: string }) {
             className="btn btn-sm btn-ghost btn-danger"
             disabled={busy}
             onClick={() =>
-              remove.mutate(info.session!.id, { onSuccess: ok("Registro borrado"), onError: fail })
+              remove.mutate(sesion.id, { onSuccess: ok("Registro borrado"), onError: fail })
             }
           >
             Borrar registro
           </button>
         </div>
-      )}
-
-      {!info.session && info.planned && (
-        <div className="stack">
-          <h3>{info.planned.name}</h3>
-          {info.planned.exercises.map((e) => (
-            <div className="row" key={e.exercise_slug}>
-              <span className="muted">{nameOf(e.exercise_slug)}</span>
-              <div className="spacer" />
-              <span className="prescription">{describePlanned(e)}</span>
-            </div>
-          ))}
-
-          <button
-            className="btn btn-primary"
-            disabled={busy}
-            onClick={() =>
-              log.mutate(
-                { date, status: "completed" },
-                { onSuccess: ok("¡Registrado!"), onError: fail },
-              )
-            }
-          >
-            ✓ Hice esta rutina
-          </button>
-
-          <div className="row">
-            <button
-              className="btn btn-sm btn-ghost"
-              disabled={busy}
-              onClick={() =>
-                log.mutate(
-                  { date, status: "partial" },
-                  { onSuccess: ok("Registrado como parcial"), onError: fail },
-                )
-              }
-            >
-              A medias
-            </button>
-            <div className="spacer" />
-            <button
-              className="btn btn-sm btn-ghost btn-danger"
-              disabled={busy}
-              onClick={() => skip.mutate(date, { onSuccess: ok("Marcado"), onError: fail })}
-            >
-              No la hice
-            </button>
-          </div>
-        </div>
-      )}
+      ))}
 
       {excusable && (
         <div className="stack">

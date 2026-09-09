@@ -41,3 +41,8 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Icono y accesos directos: se generan en cada equipo. La imagen de origen
+# puede ser de un tercero y este repositorio es publico.
+/local/
+*.lnk

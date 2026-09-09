@@ -39,7 +39,7 @@ def test_la_regla_heredada_del_catalogo_se_declara_como_tal(client, routine):
     body = client.get(f"/api/rutinas/{routine}/progresion").json()
     flexiones = next(i for i in body["items"] if i["exercise_slug"] == "flexiones")
 
-    assert flexiones["rule_slug"] == "reps_hasta_20"
+    assert flexiones["rule_slug"] == "reps_hasta_150"
     assert flexiones["rule_inherited"] is True
 
 
@@ -53,7 +53,7 @@ def test_aplicar_devuelve_la_version_nueva_y_los_eventos(client, routine):
     assert body["routine"]["version_no"] == 2
     assert len(body["events"]) == 1
     assert body["events"][0]["before_summary"] == "3x15"
-    assert body["events"][0]["after_summary"] == "3x16"
+    assert body["events"][0]["after_summary"] == "3x17"
 
 
 def test_aplicar_lo_que_no_puede_progresar_es_conflicto_con_motivo(client, routine):

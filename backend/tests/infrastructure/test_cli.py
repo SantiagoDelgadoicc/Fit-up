@@ -40,7 +40,8 @@ def test_check_sobre_una_base_existente(tmp_path, capsys):
     assert main(["--db", str(db), "check"]) == 0
     out = capsys.readouterr().out
     assert "integridad: ok" in out
-    assert "versión de esquema: 1" in out
+    # Sin fijar el número: sube en cada migración y no es lo que se comprueba.
+    assert "versión de esquema:" in out
 
 
 def test_check_sin_base_de_datos_no_es_un_error(tmp_path, capsys):

@@ -64,7 +64,7 @@ def test_la_regla_se_hereda_del_catalogo_cuando_la_rutina_no_la_fija(db, weekly)
     """
     flexiones = item(svc.evaluate_routine(db, weekly, today=TODAY), "flexiones")
 
-    assert flexiones.rule_slug == "reps_hasta_20"
+    assert flexiones.rule_slug == "reps_hasta_150"
     assert flexiones.rule_inherited is True
 
 
@@ -86,9 +86,9 @@ def test_dos_sesiones_cumpliendo_el_objetivo_habilitan_la_progresion(db, weekly)
     evaluation = svc.evaluate_routine(db, weekly, today=TODAY)
 
     assert evaluation.ready == 3
-    assert item(evaluation, "flexiones").proposed == "3x16"
+    assert item(evaluation, "flexiones").proposed == "3x17"
     assert item(evaluation, "press_banca").proposed == "3x9 @ 40kg"
-    assert item(evaluation, "plancha").proposed == "3x50s"
+    assert item(evaluation, "plancha").proposed == "3x60s"
 
 
 def test_el_resumen_para_hoy_solo_lista_rutinas_con_algo_que_ofrecer(db, weekly):
@@ -135,7 +135,7 @@ def test_aplicar_solo_cambia_los_ejercicios_elegidos(db, weekly):
     result = svc.apply(db, weekly, exercise_slugs=["flexiones"], today=TODAY)
 
     por_slug = {e.exercise_slug: e for e in result.routine.exercises}
-    assert [s.target_reps for s in por_slug["flexiones"].work_sets] == [16, 16, 16]
+    assert [s.target_reps for s in por_slug["flexiones"].work_sets] == [17, 17, 17]
     assert [s.target_reps for s in por_slug["press_banca"].work_sets] == [8, 8, 8]
 
 
@@ -191,7 +191,7 @@ def calistenia(db) -> int:
         name="Calistenia",
         exercises=[plan("flexiones", count=3, reps=15, rule_slug="variante_calistenia")],
     )
-    planning_svc.set_week(db, {0: detail.id, 2: detail.id}, effective_from=date(2026, 3, 1))
+    planning_svc.set_week(db, {0: [detail.id], 2: [detail.id]}, effective_from=date(2026, 3, 1))
     return detail.id
 
 
@@ -215,7 +215,7 @@ def test_la_variante_se_rechaza_si_ya_estaba_en_la_rutina(db):
             plan("flexiones_declinadas", count=3, reps=10),
         ],
     )
-    planning_svc.set_week(db, {0: detail.id, 2: detail.id}, effective_from=date(2026, 3, 1))
+    planning_svc.set_week(db, {0: [detail.id], 2: [detail.id]}, effective_from=date(2026, 3, 1))
     train(db, MONDAY, WEDNESDAY)
 
     with pytest.raises(Invalid, match="dos veces"):

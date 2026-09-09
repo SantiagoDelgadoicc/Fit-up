@@ -6,11 +6,24 @@
  * a /api NUNCA se cachean: mostrar un historial obsoleto como si fuera actual
  * seria peor que mostrar un error.
  */
-const CACHE = "fitup-shell-v1";
+const CACHE = "fitup-shell-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(["/", "/manifest.webmanifest", "/icon.svg"])),
+    caches.open(CACHE).then((cache) =>
+      cache.addAll([
+        "/",
+        "/manifest.webmanifest",
+        "/icon.svg",
+        // El logo y las dos fuentes latinas van en el armazon: sin ellos, la
+        // primera carga sin conexion enseñaria la app con la letra del sistema
+        // y sin marca. Los subconjuntos latin-ext los cachea el propio `fetch`
+        // si algun dia hacen falta.
+        "/logo.png",
+        "/fonts/inter-latin.woff2",
+        "/fonts/outfit-latin.woff2",
+      ]),
+    ),
   );
   self.skipWaiting();
 });

@@ -17,7 +17,7 @@ from ...domain.enums import Actor, SessionOrigin, SessionStatus
 from ...domain.models import PerformedExercise, PerformedSet, WorkoutSession
 from ..errors import Conflict, Invalid
 from ..repositories import history, planning
-from ..views import CalendarDay, DayView, PendingDay, SessionDetail
+from ..views import CalendarDay, DayView, PendingDay, ScheduledRoutine, SessionDetail
 
 MAX_RETROACTIVE_DAYS = 365
 
@@ -37,24 +37,35 @@ def get_day(conn: sqlite3.Connection, day: Date, *, today: Date | None = None) -
     if day > today:
         raise Invalid("No se consulta el estado de un día futuro")
 
-    scheduled = planning.scheduled_routine(conn, day)
-    session = history.session_on(conn, day)
+    scheduled = planning.scheduled_routines(conn, day)
+    sessions = history.sessions_on(conn, day)
     exception = planning.get_exception(conn, day)
 
-    verdict = _verdict(conn, day, today, scheduled, session, exception)
+    verdict = _verdict(conn, day, today, len(scheduled), sessions, exception)
 
-    planned = None
-    if scheduled is not None:
+    # Cada rutina se empareja con la sesión que la ejecutó. Lo que sobra son
+    # entrenamientos extra: no había plan para ellos, pero cuentan igual.
+    emparejadas: list[ScheduledRoutine] = []
+    usadas: set[int] = set()
+    for routine_id, name in scheduled:
+        suya = next(
+            (s for s in sessions if s.routine_id == routine_id and s.id not in usadas), None
+        )
+        if suya is not None:
+            usadas.add(suya.id)
         # La versión vigente **ese día**, no la de hoy: si la rutina se editó
         # el jueves, el martes tenía otro plan.
-        planned = planning.get_version(conn, planning.version_at(conn, scheduled[0], day))
+        detail = planning.get_version(conn, planning.version_at(conn, routine_id, day))
+        emparejadas.append(
+            ScheduledRoutine(routine_id=routine_id, name=name, detail=detail, session=suya)
+        )
 
     return DayView(
         date=day,
         state=verdict.state,
         reason=verdict.reason,
-        planned=planned,
-        session=session,
+        scheduled=emparejadas,
+        extra_sessions=[s for s in sessions if s.id not in usadas],
         exception_reason=str(exception.reason) if exception else None,
     )
 
@@ -63,20 +74,15 @@ def _verdict(
     conn: sqlite3.Connection,
     day: Date,
     today: Date,
-    scheduled: tuple[int, str] | None,
-    session: SessionDetail | None,
+    scheduled_count: int,
+    sessions: list[SessionDetail],
     exception,
 ) -> DayVerdict:
-    domain_session = None
-    if session is not None:
-        domain_session = WorkoutSession(
-            date=session.date, status=session.status, origin=session.origin
-        )
     return resolve_day_state(
         day,
         today=today,
-        was_scheduled=scheduled is not None,
-        session=domain_session,
+        scheduled_count=scheduled_count,
+        sessions=[WorkoutSession(date=s.date, status=s.status, origin=s.origin) for s in sessions],
         exception=exception,
         grace_days=grace_days(conn),
     )
@@ -93,21 +99,26 @@ def pending_days(conn: sqlite3.Connection, *, today: Date | None = None) -> list
 
     for offset in range(window + 1):
         day = today - timedelta(days=offset)
-        scheduled = planning.scheduled_routine(conn, day)
-        if scheduled is None:
-            continue
-        if history.session_on(conn, day) is not None:
+        scheduled = planning.scheduled_routines(conn, day)
+        if not scheduled:
             continue
         if planning.get_exception(conn, day) is not None:
             continue
-        result.append(
-            PendingDay(
-                date=day,
-                routine_id=scheduled[0],
-                routine_name=scheduled[1],
-                days_left=window - offset,
+
+        # Una entrada por rutina pendiente, no por día: si la mañana está
+        # registrada y la tarde no, lo que queda por hacer es la tarde.
+        hechas = {s.routine_id for s in history.sessions_on(conn, day)}
+        for routine_id, name in scheduled:
+            if routine_id in hechas:
+                continue
+            result.append(
+                PendingDay(
+                    date=day,
+                    routine_id=routine_id,
+                    routine_name=name,
+                    days_left=window - offset,
+                )
             )
-        )
     return result
 
 
@@ -125,37 +136,37 @@ def calendar(
     if start > end:
         return []
 
-    sessions = {s.date: s for s in history.sessions_between(conn, start, end)}
+    # Un dia puede tener varias sesiones, asi que se agrupan por fecha.
+    por_dia: dict[Date, list[SessionDetail]] = {}
+    for sesion in history.sessions_between(conn, start, end):
+        por_dia.setdefault(sesion.date, []).append(sesion)
+
     exceptions = planning.exceptions_between(conn, start, end)
     window = grace_days(conn)
 
     days: list[CalendarDay] = []
     day = start
     while day <= end:
-        scheduled = planning.scheduled_routine(conn, day)
-        session = sessions.get(day)
-        domain_session = None
-        if session is not None:
-            domain_session = WorkoutSession(
-                date=session.date, status=session.status, origin=session.origin
-            )
+        scheduled = planning.scheduled_routines(conn, day)
+        del_dia = por_dia.get(day, [])
         verdict = resolve_day_state(
             day,
             today=today,
-            was_scheduled=scheduled is not None,
-            session=domain_session,
+            scheduled_count=len(scheduled),
+            sessions=[
+                WorkoutSession(date=s.date, status=s.status, origin=s.origin) for s in del_dia
+            ],
             exception=exceptions.get(day),
             grace_days=window,
         )
+        # Lo entrenado manda sobre lo programado: si ese dia se hizo otra cosa,
+        # el calendario debe decir lo que pasó, no lo que tocaba.
+        hechas = [(s.routine_id, s.routine_name) for s in del_dia if s.routine_name]
         days.append(
             CalendarDay(
                 verdict=verdict,
-                routine_id=scheduled[0] if scheduled else None,
-                # El nombre de la sesion manda sobre el programado: si ese dia
-                # se entreno otra cosa, el calendario debe decir lo que pasó.
-                routine_name=(session.routine_name if session else None)
-                or (scheduled[1] if scheduled else None),
-                session_id=session.id if session else None,
+                routines=[(rid or 0, nombre) for rid, nombre in hechas] or scheduled,
+                session_ids=[s.id for s in del_dia],
             )
         )
         day += timedelta(days=1)
@@ -177,10 +188,51 @@ def _check_date(day: Date, today: Date) -> None:
         )
 
 
+def _rutina_del_dia(conn: sqlite3.Connection, day: Date, routine_id: int | None) -> tuple[int, str]:
+    """Elige qué rutina de las programadas ese día se está registrando.
+
+    Con una sola no hay nada que elegir. Con varias hay que decir cuál: dar por
+    hecho que es la primera registraría la mañana cuando el usuario acaba de
+    hacer la tarde, y eso es peor que pedirle que lo diga.
+    """
+    programadas = planning.scheduled_routines(conn, day)
+    if not programadas:
+        raise Invalid(
+            f"El {day.isoformat()} no tenía ninguna rutina programada; "
+            "usa el registro libre para anotar un entrenamiento extra"
+        )
+
+    ya_hechas = {s.routine_id for s in history.sessions_on(conn, day)}
+
+    if routine_id is not None:
+        elegida = next((r for r in programadas if r[0] == routine_id), None)
+        if elegida is None:
+            nombres = ", ".join(f"{rid} ({nombre})" for rid, nombre in programadas)
+            raise Invalid(
+                f"La rutina {routine_id} no estaba programada el {day.isoformat()}. "
+                f"Ese día tocaba: {nombres}"
+            )
+        if routine_id in ya_hechas:
+            raise Conflict(f"La rutina '{elegida[1]}' ya está registrada el {day.isoformat()}")
+        return elegida
+
+    pendientes = [r for r in programadas if r[0] not in ya_hechas]
+    if not pendientes:
+        raise Conflict(f"El {day.isoformat()} ya tiene registradas todas sus rutinas")
+    if len(pendientes) > 1:
+        nombres = ", ".join(f"{rid} ({nombre})" for rid, nombre in pendientes)
+        raise Invalid(
+            f"El {day.isoformat()} tiene más de una rutina sin registrar. "
+            f"Indica cuál con 'routine_id': {nombres}"
+        )
+    return pendientes[0]
+
+
 def log_as_planned(
     conn: sqlite3.Connection,
     day: Date,
     *,
+    routine_id: int | None = None,
     today: Date | None = None,
     status: SessionStatus = SessionStatus.COMPLETED,
     perceived_effort: int | None = None,
@@ -202,16 +254,8 @@ def log_as_planned(
         if existing is not None:
             return existing
 
-    scheduled = planning.scheduled_routine(conn, day)
-    if scheduled is None:
-        raise Invalid(
-            f"El {day.isoformat()} no tenía ninguna rutina programada; "
-            "usa el registro libre para anotar un entrenamiento extra"
-        )
-    if history.session_on(conn, day) is not None:
-        raise Conflict(f"El {day.isoformat()} ya tiene un entrenamiento registrado")
-
-    version_id = planning.version_at(conn, scheduled[0], day)
+    elegida = _rutina_del_dia(conn, day, routine_id)
+    version_id = planning.version_at(conn, elegida[0], day)
     plan = planning.load_exercises(conn, version_id)
 
     performed = tuple(
@@ -250,7 +294,7 @@ def log_as_planned(
         conn,
         actor=actor,
         action="log_as_planned",
-        payload={"date": day.isoformat(), "routine_id": scheduled[0], "session_id": session_id},
+        payload={"date": day.isoformat(), "routine_id": elegida[0], "session_id": session_id},
     )
     conn.commit()
     return history.get_session(conn, session_id)
@@ -281,11 +325,16 @@ def log_session(
 
     if status is not SessionStatus.SKIPPED and not exercises:
         raise Invalid("Un entrenamiento registrado necesita al menos un ejercicio")
-    if history.session_on(conn, day) is not None:
-        raise Conflict(f"El {day.isoformat()} ya tiene un entrenamiento registrado")
 
-    scheduled = planning.scheduled_routine(conn, day)
-    target_routine = routine_id or (scheduled[0] if scheduled else None)
+    # El registro libre no comprueba si el día ya tiene algo: entrenar dos
+    # veces el mismo día es normal —calistenia por la mañana, pesas por la
+    # tarde— y bloquearlo obligaría a mentir juntándolo todo en una sesión.
+    scheduled = planning.scheduled_routines(conn, day)
+    ya_hechas = {s.routine_id for s in history.sessions_on(conn, day)}
+    pendientes = [r for r in scheduled if r[0] not in ya_hechas]
+    # Sin rutina indicada se asocia a la primera del día que quede por hacer;
+    # si no queda ninguna, es un entrenamiento extra y así se registra.
+    target_routine = routine_id or (pendientes[0][0] if pendientes else None)
 
     version_id = None
     origin = SessionOrigin.ADHOC
