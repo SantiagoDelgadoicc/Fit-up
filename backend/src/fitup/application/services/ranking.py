@@ -1,7 +1,7 @@
 """Casos de uso del ranking muscular.
 
 Orquesta tres piezas puras que ya existían —``metrics/load``,
-``ranking/v1`` y ``ranking/balance``— y añade lo único que no puede vivir en
+``ranking/v2`` y ``ranking/balance``— y añade lo único que no puede vivir en
 el dominio: leer historial, resolver la calibración y guardar los snapshots.
 
 El principio que gobierna el módulo es el de ADR-0003: el rango mide
@@ -17,9 +17,8 @@ from datetime import timedelta
 
 from ...domain.enums import Tier
 from ...domain.ranking.balance import check_balance
-from ...domain.ranking.calibration import DEFAULT_REFERENCE_RATIO, REFERENCE_RATIO
 from ...domain.ranking.tiers import next_tier
-from ...domain.ranking.v1 import (
+from ...domain.ranking.v2 import (
     ACTIVITY_WINDOW_DAYS,
     DEVELOPMENT_WINDOW_DAYS,
     FORMULA_VERSION,
@@ -40,8 +39,9 @@ from ..views import (
 from . import metrics
 
 #: Clave de ajustes con la que sobrescribir la calibración sin tocar código
-#: (ADR-0003: umbrales editables en configuración).
-REFERENCE_SETTING = "ranking_reference_ratio"
+#: (ADR-0003: umbrales editables en configuración). Las escaleras por ejercicio
+#: viven en ``domain.ranking.standards``; aquí solo queda el objetivo de
+#: volumen, que es lo único que la fórmula v2 sigue tomando de configuración.
 TARGET_VOLUME_SETTING = "ranking_volumen_semanal_objetivo"
 
 #: Cada cuánto se guarda un punto del histórico. Semanal: el desarrollo se
@@ -55,25 +55,11 @@ QUARTER_WINDOW_DAYS = 90
 
 
 def load_config(conn: sqlite3.Connection) -> RankingConfig:
-    """Calibración vigente: la tabla del dominio, con lo que ajuste el usuario."""
-    override = history.get_setting(conn, REFERENCE_SETTING, {}) or {}
-    ratios = dict(REFERENCE_RATIO)
-    if isinstance(override, dict):
-        # Solo números positivos: un valor a cero o negativo dividiría la
-        # escala por cero y produciría rangos absurdos.
-        ratios.update(
-            {k: float(v) for k, v in override.items() if isinstance(v, int | float) and v > 0}
-        )
-
+    """Calibración vigente: la de la fórmula, con lo que ajuste el usuario."""
     target = history.get_setting(conn, TARGET_VOLUME_SETTING)
-    config = RankingConfig(reference_ratio=ratios, default_reference_ratio=DEFAULT_REFERENCE_RATIO)
     if isinstance(target, int | float) and target > 0:
-        config = RankingConfig(
-            reference_ratio=ratios,
-            default_reference_ratio=DEFAULT_REFERENCE_RATIO,
-            target_weekly_volume_kg=float(target),
-        )
-    return config
+        return RankingConfig(target_weekly_volume_kg=float(target))
+    return RankingConfig()
 
 
 def _events(
@@ -97,7 +83,6 @@ def compute_scores(
             muscle.slug,
             by_muscle.get(muscle.slug, []),
             today=today,
-            bodyweight_kg=bodyweight,
             config=config,
         )
         for muscle in catalog.list_muscles(conn)
@@ -139,11 +124,13 @@ def _notes(data, *, bodyweight: float | None, measured: int) -> tuple[str, ...]:
     """Qué impide medir mejor. Se dice; no se disimula con un cero."""
     notes: list[str] = []
     if bodyweight is None:
+        # Ya no bloquea el rango —las escaleras están en repeticiones—, pero sí
+        # el volumen de los ejercicios corporales, que es la mitad del halo.
         notes.append(
-            "Sin peso corporal registrado no puede normalizarse la fuerza y ningún "
-            "músculo obtiene rango. Anótalo en Ajustes y el mapa se completa"
+            "Sin peso corporal registrado no puede calcularse el volumen de los "
+            "ejercicios de peso corporal: el rango funciona, la actividad no"
         )
-    elif measured == 0:
+    if measured == 0:
         notes.append(
             "Todavía no hay series registradas que permitan estimar fuerza: "
             "el rango aparece cuando entrenes con repeticiones y carga anotadas"
@@ -168,11 +155,8 @@ def muscle_detail(
     config = load_config(conn)
     by_muscle, _ = _events(conn, today=today)
     events = by_muscle.get(muscle_slug, [])
-    bodyweight = history.bodyweight_at(conn, today)
 
-    score = compute_muscle_score(
-        muscle_slug, events, today=today, bodyweight_kg=bodyweight, config=config
-    )
+    score = compute_muscle_score(muscle_slug, events, today=today, config=config)
     entry = MuscleRankingEntry(
         muscle_slug=muscle.slug,
         name=muscle.name,
@@ -216,8 +200,8 @@ def _contributions(
     for e in events:
         volume[e.exercise_slug] = volume.get(e.exercise_slug, 0.0) + e.volume_kg * e.role_factor
         factor[e.exercise_slug] = e.role_factor
-        if e.e1rm_kg is not None:
-            best[e.exercise_slug] = max(best.get(e.exercise_slug, 0.0), e.e1rm_kg)
+        if e.mark is not None:
+            best[e.exercise_slug] = max(best.get(e.exercise_slug, 0.0), e.mark)
         if e.date > last.get(e.exercise_slug, Date.min):
             last[e.exercise_slug] = e.date
 
@@ -228,7 +212,7 @@ def _contributions(
             role=roles.get(factor[slug], "desconocido"),
             role_factor=factor[slug],
             volume_kg=round(total, 1),
-            best_e1rm_kg=round(best[slug], 1) if slug in best else None,
+            best_mark=round(best[slug], 1) if slug in best else None,
             last_date=last.get(slug),
         )
         for slug, total in sorted(volume.items(), key=lambda kv: kv[1], reverse=True)

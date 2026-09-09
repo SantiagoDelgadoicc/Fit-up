@@ -40,7 +40,7 @@ def test_el_ranking_devuelve_los_dieciocho_musculos_con_o_sin_datos(client):
 
     assert len(body["entries"]) == 18
     assert body["provisional"] is True
-    assert body["formula_version"] == "v1"
+    assert body["formula_version"] == "v2"
 
 
 def test_un_musculo_sin_rango_llega_como_null_y_no_como_cero(client):
@@ -58,7 +58,8 @@ def test_sin_peso_corporal_la_respuesta_explica_que_falta(client, routine):
     body = client.get("/api/ranking").json()
 
     assert body["bodyweight_kg"] is None
-    assert body["measured"] == 0
+    # v2 mide repeticiones, no kilos: el rango sale igual sin peso corporal.
+    assert body["measured"] > 0
     assert any("peso corporal" in n for n in body["notes"])
 
 
@@ -89,7 +90,9 @@ def test_la_ficha_de_un_musculo_explica_de_donde_sale_el_rango(client, routine):
     body = client.get("/api/ranking/pectoral").json()
 
     assert body["muscle"]["muscle_slug"] == "pectoral"
-    assert body["factors"]["mejor_1rm_equivalente_kg"] > 0
+    assert body["factors"]["marca_confirmada"] > 0
+    assert body["muscle"]["leading_exercise"]
+    assert body["muscle"]["next_mark"]
     assert body["points_to_next_tier"] is not None
     assert [e["exercise_slug"] for e in body["exercises"]]
     assert body["recent"]["sessions"] == 2

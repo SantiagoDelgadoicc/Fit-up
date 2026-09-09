@@ -18,7 +18,7 @@ from fitup.application.services import ranking as svc
 from fitup.application.services import training as training_svc
 from fitup.domain.enums import SessionStatus, Tier
 from fitup.domain.models import PerformedExercise, PerformedSet
-from fitup.domain.ranking.v1 import FORMULA_VERSION
+from fitup.domain.ranking.v2 import FORMULA_VERSION
 
 TODAY = date(2026, 3, 15)
 MONDAY = date(2026, 3, 9)
@@ -47,13 +47,18 @@ def entry(view, slug):
 # --------------------------------------------------------------------------
 
 
-def test_sin_peso_corporal_no_hay_rango_y_se_explica_por_que(db, weekly):
-    """El dominio no inventa el peso y la vista tiene que decirlo, no callarlo."""
+def test_sin_peso_corporal_sigue_habiendo_rango_pero_no_volumen(db, weekly):
+    """Cambio de v1 a v2: la escalera está en repeticiones, no en kilos.
+
+    v1 no podía normalizar la fuerza sin peso corporal y dejaba el mapa entero
+    en blanco. v2 mide marcas, así que el rango aparece igual; lo que sí se
+    pierde es el volumen de los ejercicios corporales, y eso se dice.
+    """
     entrenar(db, MONDAY, WEDNESDAY)
     view = svc.ranking(db, today=TODAY)
 
-    assert view.measured == 0
-    assert all(e.tier is Tier.SIN_DATOS for e in view.entries)
+    assert view.measured > 0
+    assert any(e.tier is not Tier.SIN_DATOS for e in view.entries)
     assert any("peso corporal" in n for n in view.notes)
 
 
@@ -151,25 +156,29 @@ def test_la_calibracion_deja_a_un_principiante_en_la_parte_baja_de_la_escalera(c
 
 
 def test_los_ajustes_pueden_recalibrar_sin_tocar_el_codigo(con_peso, weekly):
-    """ADR-0003: umbrales absolutos, editables en configuración."""
-    entrenar(con_peso, MONDAY, WEDNESDAY)
-    base = entry(svc.ranking(con_peso, today=TODAY), "pectoral").development
+    """ADR-0003: umbrales editables en configuración.
 
-    history_repo.set_setting(con_peso, svc.REFERENCE_SETTING, {"pectoral": 1.0})
+    En v2 las escaleras de rango viven en el dominio, y lo que queda ajustable
+    es el objetivo de volumen semanal, que gobierna el halo de actividad.
+    """
+    entrenar(con_peso, MONDAY, WEDNESDAY)
+    base = entry(svc.ranking(con_peso, today=TODAY), "pectoral").score.activity
+
+    history_repo.set_setting(con_peso, svc.TARGET_VOLUME_SETTING, 500.0)
     con_peso.commit()
-    ajustado = entry(svc.ranking(con_peso, today=TODAY), "pectoral").development
+    ajustado = entry(svc.ranking(con_peso, today=TODAY), "pectoral").score.activity
 
     assert ajustado > base
 
 
-def test_una_referencia_invalida_se_ignora_en_vez_de_romper_la_escala(con_peso, weekly):
+def test_un_objetivo_invalido_se_ignora_en_vez_de_romper_la_escala(con_peso, weekly):
     entrenar(con_peso, MONDAY, WEDNESDAY)
-    base = entry(svc.ranking(con_peso, today=TODAY), "pectoral").development
+    base = entry(svc.ranking(con_peso, today=TODAY), "pectoral").score.activity
 
-    history_repo.set_setting(con_peso, svc.REFERENCE_SETTING, {"pectoral": 0, "biceps": -3})
+    history_repo.set_setting(con_peso, svc.TARGET_VOLUME_SETTING, -5)
     con_peso.commit()
 
-    assert entry(svc.ranking(con_peso, today=TODAY), "pectoral").development == base
+    assert entry(svc.ranking(con_peso, today=TODAY), "pectoral").score.activity == base
 
 
 # --------------------------------------------------------------------------
@@ -181,9 +190,13 @@ def test_la_ficha_explica_de_donde_sale_el_rango(con_peso, weekly):
     entrenar(con_peso, MONDAY, WEDNESDAY)
     detail = svc.muscle_detail(con_peso, "pectoral", today=TODAY)
 
-    assert detail.entry.score.factors["mejor_1rm_equivalente_kg"] > 0
+    assert detail.entry.score.factors["marca_confirmada"] > 0
+    assert detail.entry.score.factors["puntuación_del_ejercicio"] > 0
     assert detail.points_to_next_tier is not None
     assert detail.next_tier is not None
+    # Lo accionable: qué ejercicio manda y qué marca desbloquea el siguiente.
+    assert detail.entry.score.leading_exercise
+    assert detail.entry.score.next_mark
     assert [e.exercise_slug for e in detail.exercises]
     assert detail.exercises[0].role in ("primario", "secundario", "estabilizador")
 

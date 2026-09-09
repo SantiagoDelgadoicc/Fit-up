@@ -3706,7 +3706,7 @@
             "type": "number",
             "title": "Volume Kg"
           },
-          "best_e1rm_kg": {
+          "best_mark": {
             "anyOf": [
               {
                 "type": "number"
@@ -3715,7 +3715,7 @@
                 "type": "null"
               }
             ],
-            "title": "Best E1Rm Kg"
+            "title": "Best Mark"
           },
           "last_date": {
             "anyOf": [
@@ -3849,6 +3849,17 @@
               }
             ],
             "title": "E1Rm Kg"
+          },
+          "mark": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mark"
           }
         },
         "type": "object",
@@ -4252,6 +4263,39 @@
               }
             ],
             "title": "Points To Next Tier"
+          },
+          "leading_exercise": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leading Exercise"
+          },
+          "leading_mark": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leading Mark"
+          },
+          "next_mark": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Mark"
           },
           "notes": {
             "items": {

@@ -200,6 +200,16 @@ def seed(conn: sqlite3.Connection, directory: Path | None = None) -> SeedReport:
         )
         n_exercises += cur.rowcount
 
+        # La regla por defecto sí se actualiza sobre un ejercicio que ya
+        # existía. Es calibración del catálogo, no historial: la regla que
+        # prohíbe el UPDATE protege las **versiones de rutina** ya ejecutadas,
+        # y esas no se tocan (una rutina que fijó su regla la conserva). Sin
+        # esto, recalibrar la sobrecarga solo llegaría a instalaciones nuevas.
+        conn.execute(
+            "UPDATE exercise SET default_rule_id = ? WHERE slug = ? AND is_custom = 0",
+            (rule_ids.get(e.get("default_rule")), e["slug"]),
+        )
+
     exercise_ids = _slug_ids(conn, "exercise")
 
     # Segunda pasada: cadenas de variantes y vínculos musculares.

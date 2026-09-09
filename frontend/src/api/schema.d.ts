@@ -850,8 +850,8 @@ export interface components {
             role_factor: number;
             /** Volume Kg */
             volume_kg: number;
-            /** Best E1Rm Kg */
-            best_e1rm_kg?: number | null;
+            /** Best Mark */
+            best_mark?: number | null;
             /** Last Date */
             last_date?: string | null;
         };
@@ -896,6 +896,8 @@ export interface components {
             sets: number;
             /** E1Rm Kg */
             e1rm_kg?: number | null;
+            /** Mark */
+            mark?: number | null;
         };
         /** ExerciseProgressOut */
         ExerciseProgressOut: {
@@ -1034,6 +1036,12 @@ export interface components {
             days_since_stimulus?: number | null;
             /** Points To Next Tier */
             points_to_next_tier?: number | null;
+            /** Leading Exercise */
+            leading_exercise?: string | null;
+            /** Leading Mark */
+            leading_mark?: number | null;
+            /** Next Mark */
+            next_mark?: number | null;
             /**
              * Notes
              * @default []

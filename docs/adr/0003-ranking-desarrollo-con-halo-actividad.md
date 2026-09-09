@@ -24,3 +24,34 @@ Cantidad de entrenamiento y desarrollo muscular no son equivalentes. Un rango qu
 - Requiere `peso_corporal` (con historial) y `load_factor` por ejercicio para normalizar calistenia e isométricos a kg-equivalentes.
 - Los umbrales absolutos requieren una tabla de referencia curada, que se documenta como **aproximación editable**, nunca como verdad objetiva.
 - Los tests del ranking son golden tests con fixtures versionados por `formula_version`.
+
+## Actualización (2026-09-08) — cómo se mide el Desarrollo, fórmula v2
+
+La decisión de fondo **no cambia**: el rango sigue siendo Desarrollo, la Actividad sigue
+siendo el halo, y la fórmula sigue siendo versionada y pura. Lo que cambia es la forma de
+medir el Desarrollo, y la propia ADR ya lo contemplaba al versionar la fórmula.
+
+**Qué falló en v1.** «Mejores marcas normalizadas (e1RM-equivalente)» daba por buena la
+extrapolación de Epley fuera de su rango válido (~12 repeticiones). Con series largas de
+calistenia —30 y 100 repeticiones— multiplicaba la carga por 2 y por 4,3, y tres músculos
+alcanzaron Radiant con dos días de registro. El sistema medía resistencia y la presentaba
+como fuerza.
+
+**Qué se sustituye.**
+
+- «Mejores marcas normalizadas (e1RM-equivalente)» → **mejor serie única del ejercicio, en
+  sus propias unidades** (repeticiones o segundos), comparada con la escalera de ese
+  ejercicio (`domain/ranking/standards.py`).
+- «Umbrales absolutos anclados al peso corporal, editables en configuración» → **umbrales
+  absolutos por ejercicio**, en el dominio. Dejan de ser editables desde ajustes: son
+  calibración de la fórmula, viajan con `formula_version` y cambiarlos debe recalcular. Lo
+  que sigue siendo editable es el objetivo de volumen semanal, que gobierna la Actividad.
+- «`bonus_progresión`» → **el trinquete**. Progresar sube el rango porque mueve la marca en
+  la escalera; no hace falta un término aparte que premie mejorar. Y una marca solo cuenta
+  cuando se ha repetido en dos sesiones, el mismo criterio que el motor de progresión.
+- Nuevo: **techo por ejercicio** (`max_tier`). Un ejercicio ligero no puede dar rango alto
+  por muchas repeticiones que se acumulen.
+
+**Consecuencia práctica.** El rango deja de requerir `peso_corporal`: sin él se pierde el
+volumen —y por tanto el halo—, pero el mapa ya no queda en blanco. `load_factor` sigue
+haciendo falta para el volumen y para valorar el lastre.

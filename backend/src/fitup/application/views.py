@@ -15,7 +15,7 @@ from ..domain.compliance.day_state import DayVerdict
 from ..domain.enums import DayState, ProgressionOutcome, SessionOrigin, SessionStatus, Tier
 from ..domain.models import PerformedExercise, PlannedExercise, PlannedSet
 from ..domain.ranking.balance import BalanceCheck
-from ..domain.ranking.v1 import MuscleScore
+from ..domain.ranking.v2 import MuscleScore
 
 
 @dataclass(frozen=True, slots=True)
@@ -288,6 +288,9 @@ class ExerciseStimulus:
     volume_kg: float
     e1rm_kg: float | None
     sets: int
+    #: Mejor serie única del día en las unidades de la escalera del ejercicio
+    #: (repeticiones o segundos). Es lo que alimenta el rango en la fórmula v2.
+    mark: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -381,7 +384,9 @@ class ExerciseContribution:
     role: str
     role_factor: float
     volume_kg: float
-    best_e1rm_kg: float | None = None
+    #: Mejor marca confirmada en este ejercicio, en las unidades de su
+    #: escalera: repeticiones, o segundos si es isométrico.
+    best_mark: float | None = None
     last_date: Date | None = None
 
 

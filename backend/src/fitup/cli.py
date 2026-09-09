@@ -41,6 +41,62 @@ def cmd_init(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def cmd_reglas(args: argparse.Namespace) -> int:
+    """Repunta las rutinas a la regla de sobrecarga que declara el catálogo.
+
+    Existe porque la regla se copia dentro de la versión de rutina cuando se
+    crea: recalibrar el catálogo no alcanza a lo ya planificado. Y como una
+    versión ya ejecutada no se muta (regla R2), reasignar significa **crear una
+    versión nueva**, que es exactamente lo que hace esto —auditado y con la
+    anterior intacta—. Sin `--aplicar` solo enseña lo que cambiaría.
+    """
+    from .application.repositories import catalog as catalog_repo
+    from .application.services import planning
+
+    conn = connection.connect(args.db)
+    try:
+        defaults = {e.slug: e.default_rule_slug for e in catalog_repo.list_exercises(conn)}
+        total = 0
+        for summary in planning.list_routines(conn):
+            detail = planning.get_routine(conn, summary.id)
+            cambios = [
+                (e.exercise_slug, e.rule_slug, defaults.get(e.exercise_slug))
+                for e in detail.exercises
+                if defaults.get(e.exercise_slug) and e.rule_slug != defaults.get(e.exercise_slug)
+            ]
+            if not cambios:
+                continue
+            print(f"  {detail.name} (v{detail.version_no}):")
+            for slug, antes, despues in cambios:
+                # Sin flechas ni guiones largos: la consola de Windows va en
+                # cp1252 y un UnicodeEncodeError aqui tumbaria el comando.
+                print(f"    {slug:28} {antes or 'sin regla'} -> {despues}")
+            total += len(cambios)
+
+            if args.aplicar:
+                from dataclasses import replace
+
+                planning.update_routine(
+                    conn,
+                    summary.id,
+                    exercises=[
+                        replace(e, rule_slug=defaults.get(e.exercise_slug) or e.rule_slug)
+                        for e in detail.exercises
+                    ],
+                    note="Reglas de sobrecarga alineadas con las escaleras de rango",
+                )
+
+        if total == 0:
+            print("  todas las rutinas ya usan la regla del catálogo")
+        elif args.aplicar:
+            print(f"OK · {total} ejercicio(s) repuntado(s), en versiones nuevas")
+        else:
+            print(f"  {total} ejercicio(s) cambiarían. Repite con --aplicar para hacerlo")
+        return 0
+    finally:
+        conn.close()
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     """Verifica integridad, versión de esquema y coherencia del catálogo."""
     catalog.validate()
@@ -160,6 +216,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("init", help="crear/actualizar la base de datos y sembrar el catálogo")
     sub.add_parser("check", help="verificar integridad y coherencia")
 
+    reglas = sub.add_parser("reglas", help="alinear la sobrecarga de las rutinas con el catálogo")
+    reglas.add_argument(
+        "--aplicar", action="store_true", help="crear las versiones nuevas de verdad"
+    )
+
     export = sub.add_parser("export", help="volcar todos los datos a un JSON")
     export.add_argument("--salida", default="data/export.json", help="fichero de destino")
 
@@ -182,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     handler = {
         "init": cmd_init,
         "check": cmd_check,
+        "reglas": cmd_reglas,
         "export": cmd_export,
         "serve": cmd_serve,
         "mcp": cmd_mcp,

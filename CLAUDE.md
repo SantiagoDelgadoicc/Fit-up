@@ -40,6 +40,8 @@ python -m pytest --cov --cov-report=term-missing
 python -m ruff check . && python -m ruff format .
 python -m fitup.cli init            # crear/actualizar BD y sembrar catálogo
 python -m fitup.cli check           # integridad + coherencia del catálogo
+python -m fitup.cli reglas          # ver qué rutinas no usan la regla del catálogo
+python -m fitup.cli reglas --aplicar  # repuntarlas, creando versión nueva
 python -m fitup.cli serve           # API + PWA en 127.0.0.1:8000
 python -m fitup.cli serve --abrir   # además abre el navegador al estar listo
 python -m fitup.cli serve --lan     # accesible desde el móvil, con token
@@ -78,7 +80,7 @@ backend/src/fitup/
     metrics/load.py normalización de carga a kg equivalentes, volumen, e1RM
     compliance/     máquina de estados del día (7 estados)
     progression/    motor de sobrecarga progresiva (propone; nunca aplica ni inventa)
-    ranking/        tiers + fórmula v1 (versionada)
+    ranking/        tiers + escaleras por ejercicio + fórmula v2 (versionada)
   infrastructure/
     db/             conexión, migrador, migrations/*.sql
     seed/           catálogo JSON + cargador idempotente
@@ -140,6 +142,27 @@ Una serie se prescribe de tres formas y solo tres: **repeticiones**, **tiempo** 
 fallo** (`to_failure`). Al fallo no lleva `target_reps` — o se llega al fallo, o se llega
 al número — y el `CHECK` del esquema lo impide. Rellenar un objetivo estimado para que
 "cuadre" es inventar el plan.
+
+### Ranking
+
+El rango sale de **la marca real de cada ejercicio comparada con su propia escalera**
+(`domain/ranking/standards.py`), no de un 1RM estimado. Cuatro reglas:
+
+1. **Nada se convierte en kilos.** 30 dominadas son 30 dominadas. La fórmula v1
+   estimaba un 1RM con Epley y, fuera de su rango válido (~12 reps), multiplicaba la
+   carga por 2 a 30 repeticiones y por 4,3 a 100: producía Radiant con dos días de
+   registro. **No reintroduzcas esa conversión.** `epley_1rm` sigue existiendo como
+   estadística de la ficha de ejercicio y no debe volver al ranking.
+2. **Cuenta la mejor serie única, confirmada en dos sesiones.** Acumular volumen no
+   sustituye a demostrar capacidad, y un día bueno suelto no sube el rango.
+3. **Cada ejercicio declara su techo** (`max_tier`). Un ejercicio ligero no puede dar
+   rango alto por muchas repeticiones que se hagan.
+4. **La escalera de un ejercicio nuevo es la genérica**, marcada `provisional` y con
+   techo Gold. Calibrar es añadir una entrada a `STANDARDS`, no tocar la fórmula.
+
+La regla de sobrecarga de un ejercicio debe apuntar al mismo sitio que su escalera: si
+la escalera llega a 150 repeticiones, la regla es `reps_hasta_150`. Plan y ranking
+midiendo con varas distintas es un error, no una opción.
 
 ### Catálogo
 

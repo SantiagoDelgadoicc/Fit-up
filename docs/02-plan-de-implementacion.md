@@ -215,6 +215,10 @@ poder responder «¿por qué este rango?» sin salir de la pantalla. ✅ Verific
 
 Sin migraciones: `muscle_score_snapshot` y la fórmula `ranking/v1` estaban desde F0.
 
+> **Superado por Fit-Up 2.0** (más abajo): la calibración por `reference_ratio` sobre
+> e1RM se retiró. Lo de esta sección se conserva como registro de lo que se hizo en F4
+> y de por qué no funcionó.
+
 **Resuelto después:** el dibujo geométrico se sustituyó por una silueta anatómica
 (M11, ver más abajo). El contrato aguantó: solo cambiaron las formas.
 
@@ -437,6 +441,65 @@ Registrar «de un toque» una rutina con series al fallo anota la serie **sin
 repeticiones**: el sistema no puede saber cuántas se hicieron. Aparece como `?` en el
 historial hasta que se edite. Es honesto —no se inventa el dato— pero incómodo, y la
 edición de series registradas todavía no existe.
+
+---
+
+## Fit-Up 2.0 — el rango se mide en repeticiones
+
+**Objetivo:** que el ranking refleje lo que de verdad pasa en una rutina de
+calistenia estable, y que Radiant sea un objetivo de años.
+**Criterio de aceptación:** con las marcas actuales, ningún músculo por encima
+de Oro; y cada músculo dice qué marca concreta desbloquea el siguiente rango.
+✅ Verificado en la app real.
+
+- [x] `domain/ranking/standards.py`: escalera de rangos por ejercicio, con techo
+- [x] `domain/ranking/v2.py`: desarrollo por marca confirmada, con trinquete
+- [x] `domain/metrics/load.set_mark`: marca de una serie, sin conversión a kilos
+- [x] Retirados `ranking/v1.py` y `ranking/calibration.py`
+- [x] Reglas de sobrecarga por repeticiones hasta el techo de cada ejercicio
+- [x] `fitup reglas [--aplicar]`: repunta las rutinas creando versión nueva
+- [x] Ficha de músculo: «siguiente hito» con la marca concreta, no puntos
+
+Sin migraciones: el esquema no cambia. Los snapshots de v1 quedan marcados con
+su versión y la ficha solo grafica los de la vigente, así que no se mezclan
+escalas.
+
+### El problema que lo motivó
+
+Dos días de registro y tres músculos en Radiant. La causa no eran los umbrales
+sino **Epley fuera de su rango válido**: `carga × (1 + reps/30)` multiplica por
+2 a 30 repeticiones y por 4,3 a 100. Unas dominadas a 30 repeticiones con 60 kg
+de peso corporal se convertían en «un 1RM de 120 kg» —2× el peso corporal— y
+tocaban el techo de la escala. El sistema medía resistencia y la llamaba fuerza.
+
+### Decisiones aplicadas
+
+- **La marca no se convierte en nada.** 30 dominadas se comparan con la escalera
+  de las dominadas. Desaparecen Epley, `reference_ratio` y la normalización por
+  peso corporal, y con ellos el artefacto entero.
+- **La rutina no cambia.** Se descartó hacer que el rango dependiera de subir de
+  variante: obligaría a cambiar de ejercicio cada pocas semanas y rompería la
+  serie histórica, que es lo que hace útil el registro.
+- **Techo por ejercicio.** Crunch llega a Silver, saltos de cuerda a Bronze,
+  dominadas a Radiant. Sin esto, 300 crunches darían un core de élite.
+- **Trinquete de constancia.** Una marca cuenta cuando se ha repetido en dos
+  sesiones. Es el mismo criterio que ya usaba el motor de progresión.
+- **Subir peso nunca baja el rango.** En carga externa la escalera se define a un
+  peso de referencia y usar más peso multiplica la marca. Si el ejercicio no
+  está calibrado, la referencia es el primer peso que registró el usuario: su
+  propia marca, no una inventada.
+- **El rango ya no depende del peso corporal.** En v1, sin peso anotado el mapa
+  entero quedaba en blanco. Ahora solo se pierde el volumen —el halo—, y se dice.
+- **La sobrecarga apunta donde apunta el rango**: repeticiones por serie hasta el
+  techo del ejercicio, en vez de añadir series. Plan y ranking dejan de medir con
+  varas distintas.
+
+### Pendiente conocido
+
+Los umbrales siguen siendo provisionales (D9). Están calibrados para que las
+marcas de hoy caigan en Oro o por debajo, con Radiant a años vista; validarlos
+necesita historial. Y los ejercicios sin escalera propia usan una genérica que
+se declara provisional y no puede dar rango alto.
 
 ---
 

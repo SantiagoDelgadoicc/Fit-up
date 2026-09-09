@@ -298,6 +298,19 @@ export function useExerciseNames(): (slug: string) => string {
     slug.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 }
 
+/**
+ * Unidad de la marca de un ejercicio: repeticiones o segundos.
+ *
+ * Sale de la modalidad del catálogo en vez de viajar en la respuesta del
+ * ranking: el dato ya está cargado y ensanchar el contrato por una palabra
+ * sería duplicarlo.
+ */
+export function useMarkUnits(): (slug: string) => string {
+  const { data } = useExercises();
+  return (slug: string) =>
+    data?.find((e) => e.slug === slug)?.modality === "tiempo" ? "segundos" : "repeticiones";
+}
+
 // --------------------------------------------------------------------------
 // Progresión
 // --------------------------------------------------------------------------

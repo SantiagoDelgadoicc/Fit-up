@@ -33,4 +33,4 @@
 | D5 | ¿Bandeja de propuestas para el agente (`AgentProposal`)? | Sigue abierta. F6 dejó la superficie lista (actor, permisos, auditoría, copia previa al lote) sin decidirla: depende de si las propuestas del agente aciertan, y eso solo se sabe usándolo |
 | D6 | ¿Registro offline desde el móvil con cola y sincronización? | F7, si el uso real lo justifica |
 | D7 | ¿Ciclos rotativos A/B/C además de semana fija? | Cuando lo necesites; el esquema ya lo contempla |
-| D9 | Validar la calibración de `reference_ratio` con datos reales | Sigue abierta: F4 dejó una tabla provisional razonada y editable desde ajustes (`ranking_reference_ratio`); confirmarla necesita meses de historial |
+| D9 | Validar la calibración del ranking con datos reales | Sigue abierta, pero replanteada: v1 (`reference_ratio` sobre e1RM de Epley) se retiró tras dar tres Radiant con dos días de registro. v2 usa escaleras de repeticiones por ejercicio (`domain/ranking/standards.py`), calibradas para que las marcas actuales caigan en Oro o por debajo. Confirmarlas necesita meses de historial |

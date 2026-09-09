@@ -17,7 +17,7 @@ from ...application.repositories import catalog, history
 from ...application.services import metrics
 from ...application.services import ranking as svc
 from ...domain.enums import Actor
-from ...domain.ranking.v1 import DEVELOPMENT_WINDOW_DAYS
+from ...domain.ranking.v2 import DEVELOPMENT_WINDOW_DAYS
 from .. import mappers, schemas
 from ..agent import actor_header
 from ..deps import get_db

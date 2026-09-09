@@ -221,38 +221,59 @@ Deshacer = nueva versión que revierte. Nunca se borra historia.
 **Propuesta:** el **rango Iron→Radiant representa Desarrollo** (lento, se gana y casi no se pierde: honesto y motivador). La **Actividad** se muestra como indicador secundario sobre el mismo músculo (halo: verde = estimulado esta semana, gris = sin estímulo reciente).
 Un solo mapa corporal comunica dos cosas distintas sin mezclarlas.
 
-### 6.2 Esbozo de fórmula v1 (versionada y editable)
+### 6.2 Fórmula v2 — escaleras por ejercicio
 
 ```
 Para cada músculo m:
   contribución(ejercicio→m) = factor_rol   (primario 1.0 / secundario 0.5 / estabilizador 0.2)
 
   CARGA(m)      = EWMA_28d( Σ volumen_efectivo(serie) × contribución )
-                  × f_frecuencia(sesiones/semana con estímulo en m)
-                  × f_consistencia(semanas consecutivas con estímulo)
 
-  DESARROLLO(m) = Σ_ejercicios( top3(e1RM_equivalente) × contribución ) normalizado
-                  × (1 + bonus_progresión)       # premia progresar, no solo acumular
-                  × decay(semanas_sin_estímulo)  # suave, con suelo
+  marca(e)      = mejor serie única del día, en las unidades del ejercicio
+                  (repeticiones, o segundos si es isométrico)
+  confirmada(e) = mejor marca alcanzada en 2 sesiones distintas   # trinquete
+  puntos(e)     = escalera(e).interpolar(confirmada) , topada por escalera(e).max_tier
+
+  DESARROLLO(m) = max_e( puntos(e) × contribución(e→m) ) × decay(días_sin_estímulo)
 
   RANGO(m)      = tier( DESARROLLO(m) )  →  Iron … Radiant
 ```
 
-- `e1RM_equivalente` con Epley sobre carga efectiva; para modalidad tiempo, equivalencia documentada.
-- `bonus_progresión` es lo que hace que el rango **suba al aplicar sobrecarga progresiva**, cumpliendo el requisito explícito.
-- `decay` con **suelo**: nunca se pierde más de 1 tier respecto al pico en 8 semanas. Descansar no debe castigar.
+- **La marca no se convierte en nada.** 30 dominadas son 30 dominadas, y se
+  comparan con la escalera de las dominadas (`domain/ranking/standards.py`).
+- **Cuenta la mejor serie, no la suma**: acumular volumen no sustituye a
+  demostrar capacidad.
+- **Trinquete de constancia**: una marca cuenta cuando se ha repetido. Mismo
+  criterio que `required_successful_sessions` del motor de progresión, para
+  que plan y rango no midan con varas distintas.
+- **Techo por ejercicio** (`max_tier`): los ligeros no pueden dar rango alto
+  por muchas repeticiones que se acumulen.
+- **Carga externa**: la escalera se define a un peso de referencia y usar más
+  peso multiplica la marca, así que subir carga nunca hace bajar de rango.
+- `decay` con **suelo**: nunca se pierde más de 1 tier. Descansar no castiga.
 - Músculo sin ejercicios asociados → **Sin datos** (gris), no Iron.
 
+**Por qué se retiró v1.** Estimaba un 1RM con Epley (`carga × (1 + reps/30)`)
+y lo comparaba con múltiplos del peso corporal. Fuera del rango válido de
+Epley (~12 repeticiones) la extrapolación multiplica por 2 a 30 reps y por 4,3
+a 100: con series largas de calistenia producía marcas de levantador olímpico,
+y tres músculos alcanzaron Radiant con dos días de registro. El problema no
+eran los umbrales, era convertir resistencia en fuerza. El e1RM se conserva
+como estadística en la ficha de ejercicio, pero ya no alimenta el rango.
+
 ### 6.3 Mapeo score → tier
-Resuelto en [ADR-0003](adr/0003-ranking-desarrollo-con-halo-actividad.md) e implementado en F4: **umbrales absolutos anclados al peso corporal**, con la tabla `reference_ratio` por músculo en `domain/ranking/calibration.py` y editable desde ajustes.
-La calibración es **provisional** (D9): el tope de la escala se fijó al doble de una marca de élite amateur para que la escalera tenga recorrido durante años, y se validará con historial real.
+Resuelto en [ADR-0003](adr/0003-ranking-desarrollo-con-halo-actividad.md) e implementado en F4, recalibrado en v2: **umbrales absolutos por ejercicio**, en la tabla `STANDARDS` de `domain/ranking/standards.py`.
+La calibración es **provisional** (D9): son estándares de calistenia razonados, no medidos. La diferencia con v1 es que ahora son discutibles mirando referencias publicadas, en vez de derivados de una regla inventada.
 
 ### 6.4 Explicabilidad (no negociable)
 Tocar un músculo abre: rango, score, los 3 factores que más aportan, ejercicios contribuyentes, sparkline del rango y **qué haría falta para el siguiente tier**.
 Sin esto el ranking es un número mágico, pierde credibilidad — y el agente de IA no puede razonar sobre él.
 
 ### 6.5 Versionado de fórmula
-`ranking/v1` puro + `formula_version` en config y en cada snapshot. v2 puede coexistir y recalcular todo el histórico desde el registro crudo.
+`ranking/v2` puro + `formula_version` en config y en cada snapshot. Los snapshots
+guardan la versión con la que se calcularon y la ficha de músculo solo grafica los
+de la versión vigente, así que una recalibración no mezcla escalas: los de v1
+quedan marcados y se ignoran.
 
 ---
 

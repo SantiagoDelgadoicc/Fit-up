@@ -103,6 +103,78 @@ def set_volume_kg(
     raise LoadUndeterminable(f"la modalidad '{exercise.modality}' aún no tiene modelo de volumen")
 
 
+def set_mark(
+    exercise: Exercise,
+    performed: PerformedSet,
+    *,
+    bodyweight_kg: float | None,
+    reference_weight_kg: float | None,
+) -> float | None:
+    """Marca de una serie, en las unidades de la escalera de su ejercicio.
+
+    Repeticiones para los ejercicios de reps, segundos para los isométricos.
+    Es el dato que consume el ranking v2: **no se convierte a kilos**, que es
+    justo lo que hacía v1 con Epley y lo que producía marcas imposibles en
+    series largas.
+
+    La carga sí entra, pero como multiplicador y solo cuando cambia respecto a
+    la referencia con la que se calibró la escalera: 20 repeticiones con 20 kg
+    valen más que 20 con 14,5. Así subir peso nunca hace bajar de rango.
+
+    Devuelve ``None`` cuando la serie no permite deducir una marca, en lugar
+    de suponer un valor.
+    """
+    if performed.is_warmup or not performed.completed:
+        return None
+
+    if exercise.modality is Modality.REPS:
+        base = float(performed.reps) if performed.reps else None
+    elif exercise.modality is Modality.TIEMPO:
+        base = float(performed.time_s) if performed.time_s else None
+    else:
+        # Distancia: sin escalera definida todavía. Se declara, no se aproxima.
+        return None
+
+    if base is None or base <= 0:
+        return None
+    return base * _mark_multiplier(
+        exercise,
+        weight_kg=performed.weight_kg,
+        bodyweight_kg=bodyweight_kg,
+        reference_weight_kg=reference_weight_kg,
+    )
+
+
+def _mark_multiplier(
+    exercise: Exercise,
+    *,
+    weight_kg: float | None,
+    bodyweight_kg: float | None,
+    reference_weight_kg: float | None,
+) -> float:
+    """Cuánto vale la carga de esta serie respecto a la de la escalera.
+
+    Vale 1.0 —la marca se toma tal cual— siempre que falte algún dato: es
+    preferible una marca conservadora a un multiplicador inventado.
+    """
+    if exercise.load_type is LoadType.EXTERNA:
+        if not weight_kg or not reference_weight_kg:
+            return 1.0
+        return weight_kg / reference_weight_kg
+
+    if exercise.load_type in (LoadType.CORPORAL, LoadType.ASISTIDA):
+        # Lastre y asistencia mueven la carga respecto al peso corporal puro,
+        # que es con el que se calibró la escalera.
+        if not weight_kg or not bodyweight_kg:
+            return 1.0
+        base = bodyweight_kg * exercise.load_factor
+        if base <= 0:
+            return 1.0
+        return max(0.0, (base + weight_kg) / base)
+
+    return 1.0
+
+
 def epley_1rm(load_kg: float, reps: int) -> float:
     """Estimación de 1RM por la fórmula de Epley.
 

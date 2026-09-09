@@ -187,17 +187,36 @@ def test_todo_musculo_del_mapa_tiene_algun_ejercicio(seeded):
     assert [r["slug"] for r in huerfanos] == []
 
 
-def test_todo_musculo_tiene_referencia_de_calibracion(seeded):
-    """Sin referencia propia, un músculo cae en el valor por defecto.
+def test_todo_ejercicio_del_catalogo_tiene_escalera_de_rango(seeded):
+    """Sin escalera propia un ejercicio cae en la genérica.
 
     Funciona, pero su rango deja de ser comparable con el de los demás, y eso
-    es justo lo que el mapa corporal invita a hacer de un vistazo.
+    es justo lo que el mapa corporal invita a hacer de un vistazo. Por eso la
+    genérica se declara provisional y no puede dar rango alto: un ejercicio
+    sin calibrar debe quedarse corto, nunca regalar Radiant.
     """
-    from fitup.domain.ranking.calibration import REFERENCE_RATIO
+    from fitup.domain.enums import Tier
+    from fitup.domain.ranking.standards import STANDARDS, standard_for
 
-    slugs = {r["slug"] for r in seeded.execute("SELECT slug FROM muscle_group").fetchall()}
-    assert slugs - set(REFERENCE_RATIO) == set()
-    assert all(v > 0 for v in REFERENCE_RATIO.values())
+    slugs = {r["slug"] for r in seeded.execute("SELECT slug FROM exercise").fetchall()}
+    assert set(STANDARDS) <= slugs, "hay escaleras de ejercicios que no existen"
+
+    for slug in slugs:
+        escalera = standard_for(slug)
+        if slug not in STANDARDS:
+            assert escalera.provisional
+            assert escalera.max_tier is not Tier.RADIANT
+
+
+def test_las_reglas_de_sobrecarga_del_catalogo_existen(seeded):
+    """Un `default_rule` que apunte a una regla inexistente dejaría el ejercicio
+    sin progresión y sin decir por qué."""
+    reglas = {r["slug"] for r in seeded.execute("SELECT slug FROM progression_rule").fetchall()}
+    huerfanos = seeded.execute(
+        "SELECT e.slug FROM exercise e WHERE e.default_rule_id IS NULL AND e.is_custom = 0"
+    ).fetchall()
+    assert [r["slug"] for r in huerfanos] == []
+    assert "reps_hasta_150" in reglas
 
 
 def test_los_ejercicios_de_peso_corporal_declaran_load_factor(seeded):

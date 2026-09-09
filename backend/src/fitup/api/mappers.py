@@ -240,6 +240,9 @@ def muscle_ranking_out(entry: MuscleRankingEntry) -> schemas.MuscleRankingOut:
         development=entry.development,
         days_since_stimulus=score.days_since_stimulus,
         points_to_next_tier=score.points_to_next_tier,
+        leading_exercise=score.leading_exercise,
+        leading_mark=score.leading_mark,
+        next_mark=score.next_mark,
         notes=list(score.notes),
     )
 
@@ -296,7 +299,7 @@ def muscle_detail_out(detail: MuscleDetail) -> schemas.MuscleDetailOut:
                 role=c.role,
                 role_factor=c.role_factor,
                 volume_kg=c.volume_kg,
-                best_e1rm_kg=c.best_e1rm_kg,
+                best_mark=c.best_mark,
                 last_date=c.last_date,
             )
             for c in detail.exercises
@@ -321,6 +324,7 @@ def exercise_progress_out(progress: ExerciseProgress) -> schemas.ExerciseProgres
                 volume_kg=round(p.volume_kg, 1),
                 sets=p.sets,
                 e1rm_kg=round(p.e1rm_kg, 1) if p.e1rm_kg is not None else None,
+                mark=round(p.mark, 1) if p.mark is not None else None,
             )
             for p in progress.points
         ],

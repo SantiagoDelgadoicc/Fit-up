@@ -442,6 +442,12 @@ class MuscleRankingOut(Model):
     development: float | None = None
     days_since_stimulus: int | None = None
     points_to_next_tier: float | None = None
+    #: Ejercicio que fija el rango, su mejor marca confirmada y qué hace falta
+    #: para el siguiente escalón. Es lo que convierte el rango en un objetivo
+    #: accionable en vez de un número: "te faltan 3 dominadas", no "12 puntos".
+    leading_exercise: str | None = None
+    leading_mark: float | None = None
+    next_mark: float | None = None
     notes: list[str] = []
 
 
@@ -483,7 +489,9 @@ class ExerciseContributionOut(Model):
     role: str
     role_factor: float
     volume_kg: float
-    best_e1rm_kg: float | None = None
+    #: Mejor marca confirmada, en las unidades de la escalera del ejercicio:
+    #: repeticiones, o segundos si es isométrico.
+    best_mark: float | None = None
     last_date: Date | None = None
 
 
@@ -511,6 +519,9 @@ class ExercisePointOut(Model):
     volume_kg: float
     sets: int
     e1rm_kg: float | None = None
+    #: Mejor serie única del día. El e1RM se conserva como estadística, pero
+    #: es esta marca la que alimenta el rango desde la fórmula v2.
+    mark: float | None = None
 
 
 class ExerciseProgressOut(Model):
