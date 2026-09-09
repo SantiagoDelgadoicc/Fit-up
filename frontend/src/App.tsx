@@ -2,6 +2,7 @@
 
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 
+import { SettingsBox } from "./components/SettingsBox";
 import { TimerPill } from "./components/timer";
 import { ToastProvider } from "./components/ui";
 import Body from "./pages/Body";
@@ -15,7 +16,7 @@ import Timer from "./pages/Timer";
 import Today from "./pages/Today";
 import Week from "./pages/Week";
 
-const TABS = [
+const TABS: { to: string; icon: string; label: string; end: boolean; soloMovil?: boolean }[] = [
   { to: "/", icon: "🏋️", label: "Hoy", end: true },
   { to: "/calendario", icon: "📅", label: "Calendario", end: false },
   { to: "/cuerpo", icon: "💪", label: "Cuerpo", end: false },
@@ -23,7 +24,9 @@ const TABS = [
   { to: "/rutinas", icon: "📋", label: "Rutinas", end: false },
   { to: "/semana", icon: "🗓️", label: "Semana", end: false },
   { to: "/historial", icon: "📖", label: "Historial", end: false },
-  { to: "/ajustes", icon: "⚙️", label: "Ajustes", end: false },
+  // En escritorio, Ajustes no es una pestaña: vive en la caja del pie
+  // (`SettingsBox`). En móvil no hay caja, así que la pestaña se queda.
+  { to: "/ajustes", icon: "⚙️", label: "Ajustes", end: false, soloMovil: true },
 ];
 
 /** Páginas que aprovechan el ancho de una pantalla de PC. */
@@ -38,13 +41,18 @@ export default function App() {
       <div className="app">
         <nav className="nav" aria-label="Navegación principal">
           <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              🏋️
-            </span>
+            {/* Decorativo: el nombre va escrito justo al lado y anunciarlo dos
+                veces solo estorba a quien usa lector de pantalla. */}
+            <span className="brand-mark" aria-hidden="true" />
             Fit-Up
           </div>
           {TABS.map((tab) => (
-            <NavLink key={tab.to} to={tab.to} end={tab.end}>
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.end}
+              className={tab.soloMovil ? "solo-movil" : undefined}
+            >
               <span className="nav-icon" aria-hidden="true">
                 {tab.icon}
               </span>
@@ -53,6 +61,7 @@ export default function App() {
           ))}
           <div className="spacer" />
           <TimerPill />
+          <SettingsBox />
         </nav>
 
         <main className={wide ? "main wide" : "main"}>
@@ -66,7 +75,7 @@ export default function App() {
             <Route path="/semana" element={<Week />} />
             <Route path="/historial" element={<History />} />
             <Route path="/descanso" element={<Timer />} />
-          <Route path="/ajustes" element={<Settings />} />
+            <Route path="/ajustes" element={<Settings />} />
             <Route path="*" element={<Today />} />
           </Routes>
         </main>

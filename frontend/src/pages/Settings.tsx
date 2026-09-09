@@ -1,9 +1,10 @@
-/** Ajustes: peso corporal, ventana de gracia, permisos del agente y dispositivo. */
+/** Ajustes: apariencia, peso corporal, ventana de gracia, permisos y dispositivo. */
 
 import { useEffect, useState } from "react";
 
 import { api, getToken, localDate, setToken } from "../api/client";
 import { useBodyweight, useSetBodyweight, useSetSetting, useSettings } from "../api/hooks";
+import { ThemePicker } from "../components/theme";
 import { ErrorCard, Loading, useToast } from "../components/ui";
 
 export default function Settings() {
@@ -34,6 +35,15 @@ export default function Settings() {
       <header className="page-head">
         <h1>Ajustes</h1>
       </header>
+
+      <section className="card stack">
+        <h2>Apariencia</h2>
+        <p className="faint" style={{ margin: 0 }}>
+          El tema se guarda en este dispositivo, no en el historial: el PC puede ir en
+          oscuro y el móvil en claro.
+        </p>
+        <ThemePicker />
+      </section>
 
       <section className="card stack">
         <h2>Peso corporal</h2>
