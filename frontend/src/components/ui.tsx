@@ -1,6 +1,14 @@
 /** Primitivas compartidas por las pantallas. */
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 
 import { Icon } from "./icons";
@@ -167,18 +175,44 @@ export function ErrorCard({ error }: { error: unknown }) {
 
 /* --------------------------------------------------------------- Avisos */
 
-type Toast = { text: string; kind: "ok" | "error" };
+type Toast = { text: string; kind: "ok" | "error"; leaving?: boolean };
 const ToastContext = createContext<(text: string, kind?: Toast["kind"]) => void>(() => {});
 
 export const useToast = () => useContext(ToastContext);
 
+/** Lo que dura leído y lo que tarda en irse. El segundo, en la hoja de estilos. */
+const VISIBLE_MS = 3200;
+const SALIDA_MS = 180;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
+  const relojes = useRef<number[]>([]);
 
-  const show = useCallback((text: string, kind: Toast["kind"] = "ok") => {
-    setToast({ text, kind });
-    setTimeout(() => setToast(null), 3200);
+  const limpiar = useCallback(() => {
+    relojes.current.forEach(clearTimeout);
+    relojes.current = [];
   }, []);
+
+  const show = useCallback(
+    (text: string, kind: Toast["kind"] = "ok") => {
+      // Un aviso nuevo cancela los relojes del anterior. Sin esto, el reloj
+      // del primero escondía al segundo antes de que diera tiempo a leerlo.
+      limpiar();
+      setToast({ text, kind });
+      relojes.current.push(
+        // Primero se marca la salida y solo después se desmonta: quitarlo de
+        // golpe no es irse, es parpadear.
+        window.setTimeout(
+          () => setToast((t) => (t ? { ...t, leaving: true } : t)),
+          VISIBLE_MS,
+        ),
+        window.setTimeout(() => setToast(null), VISIBLE_MS + SALIDA_MS),
+      );
+    },
+    [limpiar],
+  );
+
+  useEffect(() => limpiar, [limpiar]);
 
   const value = useMemo(() => show, [show]);
 
@@ -186,7 +220,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {toast && (
-        <div className="toast" data-kind={toast.kind} role="status" aria-live="polite">
+        <div
+          className="toast"
+          data-kind={toast.kind}
+          data-leaving={toast.leaving ? "" : undefined}
+          role="status"
+          aria-live="polite"
+        >
           {toast.text}
         </div>
       )}

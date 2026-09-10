@@ -9,8 +9,8 @@ Todo vive en dos ficheros:
 - `frontend/src/styles.css` — fichas de color, escala, primitivas y bloques por pantalla.
 - `frontend/src/components/icons.tsx` — los iconos, como trazados propios.
 
-Sigue sin haber framework CSS ni dependencia de iconos: son diez pantallas y unas pocas
-primitivas, y una dependencia de diseño costaría más de lo que ahorra.
+Sigue sin haber framework CSS ni dependencia de iconos ni de animación: son diez pantallas
+y unas pocas primitivas, y una dependencia de diseño costaría más de lo que ahorra.
 
 ---
 
@@ -45,11 +45,24 @@ retocan en el tema claro, donde los tonos pensados para fondo oscuro pierden con
 los oscuros son idénticos: son el vocabulario del calendario y cambiarlos con cada tema
 obligaría a reaprenderlo.
 
+### El acento tiene dos trabajos
+
+Pintar **texto** sobre el fondo del tema y **rellenar** un botón o una pastilla piden tonos
+distintos. En los temas oscuros el mismo vale para los dos. En el claro no: para que el
+texto llegue a 4,5:1 sobre blanco hay que oscurecer el ámbar tanto que, usado como relleno,
+el botón principal sale marrón. Por eso hay dos fichas:
+
+- `--accent` — texto, enlaces, bordes. En claro, `#9a5f00`.
+- `--accent-solido` — relleno del botón principal y de la pastilla de «hoy». En claro,
+  `#eda21f` con tinta oscura encima (9:1).
+
+En los temas oscuros `--accent-solido` es simplemente `var(--accent)`.
+
 ### Contraste
 
-`--text-faint` se aclaró (`#6b7684` → `#78838f` en oscuro, `#78828f` → `#6a7381` en claro).
-Es el color de `.faint`, que es texto de 0,85 rem: por debajo de 4,5:1 no cumple AA. Ahora
-está en 4,9:1 sobre el fondo.
+`--text-faint` se ajustó en ambos extremos (`#6b7684` → `#78838f` en oscuro, `#78828f` →
+`#6a7381` en claro). Es el color de `.faint`, que es texto de 0,85 rem: por debajo de 4,5:1
+no cumple AA. Ahora está en 4,9:1 sobre el fondo.
 
 ---
 
@@ -65,59 +78,100 @@ Las dos escalas de sombra:
 - `--sombra-1` — tarjetas y botones, casi imperceptible.
 - `--sombra-2` — lo que flota: menú de ajustes, aviso, píldora del temporizador.
 
-## 3. Material translúcido en la cromada
+## 3. Material translúcido, y solo donde hace falta
 
 La barra de navegación, la cabecera de página y los avisos son capas translúcidas con
 `backdrop-filter`, y el contenido pasa **por debajo** en vez de chocar con una banda opaca.
 
-La cabecera de página (`.page-head`) ahora es **pegajosa**: en Historial o en Cuerpo la
-lista es larga y saber en qué pantalla estás —y llegar a su acción principal— no debería
-costar volver arriba. En vez de una regla de 1 px debajo, un degradado corto marca dónde el
-contenido se mete debajo: una línea marcaría un borde que no existe.
+La cabecera de página (`.page-head`) es **pegajosa**: en Historial o en Cuerpo la lista es
+larga y saber en qué pantalla estás —y llegar a su acción principal— no debería costar
+volver arriba.
 
-`@media (prefers-reduced-transparency: reduce)` convierte esas capas en opacas en lugar de
-quitarles el fondo, que dejaría la barra flotando.
+Pero el material solo aparece **cuando hay algo debajo que separar**. Con la página arriba
+del todo la cabecera va plana, sin cristal y sin línea; el desenfoque y el degradado se
+forman en los primeros 4 rem de scroll, con `animation-timeline: scroll()`:
 
-## 4. Espaciado y tipografía
+```css
+@supports (animation-timeline: scroll()) {
+  .page-head {
+    background: transparent;
+    backdrop-filter: none;
+    animation: cuaja-cabecera linear both;
+    animation-timeline: scroll();
+    animation-range: 0 4rem;
+  }
+}
+```
 
-Escala de 4 px (`--sp-1` … `--sp-10`), sin valores sueltos. Cuatro radios (`--radius-xs`,
-`-sm`, base, `-lg`) y `--tap: 44px`, que no cambia.
+Donde el navegador no entiende de líneas de tiempo de scroll, se queda el cristal fijo. Y en
+vez de una regla de 1 px bajo la cabecera hay un degradado corto: una línea marcaría un
+borde que no existe.
 
-El tracking es **específico del tamaño**, no un valor único: cuanto más grande es la letra,
-más separadas se ven las letras entre sí. `h1` va a `-0.025em`, `h2` a `-0.015em`, el texto
-pequeño a `+0.005em`. Un valor fijo para todos los tamaños está mal en algún sitio.
+## 4. Escala: espaciado en `rem` y tipografía fluida
 
-`.metric-value` y `.timer-clock` pasan a la familia de titulares (Outfit) con tracking
-negativo fuerte: son cifras que se leen de un vistazo, no texto.
+El espaciado (`--sp-1` … `--sp-10`) va en `rem`, no en píxeles. Si alguien sube el tamaño de
+letra del navegador —por preferencia o por necesidad—, la caja crece con el texto en vez de
+estrangularlo; con espaciado fijo, subir la letra dos puntos deja el texto pegado al borde
+de la tarjeta. Con la raíz por defecto la escala sigue siendo la de 4 px.
+
+Por el mismo motivo `body` va a `font-size: 1rem` y no a `16px`: imponer píxeles ignora la
+preferencia del sistema.
+
+`--tap: 44px` se queda en píxeles a propósito: mide un dedo, no una letra.
+
+El margen lateral de la página es `--margen: clamp(1rem, 3vw, 2.25rem)` — crece de forma
+continua con la pantalla en vez de saltar en cada punto de ruptura.
+
+El titular también es fluido: `clamp(1.55rem, 1.3rem + 1.1vw, 1.9rem)`. Y el tracking es
+**específico del tamaño**, nunca uno solo para todos: cuanto más grande es la letra, más
+separadas se ven entre sí. `h1` va a `-0.028em`, `h2` a `-0.015em`, el texto pequeño a
+`+0.005em`.
+
+`.metric-value` y `.timer-clock` usan la familia de titulares (Outfit) con tracking negativo
+fuerte: son cifras que se leen de un vistazo, no texto.
 
 ## 5. Movimiento
 
-Dos curvas propias, porque las del navegador son flojas:
+Dos curvas propias y un muelle, porque las del navegador son flojas:
 
 ```css
 --sal:     cubic-bezier(0.23, 1, 0.32, 1);     /* lo que entra o responde al dedo */
 --ent-sal: cubic-bezier(0.77, 0, 0.175, 1);    /* lo que se desplaza */
+--muelle:  linear(0, 0.0849, …, 1);            /* ζ≈0,72, ~4 % de rebasamiento */
 ```
+
+`--muelle` es un muelle subamortiguado descrito punto a punto con `linear()`: la curva de un
+resorte real, sin librería. Se usa donde algo aparece **desde** un sitio —el menú desde su
+botón, el aviso desde abajo—, que es donde el material se comporta como materia. En un
+cambio de estado tranquilo el rebote se lee como un fallo, así que ahí no entra.
 
 `ease-in` no aparece en toda la hoja a propósito: empieza lento y hace que la interfaz
 parezca que va con retraso.
-
-Qué se anima y qué no:
 
 | Gesto | Qué hace | Por qué |
 |---|---|---|
 | Pulsar un botón, un día del calendario, un preset | `scale(0.97)` en 120 ms | Responde al **pulsar**, no al soltar: es lo que hace que la interfaz parezca que te ha oído |
 | Cambiar de pestaña | Solo opacidad, 160 ms | Se hace decenas de veces al día; cualquier desplazamiento ahí se acaba percibiendo como lentitud |
-| Aviso (toast) | Entra desde abajo con escala, 240 ms | Viene de donde está la acción que lo provoca |
-| Menú de ajustes | Crece desde abajo a la izquierda, 180 ms | Desde el botón que lo abre, no desde su centro |
+| Aviso (toast) | Entra desde abajo con muelle y desenfoque, 380 ms; sale por el mismo sitio en 180 ms | Viene de donde está la acción que lo provoca, y se va por donde vino. Al entrar hay algo que mirar; al salir, ya no |
+| Menú de ajustes | Crece con muelle desde abajo a la izquierda | Nace en su botón, no en el centro de la pantalla |
 | Esqueleto de carga | Barrido de luz | El parpadeo de opacidad se lee como "esto está roto"; el barrido, como "esto viene" |
 
-`@media (prefers-reduced-motion: reduce)` quita el desplazamiento y el pulso, **no la
-respuesta**: las transiciones de color y opacidad se quedan porque ayudan a entender qué ha
-cambiado.
+### Respuesta inmediata
+
+`touch-action: manipulation` en todo lo pulsable quita el retardo de ~300 ms que el
+navegador se guarda por si el toque era un doble toque. Y `-webkit-tap-highlight-color:
+transparent` apaga el destello gris del sistema, que llega tarde y tapa el nuestro.
 
 Los `:hover` decorativos van dentro de `@media (hover: hover) and (pointer: fine)`: en
 táctil se quedaban pegados después de tocar y parecía que el control seguía seleccionado.
+
+### Las tres señales de accesibilidad
+
+| Señal | Qué hace la app |
+|---|---|
+| `prefers-reduced-motion: reduce` | Quita desplazamiento, escala y pulso. **No quita la respuesta**: las transiciones de color y opacidad se quedan porque ayudan a entender qué ha cambiado |
+| `prefers-reduced-transparency: reduce` | Las capas translúcidas se vuelven sólidas, no invisibles: quitarles el fondo dejaría la barra flotando |
+| `prefers-contrast: more` | Bordes reales (42 % del texto), texto secundario que deja de ser un matiz, insignias con borde de 1,5 px y cromada opaca |
 
 ## 6. Iconos propios en lugar de emojis
 
@@ -149,7 +203,24 @@ Los iconos son decorativos por defecto (`aria-hidden`), porque siempre acompaña
 que dice lo mismo. Donde va uno solo —reordenar un ejercicio con las flechas del editor de
 rutinas— el botón ahora lleva `aria-label`, que antes le faltaba.
 
-## 7. Cambios por pantalla
+## 7. La escalera de tamaños
+
+No hay "versión móvil" y "versión escritorio": hay una escalera, y cada peldaño existe
+porque a ese ancho cabe algo que antes no cabía.
+
+| Desde | Qué cambia |
+|---|---|
+| 320 px | Todo funciona. Las etiquetas de la barra inferior bajan un punto de cuerpo antes que empezar a recortarse |
+| 375 px | Base del móvil. La barra del ranking desaparece de la lista de músculos: le sobraban treinta píxeles y parecía un fallo de maquetación |
+| 600 px | Vuelve la barra del ranking |
+| 700 px | El calendario pasa a celdas altas **con el nombre de la rutina**: leer el mes de un vistazo es la ventaja de la pantalla grande, y una tablet en vertical ya la tiene |
+| 900 px | La navegación pasa de barra inferior a columna lateral, con la caja de ajustes al pie. «Hoy» se parte en dos columnas |
+| 1080 px | Calendario y Cuerpo abren su panel de detalle a la derecha, pegajoso bajo la cabecera |
+
+En apaisado, el anillo del temporizador entra también por altura (`min(340px, 78vw, 58vh)`):
+con solo `vw` se salía de la pantalla y dejaba los botones fuera de cuadro.
+
+## 8. Cambios por pantalla
 
 - **Navegación.** En escritorio, riel de acento a la izquierda de la pestaña activa: dice
   dónde estás sin depender del color del texto, que a ese tamaño es un matiz. En móvil, las
@@ -157,14 +228,17 @@ rutinas— el botón ahora lleva `aria-label`, que antes le faltaba.
   iguales: con `flex: 1` todas medían 44 px y "Calendario" —que pide 55— chocaba con sus
   vecinas. Sumados, los ocho nombres caben de sobra en 375 px; lo que no cabía era el
   reparto a partes iguales.
+- **Hoy.** En pantalla ancha, dos columnas: a la izquierda lo que toca hacer, a la derecha
+  lo que hay que decidir (progresiones y días sin anotar). Antes la decisión quedaba por
+  debajo del pliegue justo los días con rutina larga, que son los días en que hay algo que
+  decidir. **El panel solo existe si tiene contenido**: sin él, la columna se queda en su
+  ancho de lectura en vez de estirarse por estirarse.
 - **Calendario.** El estado tiñe el fondo de la celda además del borde: el mes se lee como
   manchas, que es como se mira un calendario, y no como catorce bordes. El día de hoy lleva
   su número en una pastilla del acento, porque el borde solo no bastaba cuando el día ya
   tiene su propio color de estado.
 - **Ranking.** La barra de cada músculo va en degradado: dos músculos del mismo rango pero
-  distinta puntuación se distinguen sin leer la cifra. En el móvil la barra desaparece —con
-  el nombre fijo en 8,5 rem le sobraban treinta píxeles y parecía un fallo de maquetación—;
-  la comparación visual la cubre el mapa, justo encima.
+  distinta puntuación se distinguen sin leer la cifra.
 - **Semana.** Cada día es una fila con cuerpo propio. En una rejilla desnuda, con dos
   rutinas en un día y ninguna en el siguiente, se perdía de quién era cada selector.
 - **Descanso.** Anillo más limpio, halo del color del estado y reloj en la familia de
@@ -172,7 +246,14 @@ rutinas— el botón ahora lleva `aria-label`, que antes le faltaba.
 - **Estados vacíos.** El icono va dentro de un disco tenue: suelto sobre el fondo parecía un
   error de maquetación, no una ilustración.
 
-## 8. Qué NO cambió
+## 9. Un arreglo que salió por el camino
+
+`ToastProvider` no cancelaba el reloj del aviso anterior: si salían dos seguidos, el
+temporizador del primero escondía al segundo antes de que diera tiempo a leerlo. Ahora cada
+aviso cancela los relojes pendientes, y el desmontaje espera a que termine la animación de
+salida en vez de quitarlo de golpe.
+
+## 10. Qué NO cambió
 
 - Ninguna ruta, ningún endpoint, ningún contrato. `openapi.json` está intacto.
 - La arquitectura de la información: las mismas ocho pestañas, en el mismo orden, con los

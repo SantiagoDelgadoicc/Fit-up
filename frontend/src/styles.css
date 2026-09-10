@@ -102,6 +102,15 @@
   --text-faint: #78838f;
   --accent: #f5a524;
   --accent-ink: #1a1200;
+  /*
+   * El acento tiene dos trabajos que piden tonos distintos: **pintar texto**
+   * sobre el fondo del tema y **rellenar** un botón o una pastilla. En los
+   * temas oscuros el mismo tono sirve para los dos. En el claro no: para que
+   * el texto llegue a 4.5:1 sobre blanco hay que oscurecerlo tanto que, usado
+   * como relleno, el botón principal sale marrón. `--accent-solido` es el
+   * tono de relleno; `--accent` se queda para el texto.
+   */
+  --accent-solido: var(--accent);
 
   /* — Estados del día: el vocabulario del calendario — */
   --done: #3fb950;
@@ -132,20 +141,30 @@
   /* Nombre histórico, aún usado por la píldora flotante del temporizador. */
   --sombra: var(--sombra-2);
 
-  /* — Espaciado: escala de 4 px, sin valores sueltos — */
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
-  --sp-8: 32px;
-  --sp-10: 40px;
+  /*
+   * Espaciado en `rem`, no en píxeles. Si alguien sube el tamaño de letra del
+   * navegador, la caja crece con el texto en vez de estrangularlo: con
+   * espaciado fijo, subir la letra dos puntos deja las tarjetas con el texto
+   * pegado al borde. Con la raíz por defecto la escala sigue siendo la de 4 px.
+   */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+  --sp-10: 2.5rem;
+
+  /* Margen lateral de la página: crece de forma continua con la pantalla en
+     vez de saltar en cada punto de ruptura. */
+  --margen: clamp(1rem, 3vw, 2.25rem);
 
   --radius-xs: 7px;
   --radius-sm: 10px;
   --radius: 16px;
   --radius-lg: 22px;
+  /* El objetivo táctil se queda en píxeles: mide un dedo, no una letra. */
   --tap: 44px;
 
   /*
@@ -156,16 +175,29 @@
    */
   --sal: cubic-bezier(0.23, 1, 0.32, 1);
   --ent-sal: cubic-bezier(0.77, 0, 0.175, 1);
+  /*
+   * Muelle sin librería: `linear()` describe la curva de un muelle
+   * subamortiguado punto a punto (ζ≈0,72, ~4 % de rebasamiento). Se usa donde
+   * algo aparece **desde** un sitio -el menú desde su botón, el aviso desde
+   * abajo-, que es donde el material se comporta como materia. En un cambio de
+   * estado tranquilo el rebote se lee como un fallo, así que ahí no entra.
+   */
+  --muelle: linear(
+    0, 0.0849, 0.2685, 0.4748, 0.6612, 0.809, 0.9142, 0.9814, 1.0188, 1.0352,
+    1.0383, 1.034, 1.0266, 1.0187, 1.0118, 1.0064, 1.0027, 1.0004, 0.9991,
+    0.9986, 0.9985, 0.9987, 0.999, 0.9993, 0.9996, 0.9998, 1
+  );
   --dur-1: 120ms;
   --dur-2: 180ms;
   --dur-3: 240ms;
+  --dur-4: 380ms;
 
   --fuente: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --fuente-titulo: "Outfit", var(--fuente);
 
   /* Alto aproximado de la cabecera pegajosa: lo usa el panel lateral para no
      quedarse debajo al hacer scroll. */
-  --alto-cabecera: 88px;
+  --alto-cabecera: 5.5rem;
 
   color-scheme: dark;
   font-family: var(--fuente);
@@ -264,7 +296,10 @@
   --text-dim: #56616f;
   --text-faint: #6a7381;
   --accent: #9a5f00;
-  --accent-ink: #fff8ec;
+  /* Ámbar vivo de relleno, con tinta oscura encima: 9:1 de contraste y el
+     botón principal deja de parecer marrón. */
+  --accent-solido: #eda21f;
+  --accent-ink: #2b1a00;
 
   --surface-3: color-mix(in srgb, var(--surface-2) 88%, var(--text) 6%);
   --campo: #ffffff;
@@ -292,6 +327,23 @@
   box-sizing: border-box;
 }
 
+/*
+ * Respuesta inmediata al dedo. `touch-action: manipulation` quita el retardo
+ * de ~300 ms que el navegador se guarda por si el toque era un doble toque, y
+ * el destello gris del sistema se apaga porque llega tarde y tapa el nuestro,
+ * que sale en el `:active`.
+ */
+a,
+button,
+input,
+select,
+summary,
+label,
+.zone {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html,
 body,
 #root {
@@ -308,7 +360,9 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-size: 16px;
+  /* `1rem`, no `16px`: si el navegador viene con la letra más grande -por
+     preferencia o por necesidad-, la app la respeta en vez de imponerse. */
+  font-size: 1rem;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -338,13 +392,15 @@ h3 {
   font-family: var(--fuente-titulo);
   font-weight: 600;
 }
+/* El titular crece con la pantalla, sin escalones: 1,55 rem en un móvil de
+   320 px y 1,9 rem en el PC. El interlineado se aprieta según crece. */
 h1 {
-  font-size: 1.75rem;
-  line-height: 1.12;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.55rem, 1.3rem + 1.1vw, 1.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.028em;
 }
 h2 {
-  font-size: 1.2rem;
+  font-size: clamp(1.12rem, 1.05rem + 0.35vw, 1.25rem);
   line-height: 1.25;
   letter-spacing: -0.015em;
 }
@@ -374,8 +430,8 @@ a:hover {
 
 .main {
   flex: 1;
-  padding: var(--sp-4) var(--sp-4) 104px;
-  max-width: 900px;
+  padding: var(--sp-4) var(--margen) 6.5rem;
+  max-width: 920px;
   width: 100%;
   margin: 0 auto;
   min-width: 0;
@@ -384,7 +440,7 @@ a:hover {
 /* Páginas que ganan con el ancho: el calendario, sobre todo. Los formularios
    se quedan estrechos a propósito: una línea de 1200 px no se lee bien. */
 .main.wide {
-  max-width: 1280px;
+  max-width: 1320px;
 }
 
 /*
@@ -419,10 +475,45 @@ a:hover {
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--sp-3);
-  margin: calc(var(--sp-4) * -1) calc(var(--sp-4) * -1) 0;
-  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  flex-wrap: wrap;
+  margin: calc(var(--sp-4) * -1) calc(var(--margen) * -1) 0;
+  padding: var(--sp-4) var(--margen) var(--sp-3);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(16px) saturate(150%);
+}
+
+/*
+ * El material solo aparece donde de verdad hay algo debajo. Con la página
+ * arriba del todo no hay nada que separar, así que la cabecera va plana; el
+ * cristal y el degradado se forman a medida que el contenido se le mete
+ * debajo, en los primeros 4 rem de scroll. Donde el navegador no entiende de
+ * líneas de tiempo de scroll, se queda el cristal fijo de siempre.
+ */
+@supports (animation-timeline: scroll()) {
+  .page-head {
+    background: transparent;
+    backdrop-filter: none;
+    animation: cuaja-cabecera linear both;
+    animation-timeline: scroll();
+    animation-range: 0 4rem;
+  }
+  .page-head::after {
+    opacity: 0;
+    animation: cuaja-borde linear both;
+    animation-timeline: scroll();
+    animation-range: 0 4rem;
+  }
+  @keyframes cuaja-cabecera {
+    to {
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(16px) saturate(150%);
+    }
+  }
+  @keyframes cuaja-borde {
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 /* Sin línea divisoria: un degradado corto donde el contenido se mete debajo.
@@ -633,11 +724,11 @@ a:hover {
     transform: translateY(-50%);
   }
   .main {
-    padding: var(--sp-6) var(--sp-8) var(--sp-10);
+    padding: var(--sp-6) var(--margen) var(--sp-10);
   }
   .page-head {
-    margin: calc(var(--sp-6) * -1) calc(var(--sp-8) * -1) 0;
-    padding: var(--sp-5) var(--sp-8) var(--sp-4);
+    margin: calc(var(--sp-6) * -1) calc(var(--margen) * -1) 0;
+    padding: var(--sp-5) var(--margen) var(--sp-4);
   }
 }
 
@@ -659,6 +750,23 @@ a:hover {
     position: sticky;
     /* Por debajo de la cabecera pegajosa, no detrás de ella. */
     top: var(--alto-cabecera);
+  }
+}
+
+/*
+ * «Hoy» en dos columnas cuando hay sitio: a la izquierda lo que toca hacer,
+ * a la derecha lo que hay que decidir -progresiones y días sin anotar-. Antes
+ * la decisión quedaba por debajo del pliegue justo los días con rutina larga,
+ * que son los días en que hay algo que decidir.
+ *
+ * El panel solo existe si tiene contenido: sin él, la columna se queda en su
+ * ancho de lectura en vez de estirarse por estirarse.
+ */
+@media (min-width: 900px) {
+  .split-hoy {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: var(--sp-6);
   }
 }
 
@@ -760,17 +868,17 @@ a:hover {
 }
 
 .btn-primary {
-  background: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 70%, #000);
+  background: var(--accent-solido);
+  border-color: color-mix(in srgb, var(--accent-solido) 70%, #000);
   color: var(--accent-ink);
   box-shadow:
-    0 1px 2px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 1px 2px color-mix(in srgb, var(--accent-solido) 30%, transparent),
     inset 0 1px 0 rgb(255 255 255 / 22%);
 }
 @media (hover: hover) and (pointer: fine) {
   .btn-primary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--accent) 88%, var(--text));
-    border-color: color-mix(in srgb, var(--accent) 70%, #000);
+    background: color-mix(in srgb, var(--accent-solido) 88%, var(--text));
+    border-color: color-mix(in srgb, var(--accent-solido) 70%, #000);
   }
 }
 
@@ -1223,7 +1331,7 @@ label {
 /* Hoy: el número dentro de una pastilla del acento. El borde solo no basta
    cuando el día además tiene estado y ya lleva su propio color. */
 .cal-day[aria-current="date"] .cal-num {
-  background: var(--accent);
+  background: var(--accent-solido);
   color: var(--accent-ink);
   border-radius: 999px;
   min-width: 22px;
@@ -1279,9 +1387,11 @@ label {
   color: var(--accent-ink);
 }
 
-/* En el PC hay sitio para decir qué rutina tocaba: leer el mes de un vistazo
-   sin ir tocando día por día es la ventaja de la pantalla grande. */
-@media (min-width: 900px) {
+/* En cuanto hay ancho hay sitio para decir qué rutina tocaba: leer el mes de
+   un vistazo sin ir tocando día por día es la ventaja de la pantalla grande, y
+   una tablet en vertical ya la tiene. Por eso este salto va en 700 px y no
+   espera al de la barra lateral. */
+@media (min-width: 700px) {
   .cal-day {
     aspect-ratio: auto;
     min-height: 92px;
@@ -1960,13 +2070,30 @@ details summary {
   box-shadow: var(--sombra-2);
   z-index: 20;
   max-width: 90vw;
-  animation: entrada-aviso var(--dur-3) var(--sal);
+  animation: entrada-aviso var(--dur-4) var(--muelle);
 }
 
+/* Cristal que se forma: el desenfoque y la escala entran juntos, para que la
+   pastilla llegue como material y no como una imagen que se enciende. */
 @keyframes entrada-aviso {
   from {
     opacity: 0;
-    transform: translate(-50%, 14px) scale(0.96);
+    transform: translate(-50%, 14px) scale(0.94);
+    filter: blur(6px);
+  }
+}
+
+/* Se va por donde vino, y más deprisa: al entrar hay algo que mirar; al salir,
+   ya no. */
+.toast[data-leaving] {
+  animation: salida-aviso var(--dur-2) var(--sal) both;
+}
+
+@keyframes salida-aviso {
+  to {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.97);
+    filter: blur(4px);
   }
 }
 
@@ -2019,9 +2146,11 @@ details summary {
   --timer-color: var(--done);
 }
 
+/* El alto entra en la cuenta: en un móvil apaisado, 78vw dejaba el anillo más
+   alto que la pantalla y los botones fuera de cuadro. */
 .timer-dial {
   position: relative;
-  width: min(340px, 78vw);
+  width: min(340px, 78vw, 58vh);
   aspect-ratio: 1;
 }
 
@@ -2323,13 +2452,15 @@ details summary {
     box-shadow: var(--sombra-2);
     z-index: 20;
     transform-origin: bottom left;
-    animation: entrada-menu var(--dur-2) var(--sal);
+    animation: entrada-menu var(--dur-4) var(--muelle);
   }
 
+  /* Nace en su botón, no en el centro de la pantalla: el origen está abajo a
+     la izquierda, que es donde está el control que lo abre. */
   @keyframes entrada-menu {
     from {
       opacity: 0;
-      transform: scale(0.96) translateY(6px);
+      transform: scale(0.92) translateY(10px);
     }
   }
 
@@ -2470,6 +2601,7 @@ details summary {
 @media (prefers-reduced-motion: reduce) {
   .main > *,
   .toast,
+  .toast[data-leaving],
   .ajustes-menu,
   .skeleton::after,
   .timer[data-state="done"] .timer-dial,
@@ -2487,6 +2619,41 @@ details summary {
   }
 }
 
+/*
+ * Más contraste. Quien lo pide no necesita un tema distinto: necesita que los
+ * bordes existan y que el texto secundario deje de ser un matiz. Las capas
+ * translúcidas se vuelven sólidas por el mismo motivo que abajo.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --border: color-mix(in srgb, var(--text) 42%, transparent);
+    --border-soft: color-mix(in srgb, var(--text) 30%, transparent);
+    --text-dim: color-mix(in srgb, var(--text) 88%, transparent);
+    --text-faint: color-mix(in srgb, var(--text) 74%, transparent);
+  }
+  .nav,
+  .page-head,
+  .toast {
+    backdrop-filter: none;
+    animation: none;
+  }
+  .nav {
+    background: var(--surface);
+  }
+  .page-head {
+    background: var(--bg);
+  }
+  .toast {
+    background: var(--surface-2);
+  }
+  .badge,
+  .tag,
+  .set-chip,
+  .tier-chip {
+    border-width: 1.5px;
+  }
+}
+
 /* Menos transparencia: el material translúcido se vuelve opaco en lugar de
    desaparecer, que dejaría la barra flotando sin fondo. */
 @media (prefers-reduced-transparency: reduce) {
@@ -2494,6 +2661,7 @@ details summary {
   .page-head,
   .toast {
     backdrop-filter: none;
+    animation: none;
   }
   .nav {
     background: var(--surface);

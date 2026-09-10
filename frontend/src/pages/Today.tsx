@@ -48,6 +48,11 @@ export default function Today() {
   const day = today.data;
   // Los pendientes ya incluyen hoy cuando toca; no debe salir dos veces.
   const otherPending = (pending.data ?? []).filter((p) => p.date !== iso);
+  const progresiones = readiness.data ?? [];
+  // En pantalla ancha, lo que hay que decidir va a un panel a la derecha; sin
+  // nada que decidir no hay panel, y la columna se queda en su ancho de
+  // lectura en vez de estirarse por estirarse.
+  const hayPanel = progresiones.length > 0 || otherPending.length > 0;
 
   const registrar = (
     date: string,
@@ -74,36 +79,42 @@ export default function Today() {
         <StateBadge state={day.state} />
       </header>
 
-      <TodayCard
-        day={day}
-        busy={log.isPending || skip.isPending}
-        onLog={(status, routineId) => registrar(iso, status, routineId)}
-        onSkip={() =>
-          skip.mutate(iso, {
-            onSuccess: () => toast("Marcado como no realizado"),
-            onError: (e) => toast(e instanceof Error ? e.message : "Error", "error"),
-          })
-        }
-      />
+      <div className={hayPanel ? "split split-hoy" : undefined}>
+        <TodayCard
+          day={day}
+          busy={log.isPending || skip.isPending}
+          onLog={(status, routineId) => registrar(iso, status, routineId)}
+          onSkip={() =>
+            skip.mutate(iso, {
+              onSuccess: () => toast("Marcado como no realizado"),
+              onError: (e) => toast(e instanceof Error ? e.message : "Error", "error"),
+            })
+          }
+        />
 
-      <ProgressionNotice routines={readiness.data ?? []} />
+        {hayPanel && (
+          <aside className="stack-lg">
+            <ProgressionNotice routines={progresiones} />
 
-      {otherPending.length > 0 && (
-        <section className="stack">
-          <h2>Pendientes de registrar</h2>
-          <p className="faint" style={{ margin: 0 }}>
-            Días programados que aún no has anotado. No cuentan como fallados.
-          </p>
-          {otherPending.map((p) => (
-            <PendingCard
-              key={p.date}
-              pending={p}
-              busy={log.isPending}
-              onLog={() => registrar(p.date, "completed", p.routine_id)}
-            />
-          ))}
-        </section>
-      )}
+            {otherPending.length > 0 && (
+              <section className="stack">
+                <h2>Pendientes de registrar</h2>
+                <p className="faint" style={{ margin: 0 }}>
+                  Días programados que aún no has anotado. No cuentan como fallados.
+                </p>
+                {otherPending.map((p) => (
+                  <PendingCard
+                    key={p.date}
+                    pending={p}
+                    busy={log.isPending}
+                    onLog={() => registrar(p.date, "completed", p.routine_id)}
+                  />
+                ))}
+              </section>
+            )}
+          </aside>
+        )}
+      </div>
     </div>
   );
 }
