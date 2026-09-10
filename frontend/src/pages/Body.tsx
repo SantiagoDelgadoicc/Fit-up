@@ -106,7 +106,7 @@ export default function Body() {
         <aside>
           {selected === null ? (
             <div className="card">
-              <Empty icon="👆">
+              <Empty icon="puntero">
                 <p style={{ margin: 0 }}>Toca un músculo para ver de dónde sale su rango.</p>
               </Empty>
             </div>
@@ -179,7 +179,7 @@ function MuscleList({
       <h2>Ranking por músculo</h2>
       {medidos.length === 0 ? (
         <div className="card">
-          <Empty icon="📊">
+          <Empty icon="grafica">
             <p style={{ margin: 0 }}>Todavía no hay ningún músculo con rango.</p>
             <p className="faint" style={{ marginBottom: 0 }}>
               Registra entrenamientos con carga y repeticiones, y anota tu peso corporal.
@@ -373,7 +373,7 @@ function MuscleCard({ detail }: { detail: MuscleDetail }) {
 
       {detail.exercises.length > 0 && (
         <div className="card card-flush">
-          <h3 style={{ padding: "16px 16px 0" }}>Ejercicios que lo trabajan</h3>
+          <h3>Ejercicios que lo trabajan</h3>
           {detail.exercises.map((exercise) => (
             <div className="exercise" key={exercise.exercise_slug}>
               <div className="exercise-head">

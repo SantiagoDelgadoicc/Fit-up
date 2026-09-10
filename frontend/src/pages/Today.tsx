@@ -19,6 +19,7 @@ import {
   useToday,
 } from "../api/hooks";
 import type { Day, PendingDay, RoutineReadiness } from "../api/client";
+import { Icon } from "../components/icons";
 import { formatPreset, useTimer } from "../components/timer";
 import {
   describePlanned,
@@ -26,6 +27,7 @@ import {
   ErrorCard,
   formatDate,
   Loading,
+  plannedColumns,
   StateBadge,
   useToast,
 } from "../components/ui";
@@ -47,6 +49,11 @@ export default function Today() {
   const day = today.data;
   // Los pendientes ya incluyen hoy cuando toca; no debe salir dos veces.
   const otherPending = (pending.data ?? []).filter((p) => p.date !== iso);
+  const progresiones = readiness.data ?? [];
+  // En pantalla ancha, lo que hay que decidir va a un panel a la derecha; sin
+  // nada que decidir no hay panel, y la columna se queda en su ancho de
+  // lectura en vez de estirarse por estirarse.
+  const hayPanel = progresiones.length > 0 || otherPending.length > 0;
 
   const registrar = (
     date: string,
@@ -73,36 +80,47 @@ export default function Today() {
         <StateBadge state={day.state} />
       </header>
 
-      <TodayCard
-        day={day}
-        busy={log.isPending || skip.isPending}
-        onLog={(status, routineId) => registrar(iso, status, routineId)}
-        onSkip={() =>
-          skip.mutate(iso, {
-            onSuccess: () => toast("Marcado como no realizado"),
-            onError: (e) => toast(e instanceof Error ? e.message : "Error", "error"),
-          })
-        }
-      />
+      <div className={hayPanel ? "split split-hoy" : undefined}>
+        <TodayCard
+          day={day}
+          busy={log.isPending || skip.isPending}
+          onLog={(status, routineId) => registrar(iso, status, routineId)}
+          onSkip={() =>
+            skip.mutate(iso, {
+              onSuccess: () => toast("Marcado como no realizado"),
+              onError: (e) => toast(e instanceof Error ? e.message : "Error", "error"),
+            })
+          }
+        />
 
-      <ProgressionNotice routines={readiness.data ?? []} />
+        {hayPanel && (
+          <aside className="stack-lg">
+            <ProgressionNotice routines={progresiones} />
 
-      {otherPending.length > 0 && (
-        <section className="stack">
-          <h2>Pendientes de registrar</h2>
-          <p className="faint" style={{ margin: 0 }}>
-            Días programados que aún no has anotado. No cuentan como fallados.
-          </p>
-          {otherPending.map((p) => (
-            <PendingCard
-              key={p.date}
-              pending={p}
-              busy={log.isPending}
-              onLog={() => registrar(p.date, "completed", p.routine_id)}
-            />
-          ))}
-        </section>
-      )}
+            {otherPending.length > 0 && (
+              <section className="inspector">
+                <div className="inspector-head">
+                  <span className="inspector-titulo">Sin registrar</span>
+                  <span className="inspector-cuenta" data-tono="aviso">
+                    {otherPending.length}
+                  </span>
+                </div>
+                {otherPending.map((p) => (
+                  <PendingCard
+                    key={p.date}
+                    pending={p}
+                    busy={log.isPending}
+                    onLog={() => registrar(p.date, "completed", p.routine_id)}
+                  />
+                ))}
+                <p className="inspector-pie tiny muted" style={{ margin: 0 }}>
+                  Días programados que aún no has anotado. No cuentan como fallados.
+                </p>
+              </section>
+            )}
+          </aside>
+        )}
+      </div>
     </div>
   );
 }
@@ -117,29 +135,36 @@ export default function Today() {
 function ProgressionNotice({ routines }: { routines: RoutineReadiness[] }) {
   if (routines.length === 0) return null;
 
+  // La cuenta es de **ejercicios**, no de rutinas: es lo que hay que revisar.
+  const total = routines.reduce((n, r) => n + r.ready + r.deload, 0);
+
   return (
-    <section className="stack">
-      <h2>Progresiones disponibles</h2>
+    <section className="inspector">
+      <div className="inspector-head">
+        <span className="inspector-titulo">Listas para progresar</span>
+        <span className="inspector-cuenta">{total}</span>
+      </div>
+
       {routines.map((routine) => (
-        <div className="card" key={routine.routine_id}>
-          <div className="row">
-            <div>
-              <strong>{routine.routine_name}</strong>
-              <div className="faint">
-                {routine.ready > 0 &&
-                  `${routine.ready} ejercicio${routine.ready === 1 ? "" : "s"} listo${
-                    routine.ready === 1 ? "" : "s"
-                  } para subir`}
-                {routine.ready > 0 && routine.deload > 0 && " · "}
-                {routine.deload > 0 && `${routine.deload} con descarga sugerida`}
-              </div>
-            </div>
-            <div className="spacer" />
-            <Link className="btn btn-sm btn-primary" to={`/rutinas/${routine.routine_id}/progresion`}>
-              Revisar
-            </Link>
-          </div>
-        </div>
+        // La fila entera es el enlace: un botón «Revisar» al lado obliga a
+        // apuntar a un objetivo pequeño para hacer lo único que se hace aquí.
+        <Link
+          className="inspector-fila"
+          to={`/rutinas/${routine.routine_id}/progresion`}
+          key={routine.routine_id}
+        >
+          <span className="inspector-nombre">
+            <strong>{routine.routine_name}</strong>
+            <small>
+              {routine.ready > 0 && `${routine.ready} suben`}
+              {routine.ready > 0 && routine.deload > 0 && " · "}
+              {routine.deload > 0 && `${routine.deload} con descarga`}
+            </small>
+          </span>
+          <span className="inspector-marca" data-tono={routine.ready > 0 ? undefined : "aviso"}>
+            <Icon name={routine.ready > 0 ? "sube" : "baja"} />
+          </span>
+        </Link>
       ))}
     </section>
   );
@@ -161,7 +186,7 @@ function TodayCard({
   if (day.scheduled.length === 0 && day.extra_sessions.length === 0) {
     return (
       <div className="card">
-        <Empty icon="😴">
+        <Empty icon="luna">
           <p style={{ margin: 0 }}>Hoy no hay rutina programada.</p>
           <p className="faint" style={{ marginBottom: 0 }}>
             <Link to="/semana">Organizar la semana</Link>
@@ -240,52 +265,103 @@ function RoutineCard({
     );
   }
 
+  const descansar = (segundos: number) => {
+    // Arrancar el descanso del ejercicio sin teclear su duración: el dato ya
+    // está en el plan y a mitad de serie no se elige.
+    timer.start(segundos);
+    navigate("/descanso");
+  };
+
   return (
     <div className="stack">
       <div className="card card-flush">
-        <div style={{ padding: "16px 16px 4px" }}>
+        <div className="card-head row">
           <h2>{slot.name}</h2>
-          <p className="faint" style={{ margin: "2px 0 10px" }}>
-            {reason}
-          </p>
+          <div className="spacer" />
+          <span className="faint">{reason}</span>
         </div>
-        {slot.detail.exercises.map((exercise) => (
-          <div className="exercise" key={exercise.exercise_slug}>
-            <div className="exercise-head">
-              <span className="exercise-name">{nameOf(exercise.exercise_slug)}</span>
-              <span className="prescription">{describePlanned(exercise)}</span>
-            </div>
-            {/* Arrancar el descanso del ejercicio sin teclear su duración:
-                el dato ya está en el plan y a mitad de serie no se elige. */}
-            {exercise.rest_seconds ? (
-              <button
-                className="btn btn-ghost btn-sm rest-btn"
-                onClick={() => {
-                  timer.start(exercise.rest_seconds ?? undefined);
-                  navigate("/descanso");
-                }}
-              >
-                ⏱ Descansar {formatPreset(exercise.rest_seconds)}
-              </button>
-            ) : null}
+
+        {/* Los ejercicios en columnas: series, objetivo, carga y descanso caen
+            siempre en el mismo sitio, así que comparar dos filas es mirar y no
+            leer. Debajo de 760 px la tabla se pliega a dos líneas —lo hace el
+            CSS— porque seis columnas no caben en un móvil. */}
+        <div className="tabla">
+          <div className="tabla-head" aria-hidden="true">
+            <span>#</span>
+            <span>Ejercicio</span>
+            <span className="tabla-dato">Series</span>
+            <span className="tabla-dato">Objetivo</span>
+            <span className="tabla-dato">Carga</span>
+            <span className="tabla-dato">Descanso</span>
+            <span />
           </div>
-        ))}
+
+          {slot.detail.exercises.map((exercise, i) => {
+            const col = plannedColumns(exercise);
+            const descanso = exercise.rest_seconds;
+            return (
+              <div className="tabla-fila" key={exercise.exercise_slug}>
+                <span className="tabla-num">{String(i + 1).padStart(2, "0")}</span>
+
+                <span className="tabla-ejercicio">
+                  <span className="tabla-nombre">{nameOf(exercise.exercise_slug)}</span>
+                  {descanso ? (
+                    <span className="tabla-sub">Descanso {formatPreset(descanso)}</span>
+                  ) : null}
+                </span>
+
+                <span className="tabla-dato tabla-series">{col.series}</span>
+                <span className="tabla-dato tabla-objetivo">{col.objetivo}</span>
+                <span
+                  className="tabla-dato tabla-carga"
+                  data-vacio={col.carga ? undefined : ""}
+                >
+                  {col.carga ?? "—"}
+                </span>
+                <span
+                  className="tabla-dato tabla-descanso"
+                  data-vacio={descanso ? undefined : ""}
+                >
+                  {descanso ? formatPreset(descanso) : "—"}
+                </span>
+
+                {/* Solo en móvil, donde las columnas no caben. */}
+                <span className="tabla-resumen">{describePlanned(exercise)}</span>
+
+                {descanso ? (
+                  <button
+                    className="tabla-accion"
+                    onClick={() => descansar(descanso)}
+                    aria-label={`Descansar ${formatPreset(descanso)} tras ${nameOf(exercise.exercise_slug)}`}
+                  >
+                    <Icon name="descanso" />
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <button
-        className="btn btn-primary btn-hero"
-        onClick={() => onLog("completed")}
-        disabled={busy}
-      >
-        ✓ Hice esta rutina
-      </button>
-
-      <div className="row">
-        <button className="btn btn-ghost btn-sm" onClick={() => onLog("partial")} disabled={busy}>
+      {/* Anclada al pie en escritorio: con una rutina larga, el botón de
+          registrar quedaba por debajo del pliegue justo los días en que hay
+          más que hacer. */}
+      <div className="barra-accion">
+        <button
+          className="btn btn-primary btn-hero"
+          onClick={() => onLog("completed")}
+          disabled={busy}
+        >
+          <Icon name="marca" />
+          Hice esta rutina
+        </button>
+        <button className="btn btn-sm btn-ghost" onClick={() => onLog("partial")} disabled={busy}>
           La hice a medias
         </button>
         <div className="spacer" />
-        <button className="btn btn-ghost btn-sm btn-danger" onClick={onSkip} disabled={busy}>
+        <button className="btn btn-sm btn-ghost btn-danger" onClick={onSkip} disabled={busy}>
           No la hice
         </button>
       </div>
@@ -303,22 +379,20 @@ function PendingCard({
   onLog: () => void;
 }) {
   return (
-    <div className="card">
-      <div className="row">
-        <div>
-          <strong>{pending.routine_name}</strong>
-          <div className="faint">{formatDate(pending.date)}</div>
-        </div>
-        <div className="spacer" />
-        <button className="btn btn-sm btn-primary" onClick={onLog} disabled={busy}>
-          ✓ La hice
-        </button>
-      </div>
-      <p className="tiny muted" style={{ margin: "10px 0 0" }}>
-        {pending.days_left === 0
-          ? "Último día antes de contar como no realizada"
-          : `Quedan ${pending.days_left} día(s) de margen`}
-      </p>
+    <div className="inspector-fila">
+      <span className="inspector-nombre">
+        <strong>{pending.routine_name}</strong>
+        <small>
+          {formatDate(pending.date)} ·{" "}
+          {pending.days_left === 0
+            ? "último día"
+            : `${pending.days_left} día${pending.days_left === 1 ? "" : "s"} de margen`}
+        </small>
+      </span>
+      <button className="btn btn-sm btn-primary" onClick={onLog} disabled={busy}>
+        <Icon name="marca" />
+        La hice
+      </button>
     </div>
   );
 }

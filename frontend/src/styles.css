@@ -1,7 +1,7 @@
 /*
  * Fit-Up — hoja de estilos única.
  *
- * Sin framework CSS: la app tiene cinco pantallas y unas pocas primitivas
+ * Sin framework CSS: la app tiene diez pantallas y unas pocas primitivas
  * visuales. Una dependencia de diseño costaría más de lo que ahorra.
  *
  * El uso principal es el **PC**: pantallas anchas, ratón y teclado. Ahí se
@@ -13,6 +13,12 @@
  * Decisiones que responden a ambos contextos: tema oscuro por defecto,
  * tipografía grande, targets de 44 px y contraste alto. Los estados nunca se
  * comunican solo por color.
+ *
+ * La hoja se lee de arriba abajo en este orden y conviene mantenerlo:
+ *   1. tipografía          5. primitivas (tarjeta, botón, campo, insignia)
+ *   2. fichas de color     6. bloques por pantalla
+ *   3. temas               7. estados vacíos, carga y avisos
+ *   4. base y disposición  8. movimiento reducido
  */
 
 /*
@@ -23,12 +29,18 @@
  * cambiaría la letra de toda la interfaz. Son 180 kB en cuatro archivos y no
  * añaden dependencia de npm.
  *
- * - **Inter** para el texto y, sobre todo, las tablas: sus cifras tabulares
- *   mantienen las columnas de kg y repeticiones alineadas.
- * - **Outfit** para marca, titulares y rangos: geométrica y con más carácter,
- *   marca la jerarquía sin subir el tamaño.
+ * - **Inter** para todo el texto: interfaz, titulares y marca. Un grotesco
+ *   neutro no compite con el dato, que es lo que se viene a leer.
+ * - **IBM Plex Mono** para **las cifras**: kilos, repeticiones, tiempos,
+ *   puntuaciones y el reloj del descanso. En una tabla, las cifras
+ *   monoespaciadas se alinean columna con columna y se comparan de un vistazo
+ *   sin tener que leerlas; con la proporcional hay que leerlas una a una.
  *
- * Ambas OFL; su licencia viaja en `licenses/`.
+ * Antes había una tercera familia, Outfit, para titulares y rangos. Se retiró
+ * con el rediseño: la jerarquía la hacen ahora el peso y el espacio, no una
+ * letra con más carácter, y quitarla ahorra más peso del que añade la mono.
+ *
+ * Las dos OFL; su licencia viaja en `licenses/`.
  */
 @font-face {
   font-family: "Inter";
@@ -50,39 +62,85 @@
     U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
     U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
+/* Plex Mono no es variable: dos pesos estáticos bastan, el normal y el que
+   destaca una cifra. Cuatro archivos, 58 kB. */
 @font-face {
-  font-family: "Outfit";
+  font-family: "Plex Mono";
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 400;
   font-display: swap;
-  src: url("/fonts/outfit-latin.woff2") format("woff2");
+  src: url("/fonts/plex-mono-latin-400.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
     U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
     U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "Outfit";
+  font-family: "Plex Mono";
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 400;
   font-display: swap;
-  src: url("/fonts/outfit-latin-ext.woff2") format("woff2");
+  src: url("/fonts/plex-mono-latin-ext-400.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/plex-mono-latin-600.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/plex-mono-latin-ext-600.woff2") format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
     U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
     U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-:root {
-  --bg: #0e1116;
-  --surface: #161b22;
-  --surface-2: #1c232c;
-  --border: #2a313c;
-  --text: #e6edf3;
-  --text-dim: #9aa7b4;
-  --text-faint: #6b7684;
+/* ------------------------------------------------------------------ Fichas
+ *
+ * Un tema declara **nueve colores** y nada más. Todo lo demás —superficie
+ * elevada, borde fuerte, tinte del acento, anillo de foco— se deriva de esos
+ * nueve con `color-mix`, así que añadir un tema sigue siendo escribir un
+ * bloque de nueve líneas y no reajustar veinte tonos a mano.
+ *
+ * Las derivadas se declaran en `:root`, sobre el mismo elemento que lleva
+ * `data-tema`: cuando el tema redefine `--surface-2`, la derivada que lo
+ * mezcla se recalcula sola.
+ */
 
+:root {
+  /* — Los nueve del tema Grafito, el de siempre — */
+  --bg: #0b0f15;
+  --surface: #10151d;
+  --surface-2: #161c26;
+  --border: #1e2734;
+  --text: #dfe6f0;
+  --text-dim: #8b97a8;
+  /* Contraste 5.4:1 sobre --bg. `.faint` es texto pequeño y por debajo de
+     4.5:1 deja de cumplir AA; en una interfaz densa eso se nota el doble. */
+  --text-faint: #7c899b;
   --accent: #f5a524;
   --accent-ink: #1a1200;
+  /*
+   * El acento tiene dos trabajos que piden tonos distintos: **pintar texto**
+   * sobre el fondo del tema y **rellenar** un botón o una pastilla. En los
+   * temas oscuros el mismo tono sirve para los dos. En el claro no: para que
+   * el texto llegue a 4.5:1 sobre blanco hay que oscurecerlo tanto que, usado
+   * como relleno, el botón principal sale marrón. `--accent-solido` es el
+   * tono de relleno; `--accent` se queda para el texto.
+   */
+  --accent-solido: var(--accent);
 
+  /* — Estados del día: el vocabulario del calendario — */
   --done: #3fb950;
   --partial: #d29922;
   --pending: #e8912d;
@@ -91,13 +149,87 @@
   --extra: #58a6ff;
   --excused: #8b949e;
 
-  --radius: 14px;
-  --radius-sm: 9px;
+  /* — Derivadas — */
+  --surface-3: color-mix(in srgb, var(--surface-2) 82%, var(--text) 8%);
+  --border-soft: color-mix(in srgb, var(--border) 60%, transparent);
+  --border-strong: color-mix(in srgb, var(--border) 55%, var(--text-faint));
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+  --accent-soft-2: color-mix(in srgb, var(--accent) 24%, transparent);
+  --anillo: color-mix(in srgb, var(--accent) 60%, transparent);
+  --campo: color-mix(in srgb, var(--bg) 70%, var(--surface));
+
+  /*
+   * Profundidad. En los temas oscuros la sombra apenas se lee: lo que separa
+   * una tarjeta del fondo es el filo superior iluminado (`--brillo`), como
+   * una luz rasante. En el tema claro manda la sombra y el filo desaparece.
+   */
+  --sombra-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --sombra-2: 0 14px 34px -10px rgb(0 0 0 / 70%), 0 2px 8px rgb(0 0 0 / 35%);
+  --brillo: inset 0 1px 0 rgb(255 255 255 / 5%);
+  /* Nombre histórico, aún usado por la píldora flotante del temporizador. */
+  --sombra: var(--sombra-2);
+
+  /*
+   * Espaciado en `rem`, no en píxeles. Si alguien sube el tamaño de letra del
+   * navegador, la caja crece con el texto en vez de estrangularlo: con
+   * espaciado fijo, subir la letra dos puntos deja las tarjetas con el texto
+   * pegado al borde. Con la raíz por defecto la escala sigue siendo la de 4 px.
+   */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+  --sp-10: 2.5rem;
+
+  /* Margen lateral de la página: crece de forma continua con la pantalla en
+     vez de saltar en cada punto de ruptura. */
+  --margen: clamp(0.875rem, 2vw, 1.5rem);
+
+  /* Radios cortos: una herramienta de trabajo tiene cantos, no cojines. */
+  --radius-xs: 5px;
+  --radius-sm: 7px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  /* El objetivo táctil se queda en píxeles: mide un dedo, no una letra. */
   --tap: 44px;
-  --sombra: 0 6px 20px rgb(0 0 0 / 45%);
+
+  /*
+   * Movimiento. Las curvas del navegador son flojas: `ease-out` propio para
+   * lo que entra o responde al dedo, `ease-in-out` para lo que se desplaza.
+   * `ease-in` no aparece en toda la hoja a propósito: empieza lento y hace
+   * que la interfaz parezca que va con retraso.
+   */
+  --sal: cubic-bezier(0.23, 1, 0.32, 1);
+  --ent-sal: cubic-bezier(0.77, 0, 0.175, 1);
+  /*
+   * Muelle sin librería: `linear()` describe la curva de un muelle
+   * subamortiguado punto a punto (ζ≈0,72, ~4 % de rebasamiento). Se usa donde
+   * algo aparece **desde** un sitio -el menú desde su botón, el aviso desde
+   * abajo-, que es donde el material se comporta como materia. En un cambio de
+   * estado tranquilo el rebote se lee como un fallo, así que ahí no entra.
+   */
+  --muelle: linear(
+    0, 0.0849, 0.2685, 0.4748, 0.6612, 0.809, 0.9142, 0.9814, 1.0188, 1.0352,
+    1.0383, 1.034, 1.0266, 1.0187, 1.0118, 1.0064, 1.0027, 1.0004, 0.9991,
+    0.9986, 0.9985, 0.9987, 0.999, 0.9993, 0.9996, 0.9998, 1
+  );
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 240ms;
+  --dur-4: 380ms;
 
   --fuente: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --fuente-titulo: "Outfit", var(--fuente);
+  --fuente-mono: "Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Alto de la barra de mando de escritorio. */
+  --alto-mando: 46px;
+
+  /* Alto aproximado de la cabecera pegajosa: lo usa el panel lateral para no
+     quedarse debajo al hacer scroll. */
+  --alto-cabecera: 5.5rem;
 
   color-scheme: dark;
   font-family: var(--fuente);
@@ -118,9 +250,9 @@
  */
 
 [data-tema="indigo"] {
-  --bg: #0d1020;
-  --surface: #151a2e;
-  --surface-2: #1d2440;
+  --bg: #0a0d1c;
+  --surface: #141931;
+  --surface-2: #1d2444;
   --border: #2e3660;
   --text: #e8eaf6;
   --text-dim: #a6accd;
@@ -130,8 +262,8 @@
 }
 
 [data-tema="bosque"] {
-  --bg: #0c1410;
-  --surface: #121e18;
+  --bg: #08110c;
+  --surface: #111d17;
   --surface-2: #1a2a22;
   --border: #274036;
   --text: #e3efe8;
@@ -144,8 +276,8 @@
 }
 
 [data-tema="sangre"] {
-  --bg: #140d0f;
-  --surface: #1e1417;
+  --bg: #110a0c;
+  --surface: #1d1317;
   --surface-2: #2a1a1f;
   --border: #40272e;
   --text: #f4e7ea;
@@ -158,8 +290,8 @@
 }
 
 [data-tema="oceano"] {
-  --bg: #08141a;
-  --surface: #0f1e26;
+  --bg: #061116;
+  --surface: #0e1d25;
   --surface-2: #152a34;
   --border: #22414f;
   --text: #e1f0f6;
@@ -170,8 +302,8 @@
 }
 
 [data-tema="violeta"] {
-  --bg: #120c1a;
-  --surface: #1b1326;
+  --bg: #0f0a17;
+  --surface: #1a1225;
   --surface-2: #261a34;
   --border: #3a2650;
   --text: #f0e7f8;
@@ -184,18 +316,28 @@
 /* El único claro. Aquí no basta con invertir el fondo: los colores de estado y
    los de rango se calcularon para brillar sobre negro y sobre blanco quedan
    lavados, así que se sustituyen por versiones más oscuras del mismo tono. El
-   significado no cambia; el contraste, sí. */
+   significado no cambia; el contraste, sí.
+   La profundidad también se invierte: fuera el filo iluminado, que sobre
+   blanco no se ve, y sombras de verdad en su lugar. */
 [data-tema="claro"] {
-  --bg: #f6f7f9;
+  --bg: #f4f6f9;
   --surface: #ffffff;
-  --surface-2: #eceff4;
-  --border: #d3d9e0;
-  --text: #1a1f27;
-  --text-dim: #566171;
-  --text-faint: #79838f;
-  --accent: #a86a00;
-  --accent-ink: #fff8ec;
-  --sombra: 0 6px 20px rgb(15 23 32 / 14%);
+  --surface-2: #eef1f5;
+  --border: #dde3ea;
+  --text: #12161c;
+  --text-dim: #56616f;
+  --text-faint: #6a7381;
+  --accent: #9a5f00;
+  /* Ámbar vivo de relleno, con tinta oscura encima: 9:1 de contraste y el
+     botón principal deja de parecer marrón. */
+  --accent-solido: #eda21f;
+  --accent-ink: #2b1a00;
+
+  --surface-3: color-mix(in srgb, var(--surface-2) 88%, var(--text) 6%);
+  --campo: #ffffff;
+  --sombra-1: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 8%);
+  --sombra-2: 0 16px 32px -12px rgb(16 24 40 / 22%), 0 2px 6px rgb(16 24 40 / 8%);
+  --brillo: none;
 
   --done: #1a7f37;
   --partial: #9a6700;
@@ -211,8 +353,27 @@
    vive junto al resto de los colores de rango, en «Ranking muscular»: tienen
    que leerse los nueve juntos para ver que la escalera sigue teniendo sentido. */
 
+/* ------------------------------------------------------------------- Base */
+
 * {
   box-sizing: border-box;
+}
+
+/*
+ * Respuesta inmediata al dedo. `touch-action: manipulation` quita el retardo
+ * de ~300 ms que el navegador se guarda por si el toque era un doble toque, y
+ * el destello gris del sistema se apaga porque llega tarde y tapa el nuestro,
+ * que sale en el `:active`.
+ */
+a,
+button,
+input,
+select,
+summary,
+label,
+.zone {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -221,39 +382,76 @@ body,
   height: 100%;
 }
 
+html {
+  /* Con la cabecera pegajosa, un salto de ancla o un `scrollIntoView` no debe
+     dejar el destino debajo de ella. */
+  scroll-padding-top: var(--alto-cabecera);
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-size: 16px;
-  line-height: 1.5;
+  /* `1rem`, no `16px`: si el navegador viene con la letra más grande -por
+     preferencia o por necesidad-, la app la respeta en vez de imponerse. */
+  font-size: 1rem;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   /* Cifras de ancho fijo en toda la app: kilos, repeticiones y puntuaciones
      cambian constantemente, y con cifras proporcionales las columnas y los
      contadores bailan a cada actualización. */
   font-variant-numeric: tabular-nums;
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
 }
 
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/*
+ * Tipografía por tamaños, no un `letter-spacing` único.
+ *
+ * Cuanto más grande es la letra, más separadas se ven las letras entre sí: los
+ * titulares piden tracking negativo y el texto pequeño, ninguno o algo
+ * positivo. Un valor fijo para todos los tamaños está mal en algún sitio.
+ */
 h1,
 h2,
 h3 {
   margin: 0;
-  line-height: 1.2;
-  font-family: var(--fuente-titulo);
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-weight: 650;
 }
+/* El titular crece con la pantalla, sin escalones: 1,55 rem en un móvil de
+   320 px y 1,9 rem en el PC. El interlineado se aprieta según crece. */
 h1 {
-  font-size: 1.6rem;
+  font-size: clamp(1.55rem, 1.3rem + 1.1vw, 1.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.028em;
 }
 h2 {
-  font-size: 1.15rem;
+  font-size: clamp(1.12rem, 1.05rem + 0.35vw, 1.25rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
 }
 h3 {
   font-size: 1rem;
+  line-height: 1.35;
+  letter-spacing: -0.008em;
 }
 
-/* ---------------------------------------------------------------- Layout */
+a {
+  color: var(--accent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 2px;
+  transition: text-decoration-color var(--dur-2) ease;
+}
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+/* ------------------------------------------------------------- Disposición */
 
 .app {
   display: flex;
@@ -261,93 +459,220 @@ h3 {
   min-height: 100%;
 }
 
+/* Debajo de la barra de mando: en escritorio, rail y contenido en fila. */
+.app-cuerpo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
 .main {
   flex: 1;
-  padding: 18px 16px 96px;
-  max-width: 860px;
+  padding: var(--sp-4) var(--margen) 6.5rem;
+  max-width: 920px;
   width: 100%;
   margin: 0 auto;
+  min-width: 0;
 }
 
 /* Páginas que ganan con el ancho: el calendario, sobre todo. Los formularios
    se quedan estrechos a propósito: una línea de 1200 px no se lee bien. */
 .main.wide {
-  max-width: 1240px;
+  max-width: 1320px;
 }
 
+/*
+ * Entrada de página. Solo opacidad y solo 160 ms: cambiar de pestaña se hace
+ * decenas de veces al día y cualquier desplazamiento ahí se acaba percibiendo
+ * como lentitud. Lo justo para que el contenido no aparezca de golpe.
+ */
+.main > * {
+  animation: entrada-pagina 160ms var(--sal) both;
+}
+
+@keyframes entrada-pagina {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Cabecera pegajosa. En Historial o Cuerpo la lista es larga y saber en qué
+ * pantalla estás -y llegar a su acción principal- no debería costar volver
+ * arriba. Se apoya en el material translúcido: el contenido pasa por debajo
+ * en vez de chocar con una banda opaca.
+ */
 .page-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin: calc(var(--sp-4) * -1) calc(var(--margen) * -1) 0;
+  padding: var(--sp-4) var(--margen) var(--sp-3);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(150%);
+}
+
+/*
+ * El material solo aparece donde de verdad hay algo debajo. Con la página
+ * arriba del todo no hay nada que separar, así que la cabecera va plana; el
+ * cristal y el degradado se forman a medida que el contenido se le mete
+ * debajo, en los primeros 4 rem de scroll. Donde el navegador no entiende de
+ * líneas de tiempo de scroll, se queda el cristal fijo de siempre.
+ */
+@supports (animation-timeline: scroll()) {
+  .page-head {
+    background: transparent;
+    backdrop-filter: none;
+    animation: cuaja-cabecera linear both;
+    animation-timeline: scroll();
+    animation-range: 0 4rem;
+  }
+  .page-head::after {
+    opacity: 0;
+    animation: cuaja-borde linear both;
+    animation-timeline: scroll();
+    animation-range: 0 4rem;
+  }
+  @keyframes cuaja-cabecera {
+    to {
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(16px) saturate(150%);
+    }
+  }
+  @keyframes cuaja-borde {
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Sin línea divisoria: un degradado corto donde el contenido se mete debajo.
+   Una regla de 1 px marca un borde que en realidad no existe. */
+.page-head::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: var(--sp-5);
+  background: linear-gradient(color-mix(in srgb, var(--bg) 78%, transparent), transparent);
+  pointer-events: none;
+}
+
+.page-head h1 + p {
+  margin: 2px 0 0;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sp-3);
+  min-width: 0;
 }
 .stack-lg {
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: var(--sp-6);
+  min-width: 0;
 }
 .row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-3);
   flex-wrap: wrap;
 }
 .row-tight {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-2);
 }
 .spacer {
   flex: 1;
 }
 
-/* Navegación: barra inferior en móvil, lateral en escritorio. */
+/* ------------------------------------------------------------- Navegación */
+
+/* Barra inferior en móvil, columna lateral en escritorio. */
 
 .nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: auto 0 0;
   display: flex;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: var(--sp-1) 0 calc(var(--sp-1) + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-top: 1px solid var(--border-soft);
   z-index: 10;
 }
 
+/*
+ * Las ocho pestañas se reparten el ancho **según lo que mide cada nombre**, no
+ * a partes iguales. Con `flex: 1` todas medían 44 px y "Calendario" -que pide
+ * 55- se salía por los dos lados y chocaba con sus vecinas. Sumados, los ocho
+ * nombres caben de sobra en 375 px; lo que no cabía era el reparto a partes
+ * iguales. Así ninguno se recorta y ninguno se pisa.
+ */
 .nav a {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: var(--tap);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  /* Con ocho pestañas, en 375 px cada una dispone de 46 px: por debajo de
-     0.66rem "Calendario" ya no cabe entero. */
-  padding: 8px 2px;
+  gap: 3px;
+  padding: 6px 3px;
+  border-radius: var(--radius-xs);
   color: var(--text-faint);
   text-decoration: none;
-  font-size: 0.64rem;
+  font-size: 0.63rem;
   font-weight: 600;
+  letter-spacing: 0;
   min-width: 0;
   white-space: nowrap;
+  transition:
+    color var(--dur-2) ease,
+    background-color var(--dur-2) ease;
+}
+
+/* Por debajo de 360 px ni con reparto proporcional caben: la letra baja un
+   punto antes que empezar a recortar nombres. */
+@media (max-width: 359px) {
+  .nav a {
+    font-size: 0.56rem;
+    letter-spacing: -0.01em;
+    padding: 6px 1px;
+  }
 }
 
 .nav a.active {
   color: var(--accent);
 }
 
+/* El icono de la pestaña activa se apoya en una pastilla del acento: en la
+   barra inferior no hay sitio para un indicador aparte y el color solo, a
+   0.64rem, se distingue mal. */
 .nav-icon {
-  font-size: 1.25rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 22px;
+  border-radius: 999px;
+  transition: background-color var(--dur-2) ease;
+}
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.nav a.active .nav-icon {
+  background: var(--accent-soft);
 }
 
 .brand {
@@ -355,38 +680,34 @@ h3 {
 }
 
 @media (min-width: 900px) {
-  .app {
+  .app-cuerpo {
     flex-direction: row;
   }
   .nav {
     position: sticky;
-    top: 0;
+    top: var(--alto-mando);
     bottom: auto;
-    height: 100vh;
-    width: 214px;
+    inset: var(--alto-mando) auto auto 0;
+    height: calc(100vh - var(--alto-mando));
+    width: 208px;
     flex-shrink: 0;
     flex-direction: column;
+    gap: 1px;
     border-top: none;
     border-right: 1px solid var(--border);
-    padding: 22px 12px;
-    gap: 2px;
+    padding: var(--sp-2) var(--sp-2) var(--sp-3);
+    background: color-mix(in srgb, var(--surface) 60%, var(--bg));
+    backdrop-filter: none;
   }
   .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 12px 20px;
-    font-family: var(--fuente-titulo);
-    font-size: 1.3rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    display: none;
   }
   /* El logo se pinta como máscara, no como imagen: es un PNG monocromo con
      transparencia, así que recortando el color del acento con su silueta toma
      el color de cada tema. Con <img> se vería gris oscuro sobre fondo casi
      negro en todos ellos. */
   .brand-mark {
-    width: 34px;
+    width: 32px;
     aspect-ratio: 283 / 236;
     flex-shrink: 0;
     background: var(--accent);
@@ -394,23 +715,51 @@ h3 {
     mask: url("/logo.png") center / contain no-repeat;
   }
   .nav a {
-    flex: 0;
+    position: relative;
+    flex: 0 0 auto;
     flex-direction: row;
     justify-content: flex-start;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    font-size: 0.95rem;
+    gap: var(--sp-2);
+    padding: 0 var(--sp-2);
+    border-radius: var(--radius-xs);
+    font-size: 0.84rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    min-height: 32px;
+    color: var(--text-dim);
+  }
+  .nav .nav-icon {
+    width: 18px;
+    height: 18px;
+    background: none;
+  }
+  .nav .nav-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  .nav a.active .nav-icon {
+    background: none;
+    color: var(--accent);
   }
   .nav a:hover {
     background: var(--surface-2);
     color: var(--text);
   }
-  .nav a.active {
+  /* El activo se rellena y su icono toma el acento; el texto se queda blanco.
+     Con ocho pestañas de 32 px, un texto en color se lee como un enlace, no
+     como "estás aquí". */
+  .nav a.active,
+  .nav a.active:hover {
     background: var(--surface-2);
+    color: var(--text);
+    font-weight: 600;
   }
   .main {
-    padding: 26px 28px 48px;
+    padding: var(--sp-6) var(--margen) var(--sp-10);
+  }
+  .page-head {
+    margin: calc(var(--sp-6) * -1) calc(var(--margen) * -1) 0;
+    padding: var(--sp-5) var(--margen) var(--sp-4);
   }
 }
 
@@ -419,32 +768,66 @@ h3 {
    varios días seguidos, que es justo lo que se hace en el PC. */
 .split {
   display: grid;
-  gap: 18px;
+  gap: var(--sp-5);
+  min-width: 0;
 }
 
 @media (min-width: 1080px) {
   .split {
-    grid-template-columns: minmax(0, 1fr) 370px;
+    grid-template-columns: minmax(0, 1fr) 380px;
     align-items: start;
   }
   .split > aside {
     position: sticky;
-    top: 26px;
+    /* Por debajo de la cabecera pegajosa, no detrás de ella. */
+    top: var(--alto-cabecera);
   }
 }
 
-/* ----------------------------------------------------------- Primitivas */
+/*
+ * «Hoy» en dos columnas cuando hay sitio: a la izquierda lo que toca hacer,
+ * a la derecha lo que hay que decidir -progresiones y días sin anotar-. Antes
+ * la decisión quedaba por debajo del pliegue justo los días con rutina larga,
+ * que son los días en que hay algo que decidir.
+ *
+ * El panel solo existe si tiene contenido: sin él, la columna se queda en su
+ * ancho de lectura en vez de estirarse por estirarse.
+ */
+@media (min-width: 900px) {
+  .split-hoy {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: var(--sp-6);
+  }
+}
 
+/* ------------------------------------------------------------- Primitivas */
+
+/*
+ * Tarjeta. En oscuro la separación del fondo la hace el filo iluminado de
+ * arriba, no la sombra: sobre un fondo casi negro una sombra no se ve, pero
+ * una línea de luz en el canto sí, y lee como material con volumen.
+ */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: var(--sp-5);
+  box-shadow: var(--sombra-1), var(--brillo);
+  min-width: 0;
 }
 
 .card-flush {
   padding: 0;
   overflow: hidden;
+}
+
+/* Cabecera de una tarjeta sin relleno: alinea con las filas de dentro, que
+   llevan su propio margen lateral. */
+.card-flush > h2,
+.card-flush > h3,
+.card-head {
+  padding: var(--sp-4) var(--sp-5) var(--sp-2);
 }
 
 .muted {
@@ -453,95 +836,182 @@ h3 {
 .faint {
   color: var(--text-faint);
   font-size: 0.85rem;
+  letter-spacing: 0.005em;
 }
 .tiny {
   font-size: 0.78rem;
+  letter-spacing: 0.008em;
 }
 
+/* ------------------------------------------------------------------ Botones */
+
+/*
+ * El botón responde al **pulsar**, no al soltar: `scale(0.97)` en `:active`
+ * es lo que hace que la interfaz parezca que te ha oído. Es la diferencia
+ * entre un control vivo y una imagen de un control.
+ */
 .btn {
   min-height: var(--tap);
-  padding: 0 18px;
+  padding: 0 var(--sp-4);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 0.94rem;
   font-weight: 600;
+  letter-spacing: -0.005em;
   font-family: inherit;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--sp-2);
+  box-shadow: var(--brillo);
+  transition:
+    transform var(--dur-1) var(--sal),
+    background-color var(--dur-2) ease,
+    border-color var(--dur-2) ease,
+    color var(--dur-2) ease;
 }
 
-.btn:hover:not(:disabled) {
-  border-color: var(--text-faint);
+.btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
+
+/* El hover solo donde hay puntero de verdad: en táctil se queda pegado
+   después de tocar y parece que el botón se ha quedado seleccionado. */
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+  }
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-solido);
+  border-color: color-mix(in srgb, var(--accent-solido) 70%, #000);
   color: var(--accent-ink);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent-solido) 30%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 22%);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent-solido) 88%, var(--text));
+    border-color: color-mix(in srgb, var(--accent-solido) 70%, #000);
+  }
 }
 
 /* El botón de "hice esta rutina": es la acción principal de toda la app y
    tiene que verse como tal desde el otro lado de la habitación. */
 .btn-hero {
   width: 100%;
-  min-height: 58px;
-  font-size: 1.08rem;
+  min-height: 56px;
+  font-size: 1.05rem;
+  border-radius: var(--radius);
+}
+.btn-hero svg {
+  width: 20px;
+  height: 20px;
 }
 
 .btn-ghost {
   background: transparent;
   border-color: transparent;
   color: var(--text-dim);
+  box-shadow: none;
 }
-.btn-ghost:hover:not(:disabled) {
-  color: var(--text);
-  background: var(--surface-2);
+@media (hover: hover) and (pointer: fine) {
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--text);
+    background: var(--surface-2);
+    border-color: transparent;
+  }
 }
 
 .btn-sm {
   min-height: 34px;
-  padding: 0 12px;
+  padding: 0 var(--sp-3);
   font-size: 0.85rem;
+  border-radius: var(--radius-xs);
+  gap: 6px;
+}
+.btn-sm svg {
+  width: 15px;
+  height: 15px;
 }
 
 .btn-danger {
   color: var(--missed);
 }
+@media (hover: hover) and (pointer: fine) {
+  .btn-danger:hover:not(:disabled) {
+    color: var(--missed);
+    background: color-mix(in srgb, var(--missed) 12%, transparent);
+    border-color: color-mix(in srgb, var(--missed) 35%, transparent);
+  }
+}
+
+/* ------------------------------------------------------------------ Campos */
 
 input,
 select {
   min-height: var(--tap);
-  padding: 0 12px;
+  padding: 0 var(--sp-3);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--campo);
   color: var(--text);
   font-size: 1rem;
   font-family: inherit;
   width: 100%;
+  transition:
+    border-color var(--dur-2) ease,
+    box-shadow var(--dur-2) ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  input:hover:not(:disabled),
+  select:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+}
+
+/* Anillo suave en el campo enfocado, en vez del `outline` del sistema: se ve
+   igual de claro y no salta por encima del borde redondeado. */
 input:focus,
-select:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .btn:focus-visible,
 .timer-preset:focus-visible,
 .timer-pill:focus-visible,
-.nav a:focus-visible {
-  outline: 2px solid var(--accent);
+.nav a:focus-visible,
+.cal-day:focus-visible,
+.muscle-row:focus-visible,
+.row-button:focus-visible,
+.ajustes-trigger:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--anillo);
   outline-offset: 2px;
 }
 
 input.num {
-  width: 74px;
+  width: 76px;
   text-align: center;
   padding: 0 6px;
 }
@@ -550,33 +1020,51 @@ label {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-dim);
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
-/* Estados: siempre color + icono, nunca solo color. */
+/* --------------------------------------------------------------- Insignias */
+
+/*
+ * Estados: siempre color + forma, nunca solo color. El icono de cada estado
+ * es un símbolo distinto -marca, media luna, aspa-, no el mismo círculo
+ * pintado de otro color: quien no distinga los tonos tiene que poder leerlo
+ * igual.
+ */
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 4px 11px 4px 9px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.775rem;
   font-weight: 650;
+  letter-spacing: 0.005em;
   background: var(--surface-2);
   border: 1px solid var(--border);
   white-space: nowrap;
+  line-height: 1.35;
+}
+
+.badge svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .badge[data-state="done"] {
   color: var(--done);
   border-color: color-mix(in srgb, var(--done) 40%, transparent);
+  background: color-mix(in srgb, var(--done) 10%, var(--surface-2));
 }
 .badge[data-state="partial"] {
   color: var(--partial);
   border-color: color-mix(in srgb, var(--partial) 40%, transparent);
+  background: color-mix(in srgb, var(--partial) 10%, var(--surface-2));
 }
 .badge[data-state="pending"] {
   color: var(--pending);
@@ -586,310 +1074,66 @@ label {
 .badge[data-state="missed"] {
   color: var(--missed);
   border-color: color-mix(in srgb, var(--missed) 40%, transparent);
+  background: color-mix(in srgb, var(--missed) 10%, var(--surface-2));
 }
 .badge[data-state="extra"] {
   color: var(--extra);
+  border-color: color-mix(in srgb, var(--extra) 40%, transparent);
 }
 .badge[data-state="rest"],
 .badge[data-state="excused"] {
   color: var(--text-faint);
 }
 
-/* ------------------------------------------------------------ Ejercicios */
 
-.exercise {
-  border-bottom: 1px solid var(--border);
-  padding: 14px 16px;
-}
-.exercise:last-child {
-  border-bottom: none;
-}
-
-.exercise-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.exercise-name {
-  font-weight: 650;
-}
-
-.prescription {
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.set-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.set-chip {
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-  padding: 3px 9px;
-  border-radius: 7px;
-  background: var(--surface-2);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-}
-
-.set-chip[data-warmup="true"] {
-  opacity: 0.62;
-  border-style: dashed;
-}
-
-/* -------------------------------------------------------------- Semana */
-
-.week-grid {
-  display: grid;
-  gap: 8px;
-}
-
-.week-row {
-  display: grid;
-  grid-template-columns: 92px 1fr;
-  align-items: start;
-  gap: 10px;
-}
-
-.week-row label {
-  min-height: var(--tap);
-  align-items: center;
-}
-
-/* Un día puede llevar varias rutinas: se apilan en su columna. */
-.week-slots {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.week-slots .btn {
-  align-self: flex-start;
-}
-
-/* ------------------------------------------------------------- Estados */
-
-.empty {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-dim);
-}
-.empty-icon {
-  font-size: 2.2rem;
-  display: block;
-  margin-bottom: 10px;
-  opacity: 0.65;
-}
-
-.error {
-  border-color: color-mix(in srgb, var(--missed) 45%, transparent);
-  color: var(--missed);
-}
-
-.skeleton {
-  background: var(--surface-2);
-  border-radius: var(--radius);
-  height: 86px;
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-.toast {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(72px + env(safe-area-inset-bottom));
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 11px 18px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  z-index: 20;
-  max-width: 90vw;
-}
-
-.toast[data-kind="error"] {
-  color: var(--missed);
-  border-color: color-mix(in srgb, var(--missed) 45%, transparent);
-}
-
-@media (min-width: 900px) {
-  .toast {
-    bottom: 24px;
-  }
-}
-
-/* ----------------------------------------------------------- Calendario */
-
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.cal-weekday {
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding-bottom: 4px;
-}
-
-.cal-day {
-  aspect-ratio: 1;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  font-family: inherit;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 4px;
-  cursor: pointer;
-  min-height: var(--tap);
-}
-
-.cal-day:disabled {
-  cursor: default;
-  opacity: 0.3;
-}
-
-.cal-day.empty {
-  border: none;
-  background: none;
-  padding: 0;
-}
-
-.cal-num {
-  font-size: 0.9rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.cal-dot {
-  font-size: 0.62rem;
-  line-height: 1;
-}
-
-.cal-routine {
-  display: none;
-}
-
-.cal-day[aria-current="date"] {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-.cal-day[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--surface-2);
-}
-
-.cal-day[data-state="done"] {
-  border-color: color-mix(in srgb, var(--done) 55%, transparent);
-}
-.cal-day[data-state="partial"] {
-  border-color: color-mix(in srgb, var(--partial) 55%, transparent);
-}
-.cal-day[data-state="pending"] {
-  border-color: color-mix(in srgb, var(--pending) 55%, transparent);
-  border-style: dashed;
-}
-.cal-day[data-state="missed"] {
-  border-color: color-mix(in srgb, var(--missed) 55%, transparent);
-}
-.cal-day[data-state="extra"] {
-  border-color: color-mix(in srgb, var(--extra) 55%, transparent);
-}
-
-/* En el PC hay sitio para decir qué rutina tocaba: leer el mes de un vistazo
-   sin ir tocando día por día es la ventaja de la pantalla grande. */
-@media (min-width: 900px) {
-  .cal-day {
-    aspect-ratio: auto;
-    min-height: 84px;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 8px 9px;
-  }
-  .cal-num {
-    font-size: 1rem;
-  }
-  .cal-routine {
-    display: block;
-    font-size: 0.72rem;
-    color: var(--text-dim);
-    line-height: 1.25;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    text-align: left;
-  }
-  .cal-head-row {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-    width: 100%;
-  }
-}
-
-.cal-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  font-size: 0.78rem;
-  color: var(--text-dim);
-}
-
-.cal-legend span {
+/* ---------------------------------------------------- Símbolo de un estado
+ *
+ * El mismo icono que lleva la insignia, suelto: en la celda del calendario y
+ * en la leyenda. El color va aquí y no en el componente porque es el tema
+ * quien decide qué tono tiene "cumplida" -en el claro no es el mismo verde-,
+ * y esa tabla vive en el CSS.
+ */
+.state-dot {
   display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.metric {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.metric-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
   line-height: 1;
+  flex-shrink: 0;
+}
+.state-dot svg {
+  width: 14px;
+  height: 14px;
+}
+.state-dot[data-state="done"] {
+  color: var(--done);
+}
+.state-dot[data-state="partial"] {
+  color: var(--partial);
+}
+.state-dot[data-state="pending"] {
+  color: var(--pending);
+}
+.state-dot[data-state="missed"] {
+  color: var(--missed);
+}
+.state-dot[data-state="extra"] {
+  color: var(--extra);
+}
+.state-dot[data-state="rest"] {
+  color: var(--rest);
+}
+.state-dot[data-state="excused"] {
+  color: var(--excused);
+}
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text-faint);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .kbd {
@@ -904,7 +1148,334 @@ label {
   color: var(--text-dim);
 }
 
-/* ------------------------------------------------------------ Progresión */
+/* Una cifra grande y su etiqueta debajo. */
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.metric-value {
+  font-family: var(--fuente-mono);
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.metric-row {
+  display: flex;
+  gap: var(--sp-8);
+  margin-top: var(--sp-4);
+}
+
+/* ------------------------------------------------------------ Ejercicios */
+
+.exercise {
+  border-bottom: 1px solid var(--border-soft);
+  padding: var(--sp-3) var(--sp-5);
+  transition: background-color var(--dur-2) ease;
+}
+.exercise:last-child {
+  border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .exercise:hover {
+    background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+  }
+}
+
+.exercise-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.exercise-name {
+  font-weight: 620;
+  letter-spacing: -0.005em;
+}
+
+/* La prescripción es el dato que se busca al recorrer la lista: va en el
+   acento y en la mono, para que las columnas no bailen de una fila a otra. */
+.prescription {
+  font-family: var(--fuente-mono);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-weight: 650;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.set-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: var(--sp-2);
+}
+
+.set-chip {
+  font-family: var(--fuente-mono);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border-soft);
+}
+
+.set-chip[data-warmup="true"] {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.rest-btn {
+  margin-top: var(--sp-1);
+  padding-left: 0;
+}
+
+/* ---------------------------------------------------------------- Semana */
+
+.week-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* Cada día es una fila con cuerpo propio: en una rejilla desnuda, con dos
+   rutinas en un día y ninguna en el siguiente, se pierde de quién es cada
+   selector. */
+.week-row {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  align-items: start;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.week-row label {
+  min-height: var(--tap);
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 620;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+
+/* Un día puede llevar varias rutinas: se apilan en su columna. */
+.week-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.week-slots .btn {
+  align-self: flex-start;
+}
+
+/* ------------------------------------------------------------- Calendario */
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  padding-bottom: var(--sp-1);
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--sp-1);
+  cursor: pointer;
+  min-height: var(--tap);
+  transition:
+    transform var(--dur-1) var(--sal),
+    border-color var(--dur-2) ease,
+    background-color var(--dur-2) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cal-day:not(:disabled):hover {
+    border-color: var(--border-strong);
+    background: var(--surface-3);
+  }
+}
+
+.cal-day:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.cal-day:disabled {
+  cursor: default;
+  opacity: 0.32;
+}
+
+.cal-day.empty {
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.cal-num {
+  font-family: var(--fuente-mono);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 620;
+}
+
+.cal-dot {
+  display: inline-flex;
+  line-height: 1;
+}
+.cal-dot svg {
+  width: 13px;
+  height: 13px;
+}
+
+.cal-routine {
+  display: none;
+}
+
+/* Hoy: el número dentro de una pastilla del acento. El borde solo no basta
+   cuando el día además tiene estado y ya lleva su propio color. */
+.cal-day[aria-current="date"] .cal-num {
+  background: var(--accent-solido);
+  color: var(--accent-ink);
+  border-radius: 999px;
+  min-width: 22px;
+  padding: 0 6px;
+  font-weight: 700;
+}
+
+.cal-day[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  background: var(--surface-3);
+}
+
+/* El estado tiñe el fondo además del borde: de un vistazo el mes se lee como
+   manchas, que es como se mira un calendario, y no como catorce bordes. */
+.cal-day[data-state="done"] {
+  border-color: color-mix(in srgb, var(--done) 45%, transparent);
+  background: color-mix(in srgb, var(--done) 12%, var(--surface-2));
+  color: var(--done);
+}
+.cal-day[data-state="partial"] {
+  border-color: color-mix(in srgb, var(--partial) 45%, transparent);
+  background: color-mix(in srgb, var(--partial) 12%, var(--surface-2));
+  color: var(--partial);
+}
+.cal-day[data-state="pending"] {
+  border-color: color-mix(in srgb, var(--pending) 55%, transparent);
+  border-style: dashed;
+  color: var(--pending);
+}
+.cal-day[data-state="missed"] {
+  border-color: color-mix(in srgb, var(--missed) 45%, transparent);
+  background: color-mix(in srgb, var(--missed) 12%, var(--surface-2));
+  color: var(--missed);
+}
+.cal-day[data-state="extra"] {
+  border-color: color-mix(in srgb, var(--extra) 45%, transparent);
+  background: color-mix(in srgb, var(--extra) 12%, var(--surface-2));
+  color: var(--extra);
+}
+.cal-day[data-state="excused"],
+.cal-day[data-state="rest"] {
+  color: var(--text-dim);
+}
+
+/* El nombre de la rutina se lee en el color del texto, no en el del estado:
+   con el fondo teñido, el título en color pierde legibilidad. */
+.cal-day .cal-routine,
+.cal-day[data-state] .cal-num {
+  color: var(--text);
+}
+.cal-day[aria-current="date"] .cal-num {
+  color: var(--accent-ink);
+}
+
+/* En cuanto hay ancho hay sitio para decir qué rutina tocaba: leer el mes de
+   un vistazo sin ir tocando día por día es la ventaja de la pantalla grande, y
+   una tablet en vertical ya la tiene. Por eso este salto va en 700 px y no
+   espera al de la barra lateral. */
+@media (min-width: 700px) {
+  .cal-day {
+    aspect-ratio: auto;
+    min-height: 92px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-2);
+    gap: var(--sp-1);
+  }
+  .cal-num {
+    font-size: 0.95rem;
+  }
+  .cal-routine {
+    display: -webkit-box;
+    font-size: 0.72rem;
+    font-weight: 550;
+    color: var(--text-dim);
+    line-height: 1.3;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    text-align: left;
+  }
+  .cal-head-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-1);
+    width: 100%;
+  }
+}
+
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.cal-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cal-legend svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* ------------------------------------------------------------- Progresión */
 
 /* Los cuatro veredictos, con el mismo criterio que los estados del día:
    nunca solo color. `undetermined` va en azul de información y no en gris,
@@ -913,10 +1484,12 @@ label {
 .badge[data-outcome="ready"] {
   color: var(--done);
   border-color: color-mix(in srgb, var(--done) 40%, transparent);
+  background: color-mix(in srgb, var(--done) 10%, var(--surface-2));
 }
 .badge[data-outcome="deload_suggested"] {
   color: var(--partial);
   border-color: color-mix(in srgb, var(--partial) 40%, transparent);
+  background: color-mix(in srgb, var(--partial) 10%, var(--surface-2));
 }
 .badge[data-outcome="undetermined"] {
   color: var(--extra);
@@ -928,7 +1501,7 @@ label {
 }
 
 /* Un filo de color a la izquierda de la tarjeta: dice de un vistazo cuáles
-   piden decisión sin tener que leer cada badge. */
+   piden decisión sin tener que leer cada insignia. */
 .card[data-outcome="ready"] {
   border-left: 3px solid var(--done);
 }
@@ -942,8 +1515,8 @@ label {
 .diff {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
   font-variant-numeric: tabular-nums;
   font-size: 1.05rem;
 }
@@ -955,17 +1528,19 @@ label {
 .diff-to {
   color: var(--text);
   font-weight: 700;
-  background: color-mix(in srgb, var(--done) 14%, transparent);
-  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--done) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--done) 30%, transparent);
+  border-radius: var(--radius-xs);
   padding: 2px 10px;
 }
 
 .card[data-outcome="deload_suggested"] .diff-to {
   background: color-mix(in srgb, var(--partial) 16%, transparent);
+  border-color: color-mix(in srgb, var(--partial) 30%, transparent);
 }
 
 .variant {
-  margin: 10px 0 0;
+  margin: var(--sp-2) 0 0;
   font-size: 0.92rem;
   color: var(--text-dim);
 }
@@ -978,29 +1553,30 @@ label {
      lado de la casilla, no debajo. */
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-3);
   min-height: var(--tap);
+  padding: 0 var(--sp-2);
+  margin: 0 calc(var(--sp-2) * -1);
+  border-radius: var(--radius-xs);
   color: var(--text);
   font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color var(--dur-2) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pick:hover {
+    background: var(--surface-2);
+  }
 }
 
 .pick input {
   width: 20px;
   height: 20px;
+  min-height: 0;
   margin: 0;
   accent-color: var(--accent);
-}
-
-.tag {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 650;
-  color: var(--text-faint);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  white-space: nowrap;
 }
 
 /* --------------------------------------------------------- Ranking muscular */
@@ -1018,8 +1594,8 @@ label {
   --tier-ascendant: #56d364;
   --tier-immortal: #bc6ff1;
   /* Radiant en rojo: es el techo de la escalera y tiene que destacar sobre el
-     dorado de Gold. Aqui el rojo no es una alarma -en el calendario si lo es,
-     pero el mapa corporal no usa los colores de estado del dia. */
+     dorado de Gold. Aquí el rojo no es una alarma -en el calendario sí lo es,
+     pero el mapa corporal no usa los colores de estado del día. */
   --tier-radiant: #ff4655;
 }
 
@@ -1043,7 +1619,11 @@ label {
 .badge[data-tier] {
   color: var(--tier);
   border-color: color-mix(in srgb, var(--tier) 45%, transparent);
-  background: color-mix(in srgb, var(--tier) 12%, var(--surface-2));
+  background: color-mix(in srgb, var(--tier) 13%, var(--surface-2));
+  font-family: var(--fuente-mono);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding-left: 11px;
 }
 .badge[data-tier="sin_datos"] {
   color: var(--text-faint);
@@ -1051,8 +1631,8 @@ label {
   background: var(--surface-2);
 }
 .badge-lg {
-  font-size: 0.95rem;
-  padding: 6px 14px;
+  font-size: 0.98rem;
+  padding: 6px 15px;
 }
 
 [data-tier="iron"] { --tier: var(--tier-iron); }
@@ -1070,18 +1650,18 @@ label {
 .body-views {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: var(--sp-4);
   flex-wrap: wrap;
 }
 
-/* Las dos vistas caben siempre juntas, tambien en 375 px: el mapa se lee de
+/* Las dos vistas caben siempre juntas, también en 375 px: el mapa se lee de
    un vistazo o no sirve, y apilarlas obligaba a hacer scroll para comparar
-   delante y detras. La interaccion fina en el movil la cubre la lista. */
+   delante y detrás. La interacción fina en el móvil la cubre la lista. */
 .body-map {
   margin: 0;
   flex: 1 1 0;
   min-width: 0;
-  max-width: 260px;
+  max-width: 270px;
   text-align: center;
 }
 
@@ -1092,12 +1672,15 @@ label {
 }
 
 .body-map figcaption {
-  margin-top: 4px;
-  font-size: 0.78rem;
+  margin-top: var(--sp-1);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-faint);
 }
 
-/* Capa de fondo: da forma al cuerpo por debajo de los musculos, para que un
+/* Capa de fondo: da forma al cuerpo por debajo de los músculos, para que un
    grupo sin datos no deje un agujero con forma de nada. */
 .silhouette {
   fill: var(--surface-2);
@@ -1105,8 +1688,8 @@ label {
   stroke-width: 1;
 }
 
-/* Codos, manos y rodillas van encima y recortan los musculos: sin ellos, el
-   biceps y el antebrazo parecen una sola pieza. */
+/* Codos, manos y rodillas van encima y recortan los músculos: sin ellos, el
+   bíceps y el antebrazo parecen una sola pieza. */
 .joint {
   fill: color-mix(in srgb, var(--surface-2) 65%, var(--bg));
   stroke: var(--border);
@@ -1118,7 +1701,7 @@ label {
   stroke: var(--border);
   stroke-width: 1;
   cursor: pointer;
-  transition: filter 0.12s ease;
+  transition: filter var(--dur-1) ease;
 }
 
 /* El músculo sin datos va con trama además de gris: quien no distinga los
@@ -1128,7 +1711,7 @@ label {
 }
 
 /* El halo es actividad reciente, nunca rango: por eso vive en el borde.
-   Atenuado a proposito: cuando se entrena todo el cuerpo, un verde saturado
+   Atenuado a propósito: cuando se entrena todo el cuerpo, un verde saturado
    en cada pieza compite con el color del rango, que es lo que importa. */
 .zone[data-fresh="fresh"] {
   stroke: color-mix(in srgb, var(--done) 75%, transparent);
@@ -1139,14 +1722,15 @@ label {
   stroke-width: 1.5;
 }
 
-.zone:hover {
-  filter: brightness(1.25);
-}
-
-/* Aclarar sobre fondo blanco no resalta nada: en el tema claro el músculo
-   señalado se oscurece en vez de iluminarse. */
-[data-tema="claro"] .zone:hover {
-  filter: brightness(0.88);
+@media (hover: hover) and (pointer: fine) {
+  .zone:hover {
+    filter: brightness(1.25);
+  }
+  /* Aclarar sobre fondo blanco no resalta nada: en el tema claro el músculo
+     señalado se oscurece en vez de iluminarse. */
+  [data-tema="claro"] .zone:hover {
+    filter: brightness(0.88);
+  }
 }
 
 .zone[data-selected] {
@@ -1156,8 +1740,8 @@ label {
 
 /* El foco va en el borde y no en `outline`: las zonas recortadas con
    clip-path (deltoides, romboides) tienen un bounding box mucho mayor que su
-   parte visible, asi que el outline dibujaba un rectangulo suelto sobre el
-   cuerpo. El stroke si respeta el recorte. */
+   parte visible, así que el outline dibujaba un rectángulo suelto sobre el
+   cuerpo. El stroke sí respeta el recorte. */
 .zone:focus {
   outline: none;
 }
@@ -1167,21 +1751,27 @@ label {
   stroke-width: 3;
 }
 
+/* La leyenda se lee como una escalera, de Iron a Radiant, y por eso va pegada
+   en una sola pieza: nueve pastillas sueltas parecen nueve etiquetas
+   independientes, no una progresión. */
 .tier-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   justify-content: center;
-  margin-top: 14px;
+  margin-top: var(--sp-4);
 }
 
 .tier-chip {
-  font-size: 0.68rem;
-  font-weight: 650;
-  padding: 2px 8px;
+  font-family: var(--fuente-mono);
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 9px;
   border-radius: 999px;
   color: var(--tier, var(--text-faint));
-  border: 1px solid color-mix(in srgb, var(--tier, var(--border)) 45%, transparent);
+  background: color-mix(in srgb, var(--tier, var(--border)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tier, var(--border)) 40%, transparent);
 }
 
 /* ------------------------------------------------------- Lista de músculos */
@@ -1189,31 +1779,55 @@ label {
 .muscle-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-3);
   width: 100%;
   min-height: var(--tap);
-  padding: 10px 16px;
+  padding: var(--sp-2) var(--sp-5);
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-soft);
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color var(--dur-2) ease;
 }
 
 .muscle-row:last-child {
   border-bottom: none;
 }
 
-.muscle-row:hover,
+@media (hover: hover) and (pointer: fine) {
+  .muscle-row:hover {
+    background: var(--surface-2);
+  }
+}
+
 .muscle-row[aria-pressed="true"] {
-  background: var(--surface-2);
+  background: var(--accent-soft);
 }
 
 .muscle-name {
   flex: 0 0 8.5rem;
   font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+/*
+ * En el móvil la barra se queda sin sitio: con el nombre fijo en 8,5 rem le
+ * sobraban treinta píxeles y parecía un fallo de maquetación, no una medida.
+ * Ahí la fila se queda con nombre, puntuación y rango -que es lo que se
+ * consulta- y la comparación visual entre músculos vive en el mapa, justo
+ * encima. En el PC, que es donde se estudia la lista, la barra sigue.
+ */
+@media (max-width: 599px) {
+  .muscle-name {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .muscle-row .bar {
+    display: none;
+  }
 }
 
 .bar {
@@ -1221,21 +1835,31 @@ label {
   height: 8px;
   min-width: 40px;
   border-radius: 999px;
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--bg));
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 22%);
   overflow: hidden;
 }
 
+/* Degradado en la barra: el extremo lleno marca la marca alcanzada y el
+   arranque se apaga, de modo que dos barras del mismo rango pero distinta
+   puntuación se distinguen sin leer la cifra. */
 .bar-fill {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--tier, var(--accent));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--tier, var(--accent)) 45%, transparent),
+    var(--tier, var(--accent))
+  );
 }
 
 .muscle-score {
-  flex: 0 0 2.2rem;
+  flex: 0 0 2.4rem;
   text-align: right;
+  font-family: var(--fuente-mono);
   font-variant-numeric: tabular-nums;
+  font-weight: 620;
   color: var(--text-dim);
 }
 
@@ -1257,42 +1881,49 @@ label {
 .row-button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-3);
   width: 100%;
   min-height: 38px;
-  padding: 6px 10px;
+  padding: 6px var(--sp-3);
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    transform var(--dur-1) var(--sal),
+    border-color var(--dur-2) ease;
 }
 
-.row-button:hover {
-  border-color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .row-button:hover {
+    border-color: var(--accent);
+  }
+}
+.row-button:active {
+  transform: scale(0.985);
 }
 
 /* ------------------------------------------------------- Ficha del músculo */
 
-.metric-row {
-  display: flex;
-  gap: 24px;
-  margin-top: 14px;
-}
-
 .factors {
-  margin: 10px 0 0;
+  margin: var(--sp-2) 0 0;
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .factors > div {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--sp-3);
   font-size: 0.85rem;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.factors > div:last-child {
+  border-bottom: none;
 }
 
 .factors dt {
@@ -1301,25 +1932,29 @@ label {
 
 .factors dd {
   margin: 0;
+  font-family: var(--fuente-mono);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .sparkline {
   width: 100%;
-  height: 60px;
-  margin-top: 6px;
+  height: 64px;
+  margin-top: var(--sp-2);
+  overflow: visible;
 }
 
 .sparkline path {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 1.5;
+  stroke-width: 1.75;
   stroke-linejoin: round;
+  stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 
 .sparkline.empty {
-  height: 60px;
+  height: 64px;
   border-radius: var(--radius-sm);
   background: repeating-linear-gradient(
     90deg,
@@ -1337,9 +1972,178 @@ label {
 details summary {
   cursor: pointer;
   font-weight: 600;
+  border-radius: var(--radius-xs);
 }
 
-/* ------------------------------------------------------------ Descanso */
+/* --------------------------------------------------------- Siguiente hito */
+
+/* El objetivo concreto de un músculo: "3 dominadas más", no "12 puntos".
+   Va en su propio bloque destacado porque es la única parte de la ficha que
+   se puede entrenar mañana. */
+.hito {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-soft-2);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.hito-etiqueta {
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Un permiso del agente: casilla y explicación en la misma línea. */
+.scope {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.scope input {
+  width: auto;
+  min-height: 0;
+  margin-top: 3px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------- Vacío, carga, avisos */
+
+.empty {
+  text-align: center;
+  padding: var(--sp-10) var(--sp-5);
+  color: var(--text-dim);
+}
+
+/* El icono va dentro de un disco tenue: suelto sobre el fondo parece un
+   error de maquetación, no una ilustración. */
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--sp-3);
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  color: var(--text-faint);
+}
+.empty-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.error {
+  border-color: color-mix(in srgb, var(--missed) 45%, transparent);
+  background: color-mix(in srgb, var(--missed) 8%, var(--surface));
+  color: var(--missed);
+}
+
+/*
+ * Esqueleto de carga. Un barrido de luz en vez de un parpadeo de opacidad:
+ * el parpadeo se lee como "esto está roto" y el barrido, como "esto viene".
+ */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  height: 88px;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--text) 7%, transparent),
+    transparent
+  );
+  animation: barrido 1.5s var(--ent-sal) infinite;
+}
+
+@keyframes barrido {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/*
+ * Aviso. Entra desde abajo -de donde viene la acción que lo provoca- y sale
+ * por el mismo sitio: si algo aparece por un lado, se espera que se vaya por
+ * ese lado.
+ */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: var(--sp-3) var(--sp-5);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--sombra-2);
+  z-index: 20;
+  max-width: 90vw;
+  animation: entrada-aviso var(--dur-4) var(--muelle);
+}
+
+/* Cristal que se forma: el desenfoque y la escala entran juntos, para que la
+   pastilla llegue como material y no como una imagen que se enciende. */
+@keyframes entrada-aviso {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.94);
+    filter: blur(6px);
+  }
+}
+
+/* Se va por donde vino, y más deprisa: al entrar hay algo que mirar; al salir,
+   ya no. */
+.toast[data-leaving] {
+  animation: salida-aviso var(--dur-2) var(--sal) both;
+}
+
+@keyframes salida-aviso {
+  to {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.97);
+    filter: blur(4px);
+  }
+}
+
+.toast[data-kind="error"] {
+  color: var(--missed);
+  border-color: color-mix(in srgb, var(--missed) 45%, transparent);
+}
+
+@media (min-width: 900px) {
+  .toast {
+    bottom: var(--sp-6);
+  }
+}
 
 /* Solo para lectores de pantalla: el aviso de fin del descanso no debe
    ocupar sitio, pero tampoco puede quedarse solo en el sonido. */
@@ -1355,6 +2159,8 @@ details summary {
   border: 0;
 }
 
+/* ------------------------------------------------------------- Descanso */
+
 /* Un color por estado. Cambiarlo aquí cambia el anillo, los dígitos y el
    halo a la vez: son la misma información dicha tres veces. */
 .timer {
@@ -1362,7 +2168,7 @@ details summary {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: var(--sp-6);
 }
 .timer[data-state="running"] {
   --timer-color: var(--accent);
@@ -1377,9 +2183,11 @@ details summary {
   --timer-color: var(--done);
 }
 
+/* El alto entra en la cuenta: en un móvil apaisado, 78vw dejaba el anillo más
+   alto que la pantalla y los botones fuera de cuadro. */
 .timer-dial {
   position: relative;
-  width: min(320px, 78vw);
+  width: min(340px, 78vw, 58vh);
   aspect-ratio: 1;
 }
 
@@ -1396,7 +2204,7 @@ details summary {
      el fondo oscuro aquel se perdía justo cuando el arco casi se ha vaciado,
      que es cuando más importa ver la referencia. */
   stroke: var(--border);
-  stroke-width: 12;
+  stroke-width: 10;
 }
 
 .timer-arc {
@@ -1414,7 +2222,7 @@ details summary {
 .timer[data-state="running"] .timer-dial,
 .timer[data-state="warn"] .timer-dial,
 .timer[data-state="done"] .timer-dial {
-  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--timer-color) 30%, transparent));
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--timer-color) 32%, transparent));
 }
 
 .timer[data-state="done"] .timer-dial {
@@ -1434,28 +2242,31 @@ details summary {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--sp-2);
 }
 
 .timer-clock {
-  font-size: clamp(3rem, 13vw, 4.4rem);
-  font-weight: 700;
+  font-family: var(--fuente-mono);
+  font-size: clamp(3.2rem, 13vw, 4.6rem);
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   color: var(--text);
   /* Cifras de ancho fijo: si no, el reloj tiembla en cada segundo. */
   font-variant-numeric: tabular-nums;
 }
 
 .timer-state {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--timer-color);
 }
 
 .timer-presets {
   display: flex;
-  gap: 10px;
+  gap: var(--sp-2);
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -1463,28 +2274,36 @@ details summary {
 .timer-preset {
   min-width: 88px;
   min-height: var(--tap);
-  padding: 0 18px;
+  padding: 0 var(--sp-4);
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-weight: 700;
+  font-family: var(--fuente-mono);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background 0.15s ease;
+    transform var(--dur-1) var(--sal),
+    border-color var(--dur-2) ease,
+    color var(--dur-2) ease,
+    background-color var(--dur-2) ease;
 }
-.timer-preset:hover {
-  color: var(--text);
-  border-color: var(--text-faint);
+@media (hover: hover) and (pointer: fine) {
+  .timer-preset:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+}
+.timer-preset:active {
+  transform: scale(0.96);
 }
 .timer-preset[data-active] {
   border-color: var(--accent);
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  background: var(--accent-soft);
 }
 
 .timer-actions {
@@ -1492,7 +2311,7 @@ details summary {
   max-width: 340px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--sp-2);
 }
 
 /* Píldora de la navegación: solo aparece con un descanso vivo.
@@ -1500,7 +2319,6 @@ details summary {
    pestaña más. */
 .nav .timer-pill {
   display: flex;
-  /* `.nav a` la apilaría en columna y la estiraría como una pestaña más. */
   flex: 0 0 auto;
   flex-direction: row;
   width: auto;
@@ -1508,23 +2326,30 @@ details summary {
   justify-content: center;
   gap: 7px;
   font-size: 0.92rem;
-  padding: 8px 14px;
+  padding: var(--sp-2) var(--sp-3);
   border-radius: 999px;
   border: 1px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
   color: var(--accent);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-decoration: none;
 }
+.nav .timer-pill svg {
+  width: 16px;
+  height: 16px;
+}
+.timer-pill-clock {
+  letter-spacing: -0.01em;
+}
 .nav .timer-pill[data-phase="paused"] {
-  border-color: var(--text-faint);
+  border-color: var(--border-strong);
   background: var(--surface-2);
   color: var(--text-dim);
 }
 .nav .timer-pill[data-phase="done"] {
   border-color: var(--done);
-  background: color-mix(in srgb, var(--done) 14%, var(--surface));
+  background: color-mix(in srgb, var(--done) 16%, var(--surface));
   color: var(--done);
   animation: timer-pulse 1.1s ease-in-out infinite;
 }
@@ -1535,15 +2360,10 @@ details summary {
 }
 .nav .timer-pill {
   position: fixed;
-  right: 12px;
-  bottom: calc(var(--tap) + 22px + env(safe-area-inset-bottom));
+  right: var(--sp-3);
+  bottom: calc(var(--tap) + 26px + env(safe-area-inset-bottom));
   z-index: 11;
-  box-shadow: var(--sombra);
-}
-
-.rest-btn {
-  margin-top: 6px;
-  padding-left: 0;
+  box-shadow: var(--sombra-2);
 }
 
 @media (min-width: 900px) {
@@ -1554,6 +2374,7 @@ details summary {
   .nav .timer-pill {
     position: static;
     box-shadow: none;
+    margin-bottom: var(--sp-2);
   }
 }
 
@@ -1578,16 +2399,16 @@ details summary {
   .ajustes-box {
     display: block;
     position: relative;
-    margin-top: 10px;
+    margin-top: var(--sp-2);
   }
 
   .ajustes-trigger {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--sp-3);
     width: 100%;
     min-height: var(--tap);
-    padding: 8px 10px;
+    padding: var(--sp-2) var(--sp-3);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     background: var(--surface-2);
@@ -1595,16 +2416,17 @@ details summary {
     font: inherit;
     text-align: left;
     cursor: pointer;
+    box-shadow: var(--brillo);
+    transition:
+      border-color var(--dur-2) ease,
+      background-color var(--dur-2) ease;
   }
   .ajustes-trigger:hover {
-    border-color: var(--text-faint);
+    border-color: var(--border-strong);
+    background: var(--surface-3);
   }
   .ajustes-trigger[aria-expanded="true"] {
     border-color: var(--accent);
-  }
-  .ajustes-trigger:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
   }
 
   /* Mismo logo que la marca, en pequeño y por el mismo motivo: enmascarado
@@ -1627,6 +2449,7 @@ details summary {
   .ajustes-txt strong {
     font-size: 0.9rem;
     font-weight: 650;
+    letter-spacing: -0.005em;
   }
   /* El tema y el peso caben en una línea; si no caben, se recortan antes que
      ensanchar la barra. */
@@ -1638,31 +2461,51 @@ details summary {
     text-overflow: ellipsis;
   }
   .ajustes-chevron {
+    display: inline-flex;
     margin-left: auto;
     color: var(--text-faint);
-    font-size: 0.85rem;
+    transition: transform var(--dur-2) var(--sal);
+  }
+  .ajustes-chevron svg {
+    width: 16px;
+    height: 16px;
+  }
+  .ajustes-trigger[aria-expanded="true"] .ajustes-chevron {
+    transform: rotate(180deg);
   }
 
   /* Se abre hacia arriba y algo más ancha que la barra: los nombres de tema
-     en dos columnas no caben en los 190 px útiles de la nav. */
+     en dos columnas no caben en los 190 px útiles de la nav. Y crece desde
+     abajo, que es donde está el botón que la abre. */
   .ajustes-menu {
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + var(--sp-2));
     left: 0;
-    width: 250px;
-    padding: 12px;
+    width: 258px;
+    padding: var(--sp-3);
     border-radius: var(--radius);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     background: var(--surface);
-    box-shadow: var(--sombra);
+    box-shadow: var(--sombra-2);
     z-index: 20;
+    transform-origin: bottom left;
+    animation: entrada-menu var(--dur-4) var(--muelle);
+  }
+
+  /* Nace en su botón, no en el centro de la pantalla: el origen está abajo a
+     la izquierda, que es donde está el control que lo abre. */
+  @keyframes entrada-menu {
+    from {
+      opacity: 0;
+      transform: scale(0.92) translateY(10px);
+    }
   }
 
   .ajustes-titulo {
-    margin: 0 0 8px;
-    font-size: 0.68rem;
+    margin: 0 0 var(--sp-2);
+    font-size: 0.67rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-faint);
   }
@@ -1670,14 +2513,14 @@ details summary {
   .ajustes-sep {
     border: none;
     border-top: 1px solid var(--border);
-    margin: 12px 0 8px;
+    margin: var(--sp-3) 0 var(--sp-2);
   }
 
   .ajustes-dato {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
-    padding: 4px 8px 8px;
+    gap: var(--sp-3);
+    padding: var(--sp-1) var(--sp-2) var(--sp-2);
     font-size: 0.85rem;
     color: var(--text-dim);
   }
@@ -1692,13 +2535,18 @@ details summary {
     flex: 0 0 auto;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    padding: 9px 8px;
-    border-radius: var(--radius-sm);
+    gap: var(--sp-3);
+    padding: var(--sp-2);
+    border-radius: var(--radius-xs);
     color: var(--text);
     font-size: 0.9rem;
     font-weight: 600;
     text-decoration: none;
+  }
+  .nav .ajustes-item svg {
+    width: 17px;
+    height: 17px;
+    color: var(--text-faint);
   }
   .nav .ajustes-item:hover {
     background: var(--surface-2);
@@ -1722,17 +2570,21 @@ details summary {
 .tema {
   flex-direction: row;
   align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: var(--radius-sm);
+  gap: var(--sp-2);
+  padding: 7px var(--sp-2);
+  border-radius: var(--radius-xs);
   font-size: 0.85rem;
   font-weight: 500;
+  letter-spacing: 0;
   color: var(--text-dim);
   cursor: pointer;
+  transition:
+    background-color var(--dur-2) ease,
+    color var(--dur-2) ease;
 }
 .temas-compacto .tema {
   font-size: 0.8rem;
-  padding: 6px 8px;
+  padding: 6px var(--sp-2);
 }
 .tema:hover {
   background: var(--surface-2);
@@ -1746,15 +2598,16 @@ details summary {
   opacity: 0;
   width: 0;
   height: 0;
+  min-height: 0;
 }
 .tema:has(input:checked) {
   background: var(--surface-2);
   color: var(--text);
-  font-weight: 700;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+  font-weight: 650;
+  box-shadow: inset 0 0 0 1px var(--accent-soft-2);
 }
 .tema:has(input:focus-visible) {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--anillo);
   outline-offset: 1px;
 }
 
@@ -1770,55 +2623,663 @@ details summary {
   background: linear-gradient(135deg, var(--surface) 52%, var(--accent) 52%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .timer-arc {
-    transition: none;
+.tema-nombre {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════════════ Barra de mando
+ *
+ * Solo escritorio. Lleva lo que no cambia al navegar -la marca, la semana y
+ * los dos datos que contextualizan todo lo demás- para que el contenido no
+ * tenga que repetirlo en cada pantalla. La semana está ahí porque saber en
+ * qué punto de la semana vas no debería costar un clic al Calendario.
+ */
+
+.mando {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .mando {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    height: var(--alto-mando);
+    flex-shrink: 0;
+    padding: 0 var(--sp-3);
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    backdrop-filter: blur(18px) saturate(150%);
+    border-bottom: 1px solid var(--border);
   }
+}
+
+.mando-marca {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.mando-marca .brand-mark {
+  width: 20px;
+  aspect-ratio: 283 / 236;
+  flex-shrink: 0;
+  background: var(--accent);
+  -webkit-mask: url("/logo.png") center / contain no-repeat;
+  mask: url("/logo.png") center / contain no-repeat;
+}
+
+.mando-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+}
+
+.mando-dato {
+  font-family: var(--fuente-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.mando-dato strong {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------- Tira de semana */
+
+.semana-tira {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.semana-dia {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: var(--radius-xs);
+  text-decoration: none;
+  transition: background-color var(--dur-2) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .semana-dia:hover {
+    background: var(--surface-2);
+  }
+}
+
+.semana-dia-letra {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.semana-dia-num {
+  font-family: var(--fuente-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+/* Mismo vocabulario de color que el calendario: no se aprende dos veces. */
+.semana-dia[data-state="done"] {
+  background: color-mix(in srgb, var(--done) 10%, transparent);
+}
+.semana-dia[data-state="done"] .semana-dia-num {
+  color: var(--done);
+}
+.semana-dia[data-state="partial"] {
+  background: color-mix(in srgb, var(--partial) 10%, transparent);
+}
+.semana-dia[data-state="partial"] .semana-dia-num {
+  color: var(--partial);
+}
+.semana-dia[data-state="missed"] {
+  background: color-mix(in srgb, var(--missed) 10%, transparent);
+}
+.semana-dia[data-state="missed"] .semana-dia-num {
+  color: var(--missed);
+}
+.semana-dia[data-state="pending"] .semana-dia-num {
+  color: var(--pending);
+}
+.semana-dia[data-state="extra"] .semana-dia-num {
+  color: var(--extra);
+}
+
+.semana-dia[aria-current="date"] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.semana-dia[aria-current="date"] .semana-dia-letra,
+.semana-dia[aria-current="date"] .semana-dia-num {
+  color: var(--accent);
+}
+
+/* ----------------------------------------------------- Grupos del rail */
+
+/*
+ * Ocho pestañas seguidas son una lista; agrupadas en tres bloques -lo que se
+ * registra, lo que se planifica, lo que se analiza- son un mapa. El título
+ * del grupo no es navegable: solo separa.
+ */
+.nav-grupo {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .nav-grupo {
+    display: block;
+    padding: var(--sp-4) var(--sp-2) var(--sp-1);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .nav-grupo:first-of-type {
+    padding-top: var(--sp-1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════ Tabla de la sesión
+ *
+ * Los ejercicios del día en columnas alineadas: series, objetivo, carga y
+ * descanso caen siempre en el mismo sitio, con cifras monoespaciadas, así que
+ * comparar dos filas es mirar, no leer.
+ *
+ * Debajo de 760 px la tabla no cabe -son seis columnas- y se pliega a dos
+ * líneas por ejercicio: nombre y descanso arriba, la prescripción entera a la
+ * derecha. Es la misma información dicha de la forma que cabe.
+ */
+
+.tabla {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tabla-head,
+.tabla-fila {
+  display: grid;
+  grid-template-columns:
+    1.9rem minmax(0, 1fr) 3rem 5.2rem 5.4rem 4rem 2rem;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.tabla-head {
+  padding: 0 var(--sp-4) 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabla-head span {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.tabla-head .tabla-dato {
+  text-align: right;
+}
+
+.tabla-fila {
+  min-height: 42px;
+  padding: 0 var(--sp-4);
+  border-bottom: 1px solid var(--border-soft);
+}
+.tabla-fila:last-child {
+  border-bottom: none;
+}
+
+/* Franjas alternas en vez de una línea por fila: con seis columnas, el ojo
+   sigue mejor una banda que un filete. */
+.tabla-fila:nth-child(even) {
+  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+}
+
+.tabla-num {
+  font-family: var(--fuente-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.tabla-ejercicio {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tabla-nombre {
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+/* Segunda línea del nombre: solo cuando la tabla se pliega. */
+.tabla-sub {
+  display: none;
+  font-family: var(--fuente-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.tabla-dato {
+  font-family: var(--fuente-mono);
+  font-size: 0.8rem;
+  text-align: right;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Un hueco es un hueco: no se rellena con un cero. */
+.tabla-dato[data-vacio] {
+  color: var(--text-faint);
+}
+
+.tabla-carga {
+  color: var(--accent);
+}
+
+.tabla-descanso {
+  color: var(--text-dim);
+}
+
+.tabla-resumen {
+  display: none;
+  font-family: var(--fuente-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabla-accion {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    transform var(--dur-1) var(--sal),
+    border-color var(--dur-2) ease,
+    color var(--dur-2) ease;
+}
+.tabla-accion svg {
+  width: 15px;
+  height: 15px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tabla-accion:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+.tabla-accion:active {
+  transform: scale(0.94);
+}
+
+@media (max-width: 759px) {
+  .tabla-head {
+    display: none;
+  }
+  .tabla-fila {
+    grid-template-columns: 1.9rem minmax(0, 1fr) auto auto;
+    min-height: var(--tap);
+    padding: var(--sp-2) var(--sp-4);
+  }
+  .tabla-series,
+  .tabla-objetivo,
+  .tabla-carga,
+  .tabla-descanso {
+    display: none;
+  }
+  .tabla-sub,
+  .tabla-resumen {
+    display: block;
+  }
+  .tabla-nombre {
+    font-size: 0.95rem;
+  }
+  .tabla-resumen {
+    font-size: 0.88rem;
+  }
+  .tabla-accion {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════ Barra de acción
+ *
+ * Anclada al pie del contenido en escritorio: con una rutina larga, el botón
+ * de registrar quedaba por debajo del pliegue justo los días en que hay más
+ * que hacer. En móvil se queda en el flujo, porque abajo ya está la barra de
+ * navegación y dos barras apiladas son una de más.
+ */
+.barra-accion {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-3);
+}
+
+@media (min-width: 900px) {
+  .barra-accion {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: var(--sp-4) calc(var(--margen) * -1) calc(var(--sp-10) * -1);
+    padding: var(--sp-3) var(--margen);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(16px) saturate(150%);
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* ═══════════════════════════════════════════════════ Inspector
+ *
+ * La columna derecha: lo que el sistema propone, sin salir de la pantalla.
+ */
+.inspector {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: var(--sombra-1), var(--brillo);
+}
+
+.inspector-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.inspector-titulo {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.inspector-cuenta {
+  font-family: var(--fuente-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--done) 14%, transparent);
+  color: var(--done);
+}
+
+.inspector-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-2) ease;
+}
+.inspector-fila:last-child {
+  border-bottom: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .inspector-fila:hover {
+    background: var(--surface-2);
+  }
+}
+
+.inspector-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.inspector-nombre strong {
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.inspector-nombre small {
+  font-family: var(--fuente-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.inspector-marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--done) 12%, transparent);
+  color: var(--done);
+}
+.inspector-marca svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Naranja cuando lo que hay que hacer no es subir sino atender: una descarga
+   sugerida o un día sin anotar. */
+.inspector-cuenta[data-tono="aviso"] {
+  background: color-mix(in srgb, var(--pending) 16%, transparent);
+  color: var(--pending);
+}
+.inspector-marca[data-tono="aviso"] {
+  background: color-mix(in srgb, var(--partial) 14%, transparent);
+  color: var(--partial);
+}
+
+.inspector-pie {
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════ Densidad de escritorio
+ *
+ * El móvil se queda como está -targets de 44 px y letra grande, que es lo que
+ * pide el gimnasio-; en el PC, donde hay ratón y se viene a comparar datos,
+ * todo se aprieta un punto.
+ */
+@media (min-width: 900px) {
+  .card {
+    padding: var(--sp-4);
+  }
+  .card-flush > h2,
+  .card-flush > h3,
+  .card-head {
+    padding: var(--sp-3) var(--sp-4) var(--sp-2);
+  }
+  .btn {
+    min-height: 34px;
+    padding: 0 var(--sp-3);
+    font-size: 0.84rem;
+    border-radius: var(--radius-xs);
+  }
+  .btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .btn-sm {
+    min-height: 28px;
+    font-size: 0.78rem;
+  }
+  .btn-hero {
+    width: auto;
+    min-height: 36px;
+    padding: 0 var(--sp-5);
+    font-size: 0.9rem;
+    border-radius: var(--radius-xs);
+  }
+  .btn-hero svg {
+    width: 17px;
+    height: 17px;
+  }
+  input,
+  select {
+    min-height: 34px;
+    font-size: 0.88rem;
+  }
+  .exercise {
+    padding: var(--sp-2) var(--sp-4);
+  }
+  .muscle-row {
+    min-height: 36px;
+    padding: var(--sp-1) var(--sp-4);
+  }
+  .stack {
+    gap: var(--sp-2);
+  }
+  .stack-lg {
+    gap: var(--sp-5);
+  }
+  /* Con barra de mando arriba, la cabecera de la página ya no necesita
+     quedarse pegada: la cromada persistente es la de arriba. */
+  .page-head {
+    position: static;
+    margin: 0;
+    padding: 0 0 var(--sp-1);
+    background: none;
+    backdrop-filter: none;
+    animation: none;
+  }
+  .page-head::after {
+    display: none;
+  }
+  .main {
+    padding: var(--sp-4) var(--margen) var(--sp-10);
+  }
+  h1 {
+    font-size: 1.35rem;
+    letter-spacing: -0.022em;
+  }
+  h2 {
+    font-size: 1.02rem;
+  }
+  h3 {
+    font-size: 0.9rem;
+  }
+}
+
+/* ------------------------------------------------------- Movimiento reducido
+ *
+ * "Menos movimiento", no "ninguna respuesta": las transiciones de color y de
+ * opacidad se quedan porque ayudan a entender qué ha cambiado. Lo que se
+ * quita es el desplazamiento y el pulso, que son los que marean.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .main > *,
+  .toast,
+  .toast[data-leaving],
+  .ajustes-menu,
+  .skeleton::after,
   .timer[data-state="done"] .timer-dial,
   .nav .timer-pill[data-phase="done"] {
     animation: none;
   }
+  .btn:active:not(:disabled),
+  .cal-day:not(:disabled):active,
+  .timer-preset:active,
+  .row-button:active {
+    transform: none;
+  }
+  .timer-arc {
+    transition: none;
+  }
 }
 
-/* Un permiso del agente: casilla y explicación en la misma línea. */
-.scope {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 0.9rem;
-  color: var(--text);
-  font-weight: 400;
-  cursor: pointer;
+/*
+ * Más contraste. Quien lo pide no necesita un tema distinto: necesita que los
+ * bordes existan y que el texto secundario deje de ser un matiz. Las capas
+ * translúcidas se vuelven sólidas por el mismo motivo que abajo.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --border: color-mix(in srgb, var(--text) 42%, transparent);
+    --border-soft: color-mix(in srgb, var(--text) 30%, transparent);
+    --text-dim: color-mix(in srgb, var(--text) 88%, transparent);
+    --text-faint: color-mix(in srgb, var(--text) 74%, transparent);
+  }
+  .nav,
+  .page-head,
+  .toast {
+    backdrop-filter: none;
+    animation: none;
+  }
+  .nav {
+    background: var(--surface);
+  }
+  .page-head {
+    background: var(--bg);
+  }
+  .toast {
+    background: var(--surface-2);
+  }
+  .badge,
+  .tag,
+  .set-chip,
+  .tier-chip {
+    border-width: 1.5px;
+  }
 }
 
-.scope input {
-  width: auto;
-  min-height: 0;
-  margin-top: 3px;
-  accent-color: var(--accent);
-  flex-shrink: 0;
-}
-
-/* --------------------------------------------------------- Siguiente hito */
-
-/* El objetivo concreto de un músculo: "3 dominadas más", no "12 puntos".
-   Va en su propio bloque destacado porque es la única parte de la ficha que
-   se puede entrenar mañana. */
-.hito {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.hito-etiqueta {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
+/* Menos transparencia: el material translúcido se vuelve opaco en lugar de
+   desaparecer, que dejaría la barra flotando sin fondo. */
+@media (prefers-reduced-transparency: reduce) {
+  .nav,
+  .page-head,
+  .toast {
+    backdrop-filter: none;
+    animation: none;
+  }
+  .nav {
+    background: var(--surface);
+  }
+  .page-head {
+    background: var(--bg);
+  }
+  .toast {
+    background: var(--surface-2);
+  }
 }

@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { localDate } from "../api/client";
 import type { Calendar as CalendarData, DayState } from "../api/client";
@@ -25,6 +26,7 @@ import {
   useSetException,
   useSkipDay,
 } from "../api/hooks";
+import { Icon } from "../components/icons";
 import {
   describePerformed,
   describePlanned,
@@ -32,6 +34,7 @@ import {
   formatDate,
   Loading,
   StateBadge,
+  StateDot,
   stateLabel,
   useToast,
 } from "../components/ui";
@@ -43,23 +46,20 @@ const MONTHS = [
 ];
 
 const LEGEND: DayState[] = ["done", "partial", "pending", "missed", "extra", "excused", "rest"];
-const STATE_ICON: Record<DayState, string> = {
-  done: "🟢",
-  partial: "🟡",
-  pending: "🟠",
-  missed: "🔴",
-  rest: "⚪",
-  extra: "🔵",
-  excused: "⚫",
-};
 
 export default function CalendarPage() {
   const today = localDate();
+  // La tira de semana de la barra de mando enlaza con `?dia=`: entrar por ahí
+  // tiene que abrir ese día, no el de hoy.
+  const [params] = useSearchParams();
+  const pedido = params.get("dia");
+  const inicial = pedido && /^\d{4}-\d{2}-\d{2}$/.test(pedido) ? pedido : today;
+
   const [cursor, setCursor] = useState(() => {
-    const [y, m] = today.split("-").map(Number);
+    const [y, m] = inicial.split("-").map(Number);
     return { year: y!, month: m! };
   });
-  const [selected, setSelected] = useState<string | null>(today);
+  const [selected, setSelected] = useState<string | null>(inicial);
 
   const month = useCalendar(cursor.year, cursor.month);
 
@@ -100,7 +100,7 @@ export default function CalendarPage() {
         </div>
         <div className="row-tight">
           <button className="btn btn-sm" onClick={() => shift(-1)} aria-label="Mes anterior">
-            ←
+            <Icon name="flecha-izquierda" />
           </button>
           <button
             className="btn btn-sm"
@@ -113,7 +113,7 @@ export default function CalendarPage() {
             Hoy
           </button>
           <button className="btn btn-sm" onClick={() => shift(1)} aria-label="Mes siguiente">
-            →
+            <Icon name="flecha-derecha" />
           </button>
         </div>
       </header>
@@ -136,7 +136,7 @@ export default function CalendarPage() {
             <div className="cal-legend">
               {LEGEND.map((state) => (
                 <span key={state}>
-                  <span aria-hidden="true">{STATE_ICON[state]}</span>
+                  <StateDot state={state} />
                   {stateLabel(state)}
                 </span>
               ))}
@@ -242,11 +242,7 @@ function MonthGrid({
                 <span className="cal-head-row">
                   <span className="cal-num">{day}</span>
                   <span className="spacer" />
-                  {info && (
-                    <span className="cal-dot" aria-hidden="true">
-                      {STATE_ICON[info.state]}
-                    </span>
-                  )}
+                  {info && <StateDot state={info.state} className="cal-dot" />}
                 </span>
                 {info?.routine_name && <span className="cal-routine">{info.routine_name}</span>}
               </button>
@@ -380,7 +376,8 @@ function DayDetail({ date, today }: { date: string; today: string }) {
                   )
                 }
               >
-                ✓ Hice esta rutina
+                <Icon name="marca" />
+                Hice esta rutina
               </button>
               <div className="row">
                 <button

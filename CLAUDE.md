@@ -96,7 +96,9 @@ scripts/          Fit-Up.bat (lanzador, destino de los accesos directos) ·
 
 frontend/src/
   api/            client.ts (fetch tipado) · hooks.ts (react-query) · schema.d.ts (GENERADO)
-  components/     primitivas compartidas · BodyMap (mapa corporal) · bodyPaths (su geometría)
+  components/     primitivas compartidas · icons (trazados propios, sin dependencia) ·
+                  mando (barra superior y tira de semana) ·
+                  BodyMap (mapa corporal) · bodyPaths (su geometría)
   pages/          Hoy · Calendario · Cuerpo · Descanso · Rutinas · RoutineEditor ·
                   Progression · Semana · Historial · Ajustes
 ```
@@ -181,7 +183,12 @@ ciclos. `catalog.validate()` lo comprueba y los tests de `test_schema.py` lo bli
   no cambia.
 - Ruff con `line-length = 100`. `N812`, `N818` y `B008` están ignoradas a propósito, con el
   motivo documentado en `pyproject.toml`.
-- El frontend usa CSS plano con variables: cinco pantallas no justifican un framework.
+- El frontend usa CSS plano con variables: diez pantallas no justifican un framework. Un
+  tema declara **nueve colores** y el resto se deriva con `color-mix`; los iconos son
+  trazados propios. **Inter para el texto, IBM Plex Mono para toda cifra**: kilos,
+  repeticiones y tiempos se comparan en columna, y con la proporcional hay que leerlos uno
+  a uno. Cómo está montado y por qué, en
+  [docs/04-sistema-visual.md](docs/04-sistema-visual.md).
 - El mapa corporal es **datos, no lógica**: la geometría vive en
   `components/bodyPaths.ts` y `BodyMap.tsx` solo la pinta. Cada zona es un conjunto de
   trazados asociado a un `svg_key` del catálogo, y el estado (tier, halo de actividad,

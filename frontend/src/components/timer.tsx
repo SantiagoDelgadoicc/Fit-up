@@ -15,6 +15,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link, useLocation } from "react-router-dom";
 
+import { Icon } from "./icons";
+
 const KEY = "fitup.timer";
 
 /** Presets de reserva mientras no se han leído los ajustes. */
@@ -277,7 +279,7 @@ export function TimerPill() {
 
   return (
     <Link className="timer-pill" to="/descanso" data-phase={timer.phase}>
-      <span aria-hidden="true">{timer.phase === "done" ? "🔔" : "⏱"}</span>
+      <Icon name={timer.phase === "done" ? "campana" : "descanso"} />
       <span className="timer-pill-clock">{formatClock(timer.remaining)}</span>
     </Link>
   );
