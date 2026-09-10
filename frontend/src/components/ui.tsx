@@ -127,6 +127,44 @@ export function describePlanned(exercise: PlannedExercise): string {
   return uniform ? `${work.length}×${one(first)}` : work.map(one).join(" / ");
 }
 
+/**
+ * El plan de un ejercicio partido en las tres columnas de la tabla.
+ *
+ * Cuando las series no son uniformes **no se promedia nada**: el objetivo
+ * lleva la descripción entera y la carga se queda vacía. Un número inventado
+ * en la columna «Carga» sería peor que un hueco, porque parecería un dato.
+ */
+export function plannedColumns(exercise: PlannedExercise): {
+  series: string;
+  objetivo: string;
+  carga: string | null;
+} {
+  const work = exercise.sets.filter((s) => !s.is_warmup);
+  const first = work[0];
+  if (!first) return { series: "—", objetivo: "sin series", carga: null };
+
+  const uniform = work.every(
+    (s) =>
+      s.target_reps === first.target_reps &&
+      s.target_time_s === first.target_time_s &&
+      s.target_weight_kg === first.target_weight_kg &&
+      s.to_failure === first.to_failure,
+  );
+  const series = String(work.length);
+  if (!uniform) return { series, objetivo: describePlanned(exercise), carga: null };
+
+  // Al fallo no lleva objetivo: o se llega al fallo, o se llega al número.
+  const objetivo = first.to_failure
+    ? "al fallo"
+    : first.target_time_s != null
+      ? `${first.target_time_s} s`
+      : first.target_reps != null
+        ? String(first.target_reps)
+        : "—";
+
+  return { series, objetivo, carga: first.target_weight_kg ? `${first.target_weight_kg} kg` : null };
+}
+
 export function describePerformed(exercise: PerformedExercise): string {
   const work = exercise.sets.filter((s) => !s.is_warmup && s.completed);
   if (work.length === 0) return "sin series completadas";

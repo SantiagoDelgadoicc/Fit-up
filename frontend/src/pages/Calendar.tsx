@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { localDate } from "../api/client";
 import type { Calendar as CalendarData, DayState } from "../api/client";
@@ -48,11 +49,17 @@ const LEGEND: DayState[] = ["done", "partial", "pending", "missed", "extra", "ex
 
 export default function CalendarPage() {
   const today = localDate();
+  // La tira de semana de la barra de mando enlaza con `?dia=`: entrar por ahí
+  // tiene que abrir ese día, no el de hoy.
+  const [params] = useSearchParams();
+  const pedido = params.get("dia");
+  const inicial = pedido && /^\d{4}-\d{2}-\d{2}$/.test(pedido) ? pedido : today;
+
   const [cursor, setCursor] = useState(() => {
-    const [y, m] = today.split("-").map(Number);
+    const [y, m] = inicial.split("-").map(Number);
     return { year: y!, month: m! };
   });
-  const [selected, setSelected] = useState<string | null>(today);
+  const [selected, setSelected] = useState<string | null>(inicial);
 
   const month = useCalendar(cursor.year, cursor.month);
 
