@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import type { RoutineReadiness } from "../api/client";
 
 import { useArchiveRoutine, useReadiness, useRoutines } from "../api/hooks";
+import { Icon } from "../components/icons";
 import { Empty, ErrorCard, Loading, useToast } from "../components/ui";
 
 export default function Routines() {
@@ -26,13 +27,14 @@ export default function Routines() {
       <header className="page-head">
         <h1>Rutinas</h1>
         <Link className="btn btn-primary btn-sm" to="/rutinas/nueva">
-          + Nueva
+          <Icon name="mas" />
+          Nueva
         </Link>
       </header>
 
       {list.length === 0 ? (
         <div className="card">
-          <Empty icon="📋">
+          <Empty icon="rutinas">
             <p style={{ margin: 0 }}>Todavía no has creado ninguna rutina.</p>
             <p className="faint">Crea una y asígnala a los días de la semana.</p>
           </Empty>
@@ -52,7 +54,7 @@ export default function Routines() {
                   </div>
                   {ready.has(routine.id) && (
                     <span className="badge" data-outcome="ready" style={{ marginTop: 8 }}>
-                      <span aria-hidden="true">🟢</span>
+                      <Icon name="sube" />
                       {readyLabel(ready.get(routine.id)!)}
                     </span>
                   )}

@@ -15,6 +15,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import type { Exercise, Rule, RoutineInput } from "../api/client";
 import { useExercises, useRoutine, useRules, useSaveRoutine } from "../api/hooks";
+import { Icon } from "../components/icons";
 import { ErrorCard, Loading, useToast } from "../components/ui";
 
 type Draft = {
@@ -227,11 +228,22 @@ function ExerciseRow({
       <div className="row">
         <strong>{exercise?.name ?? item.slug}</strong>
         <div className="spacer" />
-        <button className="btn btn-sm btn-ghost" onClick={() => onMove(-1)} disabled={first}>
-          ↑
+        {/* Solo icono: la flecha necesita nombre para el lector de pantalla. */}
+        <button
+          className="btn btn-sm btn-ghost"
+          onClick={() => onMove(-1)}
+          disabled={first}
+          aria-label="Subir el ejercicio"
+        >
+          <Icon name="flecha-arriba" />
         </button>
-        <button className="btn btn-sm btn-ghost" onClick={() => onMove(1)} disabled={last}>
-          ↓
+        <button
+          className="btn btn-sm btn-ghost"
+          onClick={() => onMove(1)}
+          disabled={last}
+          aria-label="Bajar el ejercicio"
+        >
+          <Icon name="flecha-abajo" />
         </button>
         <button className="btn btn-sm btn-ghost btn-danger" onClick={onRemove}>
           Quitar

@@ -100,7 +100,7 @@ export default function Progression() {
       <section className="stack">
         {items.length === 0 ? (
           <div className="card">
-            <Empty icon="📋">
+            <Empty icon="rutinas">
               <p style={{ margin: 0 }}>Esta rutina no tiene ejercicios.</p>
             </Empty>
           </div>

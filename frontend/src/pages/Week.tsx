@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useRoutines, useSaveWeek, useWeek } from "../api/hooks";
+import { Icon } from "../components/icons";
 import { ErrorCard, Loading, useToast, weekdayName } from "../components/ui";
 
 /** weekday → rutinas de ese día, en orden (primero la de la mañana). */
@@ -109,7 +110,8 @@ export default function Week() {
                     onClick={() => anadir(weekday)}
                     aria-label={`Añadir otra rutina el ${weekdayName(weekday)}`}
                   >
-                    + Otra
+                    <Icon name="mas" />
+                    Otra
                   </button>
                 )}
               </div>

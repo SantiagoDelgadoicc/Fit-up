@@ -30,7 +30,7 @@ export default function History() {
 
       {list.length === 0 ? (
         <div className="card">
-          <Empty icon="📖">
+          <Empty icon="historial">
             <p style={{ margin: 0 }}>Aún no hay entrenamientos registrados.</p>
           </Empty>
         </div>
@@ -69,7 +69,7 @@ function SessionCard({
 
   return (
     <div className="card card-flush">
-      <div style={{ padding: "14px 16px" }}>
+      <div className="card-head">
         <div className="row">
           <div>
             <strong>{session.routine_name ?? "Entrenamiento libre"}</strong>

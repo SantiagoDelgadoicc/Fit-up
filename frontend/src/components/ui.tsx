@@ -3,6 +3,9 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { Icon } from "./icons";
+import type { IconName } from "./icons";
+
 import type {
   DayState,
   PlannedExercise,
@@ -14,26 +17,44 @@ import type {
 /* ------------------------------------------------------------- Estados */
 
 /**
- * Cada estado lleva icono **y** color. Depender solo del color dejaría la app
- * inservible para quien no los distinga, y peor aún: `pending` y `missed`
- * significan cosas opuestas y no pueden confundirse.
+ * Cada estado lleva **forma** y color, no solo color. Depender del color
+ * dejaría la app inservible para quien no lo distinga, y peor aún: `pending`
+ * y `missed` significan cosas opuestas y no pueden confundirse. Por eso cada
+ * uno tiene su propio símbolo —marca, media luna, círculo punteado, aspa— y
+ * no el mismo círculo pintado de otro tono.
  */
-const STATE_META: Record<DayState, { icon: string; label: string }> = {
-  done: { icon: "🟢", label: "Cumplida" },
-  partial: { icon: "🟡", label: "Parcial" },
-  pending: { icon: "🟠", label: "Sin registrar" },
-  missed: { icon: "🔴", label: "No realizada" },
-  rest: { icon: "⚪", label: "Descanso" },
-  extra: { icon: "🔵", label: "Extra" },
-  excused: { icon: "⚫", label: "Excusado" },
+const STATE_META: Record<DayState, { icon: IconName; label: string }> = {
+  done: { icon: "estado-cumplida", label: "Cumplida" },
+  partial: { icon: "estado-parcial", label: "Parcial" },
+  pending: { icon: "estado-pendiente", label: "Sin registrar" },
+  missed: { icon: "estado-fallada", label: "No realizada" },
+  rest: { icon: "estado-descanso", label: "Descanso" },
+  extra: { icon: "estado-extra", label: "Extra" },
+  excused: { icon: "estado-excusado", label: "Excusado" },
 };
 
 export function StateBadge({ state }: { state: DayState }) {
   const meta = STATE_META[state];
   return (
     <span className="badge" data-state={state}>
-      <span aria-hidden="true">{meta.icon}</span>
+      <Icon name={meta.icon} />
       {meta.label}
+    </span>
+  );
+}
+
+/**
+ * El símbolo del estado a secas, sin la píldora: en la celda del calendario y
+ * en la leyenda, donde el nombre ya está escrito al lado o en el `aria-label`.
+ */
+export function StateDot({ state, className }: { state: DayState; className?: string }) {
+  return (
+    <span
+      className={className ? `state-dot ${className}` : "state-dot"}
+      data-state={state}
+      aria-hidden="true"
+    >
+      <Icon name={STATE_META[state].icon} />
     </span>
   );
 }
@@ -114,11 +135,11 @@ export function describePerformed(exercise: PerformedExercise): string {
 
 /* ------------------------------------------------------------- Estados */
 
-export function Empty({ icon, children }: { icon: string; children: ReactNode }) {
+export function Empty({ icon, children }: { icon: IconName; children: ReactNode }) {
   return (
     <div className="empty">
       <span className="empty-icon" aria-hidden="true">
-        {icon}
+        <Icon name={icon} />
       </span>
       {children}
     </div>
@@ -182,18 +203,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
  * sistema no puede saberlo, y es información que el usuario necesita para
  * arreglar lo que falte (una regla, un peso sin registrar).
  */
-const OUTCOME_META: Record<ProgressionOutcome, { icon: string; label: string }> = {
-  ready: { icon: "🟢", label: "Listo para progresar" },
-  not_yet: { icon: "⏳", label: "Todavía no" },
-  undetermined: { icon: "❓", label: "No se puede determinar" },
-  deload_suggested: { icon: "🔻", label: "Conviene descargar" },
+const OUTCOME_META: Record<ProgressionOutcome, { icon: IconName; label: string }> = {
+  ready: { icon: "sube", label: "Listo para progresar" },
+  not_yet: { icon: "espera", label: "Todavía no" },
+  undetermined: { icon: "duda", label: "No se puede determinar" },
+  deload_suggested: { icon: "baja", label: "Conviene descargar" },
 };
 
 export function OutcomeBadge({ outcome }: { outcome: ProgressionOutcome }) {
   const meta = OUTCOME_META[outcome];
   return (
     <span className="badge" data-outcome={outcome}>
-      <span aria-hidden="true">{meta.icon}</span>
+      <Icon name={meta.icon} />
       {meta.label}
     </span>
   );

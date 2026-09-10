@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 
 import { useSetSetting, useSettings } from "../api/hooks";
+import { Icon } from "../components/icons";
 import {
   askNotifications,
   canAskNotifications,
@@ -125,15 +126,18 @@ export default function Timer() {
         <div className="timer-actions">
           {timer.phase === "running" ? (
             <button className="btn btn-hero" onClick={timer.pause}>
-              ⏸ Pausar
+              <Icon name="pausa" />
+              Pausar
             </button>
           ) : timer.phase === "paused" ? (
             <button className="btn btn-primary btn-hero" onClick={timer.resume}>
-              ▶ Reanudar
+              <Icon name="reproducir" />
+              Reanudar
             </button>
           ) : (
             <button className="btn btn-primary btn-hero" onClick={() => timer.start()}>
-              ▶ Empezar
+              <Icon name="reproducir" />
+              Empezar
             </button>
           )}
 
@@ -143,7 +147,8 @@ export default function Timer() {
               onClick={timer.reset}
               disabled={timer.phase === "idle"}
             >
-              ↺ Reiniciar
+              <Icon name="reiniciar" />
+              Reiniciar
             </button>
             <div className="spacer" />
             <button
@@ -151,7 +156,8 @@ export default function Timer() {
               onClick={timer.finish}
               disabled={timer.phase === "idle"}
             >
-              ✕ Finalizar
+              <Icon name="cerrar" />
+              Finalizar
             </button>
           </div>
         </div>

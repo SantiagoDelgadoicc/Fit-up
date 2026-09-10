@@ -19,6 +19,7 @@ import {
   useToday,
 } from "../api/hooks";
 import type { Day, PendingDay, RoutineReadiness } from "../api/client";
+import { Icon } from "../components/icons";
 import { formatPreset, useTimer } from "../components/timer";
 import {
   describePlanned,
@@ -161,7 +162,7 @@ function TodayCard({
   if (day.scheduled.length === 0 && day.extra_sessions.length === 0) {
     return (
       <div className="card">
-        <Empty icon="😴">
+        <Empty icon="luna">
           <p style={{ margin: 0 }}>Hoy no hay rutina programada.</p>
           <p className="faint" style={{ marginBottom: 0 }}>
             <Link to="/semana">Organizar la semana</Link>
@@ -243,7 +244,7 @@ function RoutineCard({
   return (
     <div className="stack">
       <div className="card card-flush">
-        <div style={{ padding: "16px 16px 4px" }}>
+        <div className="card-head">
           <h2>{slot.name}</h2>
           <p className="faint" style={{ margin: "2px 0 10px" }}>
             {reason}
@@ -265,7 +266,8 @@ function RoutineCard({
                   navigate("/descanso");
                 }}
               >
-                ⏱ Descansar {formatPreset(exercise.rest_seconds)}
+                <Icon name="descanso" />
+                Descansar {formatPreset(exercise.rest_seconds)}
               </button>
             ) : null}
           </div>
@@ -277,7 +279,8 @@ function RoutineCard({
         onClick={() => onLog("completed")}
         disabled={busy}
       >
-        ✓ Hice esta rutina
+        <Icon name="marca" />
+        Hice esta rutina
       </button>
 
       <div className="row">
@@ -311,7 +314,8 @@ function PendingCard({
         </div>
         <div className="spacer" />
         <button className="btn btn-sm btn-primary" onClick={onLog} disabled={busy}>
-          ✓ La hice
+          <Icon name="marca" />
+          La hice
         </button>
       </div>
       <p className="tiny muted" style={{ margin: "10px 0 0" }}>

@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useBodyweight } from "../api/hooks";
+import { Icon } from "./icons";
 import { ThemePicker, themeName, useTheme } from "./theme";
 
 export function SettingsBox() {
@@ -54,7 +55,7 @@ export function SettingsBox() {
             <strong>{peso}</strong>
           </div>
           <Link className="ajustes-item" to="/ajustes" onClick={() => setOpen(false)}>
-            <span aria-hidden="true">⚙️</span>
+            <Icon name="ajustes" />
             Ajustes
           </Link>
         </div>
@@ -76,7 +77,7 @@ export function SettingsBox() {
           </small>
         </span>
         <span className="ajustes-chevron" aria-hidden="true">
-          ⌃
+          <Icon name="desplegar" />
         </span>
       </button>
     </div>
